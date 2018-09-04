@@ -48,15 +48,13 @@ class TestClient(unittest.TestCase):
 
         result = json.loads(r.data)
 
-        print(result)
-
         assert 'mapid' in result
 
     def test_get_bathymetry_kustlidar(self):
         input = {
-            "begin_date": "2001-01-01",
             "dataset": "kustlidar",
-            "end_date": "2018-01-01"
+            "end_date": "2018-01-01",
+            "begin_date": "2001-01-01"
         }
 
         r = self.client.get('/get_bathymetry', data=json.dumps(input),
