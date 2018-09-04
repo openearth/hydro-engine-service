@@ -34,16 +34,39 @@ class TestClient(unittest.TestCase):
         logger.debug(r)
         assert r.status_code == 200
 
-    def test_get_bathymetry(self):
+    def test_get_bathymetry_vaklodingen(self):
         input = {
             "dataset": "vaklodingen",
-            "begin_date": "2011-08-01",
-            "end_date": "2011-09-01"
+            "begin_date": "2010-01-01",
+            "end_date": "2015-01-01"
         }
+
         r = self.client.get('/get_bathymetry', data=json.dumps(input),
                             content_type='application/json')
-        logger.debug(r)
+
         assert r.status_code == 200
+
+        result = json.loads(r.data)
+
+        print(result)
+
+        assert 'mapid' in result
+
+    def test_get_bathymetry_kustlidar(self):
+        input = {
+            "begin_date": "2001-01-01",
+            "dataset": "kustlidar",
+            "end_date": "2018-01-01"
+        }
+
+        r = self.client.get('/get_bathymetry', data=json.dumps(input),
+                            content_type='application/json')
+
+        assert r.status_code == 200
+
+        result = json.loads(r.data)
+
+        assert 'mapid' in result
 
     def test_get_raster_profile(self):
         line = '''{

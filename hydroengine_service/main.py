@@ -215,6 +215,7 @@ def api_get_bathymetry():
     """generate bathymetry image for a certain timespan (begin_date, end_date) and a dataset {jetski | vaklodingen | kustlidar}"""
     r = request.get_json()
 
+
     # get info from the request
     dataset = r['dataset']
     begin_date = ee.Date(r['begin_date'])
@@ -256,7 +257,7 @@ def api_get_bathymetry():
 
         """generate url and tokens for image"""
         image = ee.Image(image)
-        m = image.visualize({
+        m = image.visualize(**{
             'min': colorbar_min[dataset],
             'max': colorbar_max[dataset],
             'palette': ['#064273', '#76b6c4', '#7fcdff', '#1da2d8', '#def3f6']
@@ -276,6 +277,7 @@ def api_get_bathymetry():
             'url': url
         }
         return result
+
 
     # filter by date
     images = bathymetry[dataset].filterDate(begin_date, end_date)
