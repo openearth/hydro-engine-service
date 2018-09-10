@@ -209,6 +209,62 @@ def api_get_image_urls():
 
     return resp
 
+@app.route('/get_sea_surface_height_time_series', methods=['POST'])
+@flask_cors.cross_origin()
+def get_sea_surface_height_time_series():
+    """generate bathymetry image for a certain timespan (begin_date, end_date) and a dataset {jetski | vaklodingen | kustlidar}"""
+    r = request.get_json()
+
+    # get info from the request
+    dataset = r['region']
+
+    scale = 1000.0
+
+    if 'scale' in r:
+        scale = float(r['scale'])
+
+    region = ee.Geometry(dataset)
+
+    images = ee.ImageCollection("users/fbaart/ssh_grids_v1609")
+
+    def get_time_value(i):
+        t = i.date().millis()
+        mean = i.reduceRegion(ee.Reducer.mean(), region, scale)
+        i = i.set('t', t).set('v', mean.get('b1'))
+
+        return i
+
+    images = images.map(get_time_value)
+
+    times = images.aggregate_array('t').getInfo()
+    values = images.aggregate_array('v').getInfo()
+
+    time_series = { "times": times, "values": values }
+
+    return Response(json.dumps(time_series), status=200, mimetype='application/json')
+
+@app.route('/get_sea_surface_height_trend_image', methods=['GET', 'POST'])
+@flask_cors.cross_origin()
+def get_sea_surface_height_trend_image():
+    """generate bathymetry image for a certain timespan (begin_date, end_date) and a dataset {jetski | vaklodingen | kustlidar}"""
+    r = request.get_json()
+
+    image = ee.Image('users/fbaart/ssh-trend-map')
+
+    image = image.visualize(**{ 'bands': ['time'], 'min': -0.03, 'max': 0.03, 'palette': ["151d44", "156c72", "7eb390", "fdf5f4", "db8d77", "9c3060", "340d35"]})
+
+    m = image.getMapId()
+
+    mapid = m.get('mapid')
+    token = m.get('token')
+
+    url = 'https://earthengine.googleapis.com/map/{0}/{{z}}/{{x}}/{{y}}?token={1}'.format(mapid, token)
+
+    response = Response(json.dumps({ 'url': url }), status=200, mimetype='application/json')
+
+    return response
+
+
 @app.route('/get_bathymetry', methods=['GET', 'POST'])
 @flask_cors.cross_origin()
 def api_get_bathymetry():
