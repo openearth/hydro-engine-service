@@ -20,20 +20,6 @@ class TestClient(unittest.TestCase):
         assert r.status_code == 200
         assert 'Welcome' in r.data.decode('utf-8')
 
-    def test_get_image_urls(self):
-        input = {
-            "dataset": "bathymetry_jetski",
-            "begin_date": "2011-08-01",
-            "end_date": "2011-09-01",
-            "step": 30,
-            "interval": 30,
-            "unit": "day"
-        }
-        r = self.client.post('/get_image_urls', data=json.dumps(input),
-                             content_type='application/json')
-        logger.debug(r)
-        assert r.status_code == 200
-
     def test_get_bathymetry_vaklodingen(self):
         input = {
             "dataset": "vaklodingen",
@@ -155,14 +141,42 @@ class TestClient(unittest.TestCase):
                 ]]
             },
             "use_url": false,
-            "start": "2017-01-01",
-            "stop": "2017-06-01"
+            "start": "2010-01-01",
+            "stop": "2016-01-01",
+            "scale": 10
         }'''
 
         r = self.client.post('/get_water_mask', data=request,
                              content_type='application/json')
 
         assert r.status_code == 200
+
+        print(r.data)
+
+    def test_get_water_mask_network(self):
+        request = '''{
+            "region": {
+                "geodesic": false,
+                "type": "Polygon",
+                "coordinates": [[
+                    [5.986862182617186, 52.517369933821186],
+                    [6.030635833740234, 52.517369933821186],
+                    [6.030635833740234, 52.535439735112924],
+                    [5.986862182617186, 52.535439735112924],
+                    [5.986862182617186, 52.517369933821186]
+                ]]
+            },
+            "start": "2010-01-01",
+            "stop": "2016-01-01",
+            "scale": 8
+        }'''
+
+        r = self.client.post('/get_water_mask_network', data=request,
+                             content_type='application/json')
+
+        assert r.status_code == 200
+
+        print(r.data)
 
     def test_get_raster(self):
         r = self.client.get('/')

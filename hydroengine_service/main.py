@@ -42,16 +42,17 @@ app.register_blueprint(error_handler.error_handler)
 
 # if 'privatekey.json' is defined in environmental variable - write it to file
 if 'key' in os.environ:
-  print('Writing privatekey.json from environmental variable ...')
-  content = base64.b64decode(os.environ['key']).decode('ascii')
+    print('Writing privatekey.json from environmental variable ...')
+    content = base64.b64decode(os.environ['key']).decode('ascii')
 
-  with open(config.EE_PRIVATE_KEY_FILE, 'w') as f:
-    f.write(content)
+    with open(config.EE_PRIVATE_KEY_FILE, 'w') as f:
+        f.write(content)
 
 # Initialize the EE API.
 # Use our App Engine service account's credentials.
 EE_CREDENTIALS = ee.ServiceAccountCredentials(config.EE_ACCOUNT,
                                               config.EE_PRIVATE_KEY_FILE)
+
 ee.Initialize(EE_CREDENTIALS)
 
 # HydroBASINS level 5
@@ -80,6 +81,7 @@ bathymetry = {
 index = ee.FeatureCollection('users/gena/HydroEngine/hybas_lev06_v1c_index')
 
 monthly_water = ee.ImageCollection('JRC/GSW1_0/MonthlyHistory')
+
 
 def get_upstream_catchments(level):
     if level != 6:
@@ -129,10 +131,12 @@ def reduceImageProfile(image, line, reducer, scale):
 
     return image.reduceRegions(lines, reducer.setOutputs(band_names), scale)
 
+
 @app.route('/get_image_urls', methods=['GET', 'POST'])
 @flask_cors.cross_origin()
 def api_get_image_urls():
-    logger.warn('get_image_urls is no longer supported, please update to get_bathymetry')
+    logger.warn(
+        'get_image_urls is no longer supported, please update to get_bathymetry')
     r = request.get_json()
     dataset = r[
         'dataset']  # bathymetry_jetski | bathymetry_vaklodingen | dem_srtm | ...
@@ -147,7 +151,6 @@ def api_get_image_urls():
     # TODO: let t_count be dependent on begin_date - end_date
     # TODO: Make option for how the interval is chosen (now only forward)
     t_count = 10
-
 
     rasters = {
         'bathymetry_jetski': bathymetry['jetski'],
@@ -209,6 +212,7 @@ def api_get_image_urls():
 
     return resp
 
+
 @app.route('/get_sea_surface_height_time_series', methods=['POST'])
 @flask_cors.cross_origin()
 def get_sea_surface_height_time_series():
@@ -239,9 +243,11 @@ def get_sea_surface_height_time_series():
     times = images.aggregate_array('t').getInfo()
     values = images.aggregate_array('v').getInfo()
 
-    time_series = { "times": times, "values": values }
+    time_series = {"times": times, "values": values}
 
-    return Response(json.dumps(time_series), status=200, mimetype='application/json')
+    return Response(json.dumps(time_series), status=200,
+                    mimetype='application/json')
+
 
 @app.route('/get_sea_surface_height_trend_image', methods=['GET', 'POST'])
 @flask_cors.cross_origin()
@@ -251,16 +257,21 @@ def get_sea_surface_height_trend_image():
 
     image = ee.Image('users/fbaart/ssh-trend-map')
 
-    image = image.visualize(**{ 'bands': ['time'], 'min': -0.03, 'max': 0.03, 'palette': ["151d44", "156c72", "7eb390", "fdf5f4", "db8d77", "9c3060", "340d35"]})
+    image = image.visualize(**{'bands': ['time'], 'min': -0.03, 'max': 0.03,
+                               'palette': ["151d44", "156c72", "7eb390",
+                                           "fdf5f4", "db8d77", "9c3060",
+                                           "340d35"]})
 
     m = image.getMapId()
 
     mapid = m.get('mapid')
     token = m.get('token')
 
-    url = 'https://earthengine.googleapis.com/map/{0}/{{z}}/{{x}}/{{y}}?token={1}'.format(mapid, token)
+    url = 'https://earthengine.googleapis.com/map/{0}/{{z}}/{{x}}/{{y}}?token={1}'.format(
+        mapid, token)
 
-    response = Response(json.dumps({ 'url': url }), status=200, mimetype='application/json')
+    response = Response(json.dumps({'url': url}), status=200,
+                        mimetype='application/json')
 
     return response
 
@@ -311,7 +322,6 @@ def api_get_bathymetry():
         mean_composite = images.reduce(reducer)
         return mean_composite
 
-
     def generate_image_info(image):
         """generate url and tokens for image"""
         image = ee.Image(image)
@@ -335,7 +345,6 @@ def api_get_bathymetry():
             'url': url
         }
         return result
-
 
     # filter by date
     images = bathymetry[dataset].filterDate(begin_date, end_date)
@@ -388,8 +397,8 @@ def api_get_raster_profile():
     return resp
 
 
-@app.route('/get_water_mask', methods=['POST'])
-def api_get_water_mask():
+@app.route('/get_water_mask_', methods=['POST'])
+def api_get_water_mask_():
     """
     Code Editor URL:
     https://code.earthengine.google.com/4dd0b18aa43bfabf4845753dc7c6ba5c
@@ -417,8 +426,8 @@ def api_get_water_mask():
     # remove noise (clouds, shadows) using percentile composite
     image = images \
         .reduce(ee.Reducer.percentile([percentile])) \
-
-    # computer water mask using NDWI
+ \
+        # computer water mask using NDWI
     water_mask = image \
         .normalizedDifference() \
         .gt(ndwi_threshold)
@@ -427,12 +436,12 @@ def api_get_water_mask():
     water_mask_vector = water_mask \
         .mask(water_mask) \
         .reduceToVectors(**{
-            "geometry": region,
-            "scale": scale / 2
-        })
+        "geometry": region,
+        "scale": scale / 2
+    })
 
-    water_mask_vector = water_mask_vector.toList(10000)\
-        .map(lambda f: ee.Feature(f).simplify(scale))
+    water_mask_vector = water_mask_vector.toList(10000) \
+        .map(lambda o: ee.Feature(o).simplify(scale))
 
     water_mask_vector = ee.FeatureCollection(water_mask_vector)
 
@@ -444,6 +453,271 @@ def api_get_water_mask():
         data = water_mask_vector.getInfo()
 
     return Response(json.dumps(data), status=200, mimetype='application/json')
+
+
+def get_water_mask_vector(region, scale, start, stop):
+    #  water occurrence(monthly)
+    water_occurrence = monthly_water \
+        .filterDate(start, stop) \
+        .map(lambda i: i.unmask(0).resample('bicubic')) \
+        .map(lambda i: i.eq(2).updateMask(i.neq(0)))
+    water_occurrence = water_occurrence.sum().divide(water_occurrence.count())
+
+    # computer water mask
+    water_mask = water_occurrence.gt(0.3)
+
+    # clean-up
+    water_mask = water_mask \
+        .focal_max(scale * 3, 'circle', 'meters') \
+        .focal_mode(scale * 5, 'circle', 'meters', 3)
+
+    # vectorize
+    water_mask_vector = water_mask.mask(water_mask) \
+        .reduceToVectors(**{"geometry": region,
+                            "scale": scale / 2,
+                            "tileScale": 4})
+
+    # take the largest
+    water_mask_vector = water_mask_vector \
+        .map(lambda o: o.set({"area": o.area(scale)}))
+
+    water_mask_vector = ee.Feature(
+        water_mask_vector.sort('area', False).first()
+    )
+
+    # simplify
+    water_mask_vector = water_mask_vector.simplify(scale * 2)
+
+    water_mask_vector = ee.FeatureCollection(water_mask_vector)
+
+    return water_mask_vector
+
+
+@app.route('/get_water_mask', methods=['POST', 'GET'])
+def api_get_water_mask():
+    """
+    Code Editor URL: https://code.earthengine.google.com/81a463e6f4c9afc607086ece6de8d163
+    """
+
+    j = request.json
+
+    use_url = j['use_url']
+    region = ee.Geometry(j['region'])
+    start = j['start']
+    stop = j['stop']
+    scale = j['scale']
+
+    water_mask_vector = get_water_mask_vector(region, scale, start, stop)
+
+    # create response
+    if use_url:
+        url = water_mask_vector.getDownloadURL('json')
+        data = {'url': url}
+    else:
+        data = water_mask_vector.getInfo()
+
+    return Response(json.dumps(data), status=200, mimetype='application/json')
+
+
+def generate_perimeter_points(geom, step):
+    """
+    Generates points along interiors and exteriors
+    :param geom:
+    :param step:
+    :return:
+    """
+    error = ee.ErrorMargin(1, 'meters')
+
+    p = geom.perimeter(error)
+
+    n = p.divide(step).int()
+
+    step = p.divide(n)
+
+    # map over exterior and interiors
+    def wrap_ring(coords):
+        ring = ee.Geometry.LineString(coords)
+        distances = ee.List.sequence(0, ring.length(error), step)
+
+        return ee.Feature(ring) \
+            .set({"distances": distances}) \
+            .set({"distancesCount": distances.length()})
+
+    rings = geom.coordinates().map(wrap_ring)
+
+    rings = ee.FeatureCollection(rings)
+
+    def generate_points(ring):
+        distances = ring.get('distances')
+        segments = ring.geometry().cutLines(distances).geometries()
+
+        segment_points = \
+            segments.map(lambda g: ee.Feature(ee.Geometry(g).centroid(1)))
+
+        return ee.FeatureCollection(segment_points)
+
+    points = rings \
+        .filter(ee.Filter.gt('distancesCount', 2)) \
+        .map(generate_points) \
+        .flatten()
+
+    return ee.FeatureCollection(points)
+
+
+def generate_voronoi_polygons(points, scale, aoi):
+    """
+    Generates Voronoi polygons
+    :param points:
+    :param scale:
+    :param aoi:
+    :return:
+    """
+
+    error = ee.ErrorMargin(1, 'projected')
+    # proj = ee.Projection('EPSG:3857').atScale(scale)
+    proj = ee.Projection('EPSG:4326').atScale(scale)
+
+    distance = ee.Image(0).float().paint(points, 1) \
+        .fastDistanceTransform().sqrt().clip(aoi) \
+        .reproject(proj)
+
+    concavity = distance.convolve(ee.Kernel.laplacian8()) \
+        .reproject(proj)
+
+    concavity = concavity.multiply(distance)
+
+    concavityTh = 0
+
+    edges = concavity.lt(concavityTh)
+
+    # label connected components
+    connected = edges.Not() \
+        .connectedComponents(ee.Kernel.circle(1), 256) \
+        .clip(aoi.buffer(-scale * 3, scale)) \
+        .focal_max(scale * 3, 'circle', 'meters') \
+        .focal_min(scale * 3, 'circle', 'meters') \
+        .focal_mode(scale * 3, 'circle', 'meters') \
+        .reproject(proj)
+
+    # fixing reduceToVectors() bug, remap to smaller int
+    def fixOverflowError(i):
+        hist = i.reduceRegion(ee.Reducer.frequencyHistogram(), aoi, scale)
+        uniqueLabels = ee.Dictionary(ee.Dictionary(hist).get('labels')).keys() \
+            .map(lambda o: ee.Number.parse(o))
+
+        labels = ee.List.sequence(0, uniqueLabels.size().subtract(1))
+
+        return i.remap(uniqueLabels, labels).rename('labels').int()
+
+    connected = fixOverflowError(connected).reproject(proj)
+
+    polygons = connected.select('labels').reduceToVectors(**{
+        "scale": scale,
+        "crs": proj,
+        "geometry": aoi,
+        "eightConnected": True,
+        "labelProperty": 'labels',
+        "tileScale": 4
+    })
+
+    # polygons = polygons.map(lambda o: o.snap(error, proj))
+
+    return polygons
+
+
+@app.route('/get_water_mask_network', methods=['POST'])
+def get_water_mask_network():
+    """
+    Skeletonizes water mask given boundary, converts it into a network (undirected graph) and generates a feature collection
+    Script: https://code.earthengine.google.com/2e8316e1a95f46bf084d3ea104840fe0
+    """
+
+    j = request.json
+
+    region = ee.Geometry(j['region'])
+    start = j['start']
+    stop = j['stop']
+    scale = j['scale']
+
+    # step between points along perimeter
+    step = scale * 5
+    simplify_centerline_factor = 15
+
+    # get water mask
+    water_vector = get_water_mask_vector(region, scale, start, stop)
+
+    # turn water mask into a skeleton
+    def add_coords_count(o):
+        return ee.Feature(None, {"count": ee.List(o).length(), "values": o})
+
+    c = water_vector.geometry().coordinates()
+    exterior = c.get(0)
+    interior = c.slice(1).map(add_coords_count)
+    interior = ee.FeatureCollection(interior)
+
+    interior = interior.filter(ee.Filter.gt('count', 5))
+
+    interior = interior.toList(10000).map(
+        lambda o: ee.Feature(o).get('values'))
+
+    water_vector = ee.Feature(
+        ee.Geometry.Polygon(ee.List([exterior]).cat(interior)))
+
+    geometry = water_vector.geometry()
+
+    error = ee.ErrorMargin(1, 'meters')
+    # proj = ee.Projection('EPSG:3857').atScale(scale)
+    proj = ee.Projection('EPSG:4326').atScale(scale)
+
+    perimeter_buffer = geometry.difference(geometry.buffer(-scale * 3, error), error)
+
+    points = generate_perimeter_points(geometry, step)
+
+    polygons = generate_voronoi_polygons(points, scale, geometry)
+
+    distFilter = ee.Filter.And(
+        ee.Filter.intersects(**{"leftField": ".geo", "rightField": ".geo"}),
+        ee.Filter.equals(**{"leftField": "labels", "rightField": "labels"}).Not()
+    )
+
+    distSaveAll = ee.Join.saveAll(**{"matchesKey": 'matches'})
+    features = distSaveAll.apply(polygons, polygons, distFilter)
+
+    # find intersection with neighbouring polygons
+    def find_neighbours(ff1):
+        matches = ee.FeatureCollection(ee.List(ff1.get('matches')))
+
+        def find_neighbours2(ff2):
+            i = ff2.intersection(ff1, error, proj)
+            t = i.intersects(perimeter_buffer, error, proj)
+
+            return i.set({"touchesPerimeter": t})
+
+        return matches.map(find_neighbours2)
+
+    features = features.map(find_neighbours).flatten()
+
+    # find a centerline
+    centerline = features.filter(ee.Filter.eq('touchesPerimeter', False))
+
+    centerline = centerline.geometry().dissolve(scale, proj) \
+        .simplify(scale * simplify_centerline_factor, proj)
+
+    centerline = centerline.geometries().map(
+        lambda g: ee.Feature(ee.Geometry(g)))
+
+    centerline = ee.FeatureCollection(centerline)
+
+    centerline = centerline \
+        .map(lambda o: o.set({"type": o.geometry().type()})) \
+        .filter(ee.Filter.eq('type', 'LineString')) \
+        #.map(lambda o: o.transform(ee.Projection('EPSG:4326').atScale(scale)), error)
+
+    # create response
+    data = centerline.getInfo()
+
+    return Response(json.dumps(data), status=200, mimetype='application/json')
+
 
 @app.route('/get_catchments', methods=['GET', 'POST'])
 def api_get_catchments():
@@ -496,7 +770,7 @@ def api_get_rivers():
     if region_filter == 'catchments-upstream':
         # for every selection, get and merge upstream catchments
         selected_catchments = ee.FeatureCollection(
-            selected_catchments.map(get_upstream_catchments(catchment_level)))\
+            selected_catchments.map(get_upstream_catchments(catchment_level))) \
             .flatten().distinct('HYBAS_ID')
 
     # get ids
@@ -504,7 +778,7 @@ def api_get_rivers():
         selected_catchments.aggregate_array('HYBAS_ID'))
 
     logger.debug("Number of catchments: %s" %
-                  repr(upstream_catchment_ids.size().getInfo()))
+                 repr(upstream_catchment_ids.size().getInfo()))
 
     # query rivers
     selected_rivers = rivers \
@@ -513,16 +787,15 @@ def api_get_rivers():
 
     # filter upstream branches
     if 'filter_upstream_gt' in request.json:
-       filter_upstream = int(request.json['filter_upstream_gt'])
-       logger.debug(
-           'Filtering upstream branches, limiting by {0} number of cells'.format(
-               filter_upstream))
-       selected_rivers = selected_rivers.filter(
-           ee.Filter.gte('UP_CELLS', filter_upstream))
+        filter_upstream = int(request.json['filter_upstream_gt'])
+        logger.debug(
+            'Filtering upstream branches, limiting by {0} number of cells'.format(
+                filter_upstream))
+        selected_rivers = selected_rivers.filter(
+            ee.Filter.gte('UP_CELLS', filter_upstream))
 
     logger.debug("Number of river branches: %s"
-                  % selected_rivers.aggregate_count('ARCID').getInfo())
-
+                 % selected_rivers.aggregate_count('ARCID').getInfo())
 
     # BUG in EE? getDownloadURL skips geometry
     # logger.debug('%s' % selected_rivers.limit(1).getInfo())
@@ -714,6 +987,7 @@ def api_get_raster():
 
     data = {'url': url}
     return Response(json.dumps(data), status=200, mimetype='application/json')
+
 
 @app.route('/')
 def root():
