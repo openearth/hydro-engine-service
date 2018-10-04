@@ -467,9 +467,9 @@ def get_water_mask_vector(region, scale, start, stop):
     water_mask = water_occurrence.gt(0.3)
 
     # clean-up
-    water_mask = water_mask \
-        .focal_max(scale * 3, 'circle', 'meters') \
-        .focal_mode(scale * 5, 'circle', 'meters', 3)
+    # water_mask = water_mask \
+    #     .focal_max(scale * 3, 'circle', 'meters') \
+    #     .focal_mode(scale * 5, 'circle', 'meters', 3)
 
     # vectorize
     water_mask_vector = water_mask.mask(water_mask) \
@@ -622,29 +622,18 @@ def generate_voronoi_polygons(points, scale, aoi):
 
     # polygons = polygons.map(lambda o: o.snap(error, proj))
 
-    return polygons
+    return {"polygons": polygons, "distance": distance}
 
 
-@app.route('/get_water_mask_network', methods=['POST'])
-def get_water_mask_network():
-    """
-    Skeletonizes water mask given boundary, converts it into a network (undirected graph) and generates a feature collection
-    Script: https://code.earthengine.google.com/2e8316e1a95f46bf084d3ea104840fe0
-    """
-
-    j = request.json
-
-    region = ee.Geometry(j['region'])
-    start = j['start']
-    stop = j['stop']
-    scale = j['scale']
-
+def generate_skeleton_from_voronoi(scale, water_vector):
     # step between points along perimeter
-    step = scale * 5
+    step = scale * 10
     simplify_centerline_factor = 15
 
-    # get water mask
-    water_vector = get_water_mask_vector(region, scale, start, stop)
+    error = ee.ErrorMargin(1, 'meters')
+
+    # proj = ee.Projection('EPSG:3857').atScale(scale)
+    proj = ee.Projection('EPSG:4326').atScale(scale)
 
     # turn water mask into a skeleton
     def add_coords_count(o):
@@ -652,11 +641,10 @@ def get_water_mask_network():
 
     c = water_vector.geometry().coordinates()
     exterior = c.get(0)
+
     interior = c.slice(1).map(add_coords_count)
     interior = ee.FeatureCollection(interior)
-
     interior = interior.filter(ee.Filter.gt('count', 5))
-
     interior = interior.toList(10000).map(
         lambda o: ee.Feature(o).get('values'))
 
@@ -665,23 +653,30 @@ def get_water_mask_network():
 
     geometry = water_vector.geometry()
 
-    error = ee.ErrorMargin(1, 'meters')
-    # proj = ee.Projection('EPSG:3857').atScale(scale)
-    proj = ee.Projection('EPSG:4326').atScale(scale)
+    geometry_buffer = geometry.buffer(scale * 5, error)
 
-    perimeter_buffer = geometry.difference(geometry.buffer(-scale * 3, error), error)
+    perimeter_geometry = geometry_buffer \
+        .difference(geometry.buffer(scale * 2, error), error)
+
+    geometry = geometry_buffer
 
     points = generate_perimeter_points(geometry, step)
 
-    polygons = generate_voronoi_polygons(points, scale, geometry)
+    output = generate_voronoi_polygons(points, scale, geometry)
 
-    distFilter = ee.Filter.And(
-        ee.Filter.intersects(**{"leftField": ".geo", "rightField": ".geo"}),
-        ee.Filter.equals(**{"leftField": "labels", "rightField": "labels"}).Not()
+    polygons = output["polygons"]
+    distance = output["distance"]
+
+    dist_filter = ee.Filter.And(
+        ee.Filter.intersects(
+            **{"leftField": ".geo", "rightField": ".geo", "maxError": error}),
+        ee.Filter.equals(
+            **{"leftField": "labels", "rightField": "labels"}).Not()
     )
 
-    distSaveAll = ee.Join.saveAll(**{"matchesKey": 'matches'})
-    features = distSaveAll.apply(polygons, polygons, distFilter)
+    dist_save_all = ee.Join.saveAll(**{"matchesKey": 'matches'})
+
+    features = dist_save_all.apply(polygons, polygons, dist_filter)
 
     # find intersection with neighbouring polygons
     def find_neighbours(ff1):
@@ -689,7 +684,7 @@ def get_water_mask_network():
 
         def find_neighbours2(ff2):
             i = ff2.intersection(ff1, error, proj)
-            t = i.intersects(perimeter_buffer, error, proj)
+            t = i.intersects(perimeter_geometry, error, proj)
 
             return i.set({"touchesPerimeter": t})
 
@@ -699,22 +694,117 @@ def get_water_mask_network():
 
     # find a centerline
     centerline = features.filter(ee.Filter.eq('touchesPerimeter', False))
-
     centerline = centerline.geometry().dissolve(scale, proj) \
         .simplify(scale * simplify_centerline_factor, proj)
-
     centerline = centerline.geometries().map(
         lambda g: ee.Feature(ee.Geometry(g)))
-
     centerline = ee.FeatureCollection(centerline)
-
     centerline = centerline \
         .map(lambda o: o.set({"type": o.geometry().type()})) \
         .filter(ee.Filter.eq('type', 'LineString')) \
-        #.map(lambda o: o.transform(ee.Projection('EPSG:4326').atScale(scale)), error)
+        # .map(lambda o: o.transform(ee.Projection('EPSG:4326').atScale(scale)), error)
+
+    return {"centerline": centerline, "distance": distance}
+
+
+@app.route('/get_water_mask_network', methods=['POST'])
+def get_water_mask_network():
+    """
+    Skeletonizes water mask given boundary, converts it into a network (undirected graph) and generates a feature collection
+    Script: https://code.earthengine.google.com/da4dd67e84910ca42c4f82c41e7f9bcb
+    """
+
+    j = request.json
+
+    region = ee.Geometry(j['region'])
+    start = j['start']
+    stop = j['stop']
+    scale = j['scale']
+
+    # get water mask
+    water_vector = get_water_mask_vector(region, scale, start, stop)
+
+    # skeletonize
+    output = generate_skeleton_from_voronoi(scale, water_vector)
+    centerline = output["centerline"]
 
     # create response
     data = centerline.getInfo()
+
+    return Response(json.dumps(data), status=200, mimetype='application/json')
+
+
+@app.route('/get_water_mask_network_properties', methods=['POST'])
+def get_water_mask_network_properties():
+    """
+    Generates variables along water skeleton network polylines.
+    """
+
+    j = request.json
+
+    region = ee.Geometry(j['region'])
+    start = j['start']
+    stop = j['stop']
+    scale = j['scale']
+
+    step = j['step']
+
+    error = ee.ErrorMargin(scale / 2, 'meters')
+
+    if 'network' in j:
+        raise Exception(
+            'TODO: re-using existing networks is not supported yet')
+
+    # get water mask
+    water_vector = get_water_mask_vector(region, scale, start, stop)
+
+    # skeletonize
+    output = generate_skeleton_from_voronoi(scale, water_vector)
+    centerline = output["centerline"]
+    distance = output["distance"]
+
+    # generate width at every chainage
+    centerline = centerline.map(
+        lambda line: line.set("length", line.length(error)))
+
+    short_lines = centerline.filter(ee.Filter.lte('length', step))
+    long_lines = centerline.filter(ee.Filter.gt('length', step))
+
+    def process_line(line):
+        line_length = line.length(error)
+        distances = ee.List.sequence(0, line_length, step)
+        segments = line.geometry().cutLines(distances, error)
+
+        def generate_line_middle_point(pair):
+            pair = ee.List(pair)
+
+            s = ee.Geometry(pair.get(0))
+            chainage = ee.Number(pair.get(1))
+
+            centroid = ee.Geometry.Point(s.coordinates().get(0))
+
+            width = distance.reduceRegion(
+                reducer=ee.Reducer.max(),
+                geometry=centroid,
+                scale=scale)
+
+            return ee.Feature(centroid) \
+                .set("lineId", line.id()) \
+                .set("chainage", chainage) \
+                .set("width", width)
+
+
+        segments = segments.geometries().zip(distances)\
+            .map(generate_line_middle_point)
+
+        return ee.FeatureCollection(segments)
+
+    long_line_points = long_lines.map(process_line).flatten()
+
+    points = long_line_points
+
+    # create response
+    data = points.getInfo()
 
     return Response(json.dumps(data), status=200, mimetype='application/json')
 
