@@ -499,6 +499,11 @@ def get_water_mask_vector(region, scale, start, stop):
     return water_mask_vector
 
 
+def transform_feature(crs, scale):
+    return lambda f: f.transform(ee.Projection(crs).atScale(scale),
+                                 ee.Number(scale).divide(100))
+
+
 @app.route('/get_water_mask', methods=['POST', 'GET'])
 def get_water_mask():
     """
@@ -512,8 +517,11 @@ def get_water_mask():
     start = j['start']
     stop = j['stop']
     scale = j['scale']
+    crs = j['crs']
 
     water_mask_vector = get_water_mask_vector(region, scale, start, stop)
+
+    water_mask_vector = water_mask_vector.map(transform_feature(crs, scale))
 
     # create response
     if use_url:
@@ -727,6 +735,7 @@ def get_water_network():
     start = j['start']
     stop = j['stop']
     scale = j['scale']
+    crs = j['crs']
 
     # get water mask
     water_vector = get_water_mask_vector(region, scale, start, stop)
@@ -734,6 +743,8 @@ def get_water_network():
     # skeletonize
     output = generate_skeleton_from_voronoi(scale, water_vector)
     centerline = output["centerline"]
+
+    centerline = centerline.map(transform_feature(crs, scale))
 
     # create response
     data = centerline.getInfo()
@@ -755,6 +766,8 @@ def get_water_network_properties():
     scale = j['scale']
 
     step = j['step']
+
+    crs = j['crs']
 
     error = ee.ErrorMargin(scale / 2, 'meters')
 
@@ -808,6 +821,8 @@ def get_water_network_properties():
     long_line_points = long_lines.map(process_line).flatten()
 
     points = long_line_points
+
+    points = points.map(transform_feature(crs, scale))
 
     # create response
     data = points.getInfo()
