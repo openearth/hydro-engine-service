@@ -48,6 +48,10 @@ if 'key' in os.environ:
     with open(config.EE_PRIVATE_KEY_FILE, 'w') as f:
         f.write(content)
 
+# used for testing
+if 'key_path' in os.environ:
+    config.EE_PRIVATE_KEY_FILE = os.environ['key_path']
+
 # Initialize the EE API.
 # Use our App Engine service account's credentials.
 EE_CREDENTIALS = ee.ServiceAccountCredentials(config.EE_ACCOUNT,

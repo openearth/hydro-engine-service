@@ -1,14 +1,15 @@
-# TODO: migrate to nose or pytest
+import os
 import json
 import unittest
 import logging
+
+os.environ['key_path'] = '../privatekey.json'
 
 from hydroengine_service import main
 
 # import palettes
 
 logger = logging.getLogger(__name__)
-
 
 class TestClient(unittest.TestCase):
     def setUp(self):
