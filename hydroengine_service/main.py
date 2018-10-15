@@ -401,9 +401,11 @@ def api_get_raster_profile():
     return resp
 
 
-@app.route('/get_water_mask_', methods=['POST'])
-def api_get_water_mask_():
+@app.route('/get_water_mask_raw', methods=['POST'])
+def get_water_mask_raw():
     """
+    Extracts water mask from raw satellite data.
+
     Code Editor URL:
     https://code.earthengine.google.com/4dd0b18aa43bfabf4845753dc7c6ba5c
     """
@@ -498,7 +500,7 @@ def get_water_mask_vector(region, scale, start, stop):
 
 
 @app.route('/get_water_mask', methods=['POST', 'GET'])
-def api_get_water_mask():
+def get_water_mask():
     """
     Code Editor URL: https://code.earthengine.google.com/81a463e6f4c9afc607086ece6de8d163
     """
