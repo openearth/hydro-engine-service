@@ -11,6 +11,7 @@ from hydroengine_service import main
 
 logger = logging.getLogger(__name__)
 
+
 class TestClient(unittest.TestCase):
     def setUp(self):
         main.app.testing = True
@@ -154,7 +155,7 @@ class TestClient(unittest.TestCase):
 
         print(r.data)
 
-    def test_get_water_mask_network(self):
+    def test_get_water_network(self):
         request = '''{
             "region": {
                 "geodesic": false,
@@ -172,14 +173,14 @@ class TestClient(unittest.TestCase):
             "scale": 8
         }'''
 
-        r = self.client.post('/get_water_mask_network', data=request,
+        r = self.client.post('/get_water_network', data=request,
                              content_type='application/json')
 
         assert r.status_code == 200
 
         print(r.data)
 
-    def test_get_water_mask_network_properties(self):
+    def test_get_water_network_properties(self):
         request = '''{
             "region": {
                 "geodesic": false,
@@ -198,7 +199,8 @@ class TestClient(unittest.TestCase):
             "step": 100
         }'''
 
-        r = self.client.post('/get_water_mask_network_properties', data=request,
+        r = self.client.post('/get_water_network_properties',
+                             data=request,
                              content_type='application/json')
 
         assert r.status_code == 200
@@ -218,8 +220,6 @@ class TestClient(unittest.TestCase):
 #    def test_cpt(self):
 #        palette = palettes.pycpt2gee()
 #        assert palette.endswith('faffff')
-
-
 
 
 if __name__ == '__main__':

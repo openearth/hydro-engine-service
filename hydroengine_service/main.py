@@ -713,10 +713,11 @@ def generate_skeleton_from_voronoi(scale, water_vector):
     return {"centerline": centerline, "distance": distance}
 
 
-@app.route('/get_water_mask_network', methods=['POST'])
-def get_water_mask_network():
+@app.route('/get_water_network', methods=['POST'])
+def get_water_network():
     """
-    Skeletonizes water mask given boundary, converts it into a network (undirected graph) and generates a feature collection
+    Skeletonize water mask given boundary, converts it into a network
+    (undirected graph) and generates a feature collection
     Script: https://code.earthengine.google.com/da4dd67e84910ca42c4f82c41e7f9bcb
     """
 
@@ -740,8 +741,8 @@ def get_water_mask_network():
     return Response(json.dumps(data), status=200, mimetype='application/json')
 
 
-@app.route('/get_water_mask_network_properties', methods=['POST'])
-def get_water_mask_network_properties():
+@app.route('/get_water_network_properties', methods=['POST'])
+def get_water_network_properties():
     """
     Generates variables along water skeleton network polylines.
     """
@@ -799,8 +800,7 @@ def get_water_mask_network_properties():
                 .set("chainage", chainage) \
                 .set("width", width)
 
-
-        segments = segments.geometries().zip(distances)\
+        segments = segments.geometries().zip(distances) \
             .map(generate_line_middle_point)
 
         return ee.FeatureCollection(segments)
