@@ -780,17 +780,17 @@ def get_water_network_properties():
 
     # skeletonize
     output = generate_skeleton_from_voronoi(scale, water_vector)
-    centerline = output["centerline"]
-    distance = output["distance"]
+    centerline = ee.FeatureCollection(output["centerline"])
+    distance = ee.Image(output["distance"])
 
-    # generate width at every chainage
+    # generate width at every offset
     centerline = centerline.map(
         lambda line: line.set("length", line.length(error)))
 
     short_lines = centerline.filter(ee.Filter.lte('length', step))
     long_lines = centerline.filter(ee.Filter.gt('length', step))
 
-    def process_line(line):
+    def process_long_line(line):
         line_length = line.length(error)
         distances = ee.List.sequence(0, line_length, step)
         segments = line.geometry().cutLines(distances, error)
@@ -799,28 +799,44 @@ def get_water_network_properties():
             pair = ee.List(pair)
 
             s = ee.Geometry(pair.get(0))
-            chainage = ee.Number(pair.get(1))
+            offset = ee.Number(pair.get(1))
 
             centroid = ee.Geometry.Point(s.coordinates().get(0))
 
-            width = distance.reduceRegion(
-                reducer=ee.Reducer.max(),
-                geometry=centroid,
-                scale=scale)
-
             return ee.Feature(centroid) \
                 .set("lineId", line.id()) \
-                .set("chainage", chainage) \
-                .set("width", width)
+                .set("offset", offset)
 
         segments = segments.geometries().zip(distances) \
             .map(generate_line_middle_point)
 
         return ee.FeatureCollection(segments)
 
-    long_line_points = long_lines.map(process_line).flatten()
+    long_line_points = long_lines.map(process_long_line).flatten()
 
-    points = long_line_points
+    def process_short_line(line):
+        geom = line.geometry(error, 'EPSG:4326')
+
+        geom = ee.Geometry.Point(geom.coordinates().get(0), 'EPSG:4326')
+
+        return ee.Feature(geom) \
+            .set("lineId", line.id()) \
+            .set("offset", 0) \
+
+    short_line_points = short_lines.map(process_short_line)
+
+    points = long_line_points.merge(short_line_points)
+
+    def add_width(pt):
+        width = distance.reduceRegion(
+            reducer=ee.Reducer.max(),
+            geometry=pt.geometry(),
+            scale=scale).values().get(0)
+
+        return pt \
+            .set("width", ee.Number(width).multiply(scale).multiply(2))
+
+    points = points.map(add_width)
 
     points = points.map(transform_feature(crs, scale))
 
