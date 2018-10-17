@@ -473,9 +473,9 @@ def get_water_mask_vector(region, scale, start, stop):
     water_mask = water_occurrence.gt(0.3)
 
     # clean-up
-    # water_mask = water_mask \
+    water_mask = water_mask \
     #     .focal_max(scale * 3, 'circle', 'meters') \
-    #     .focal_mode(scale * 5, 'circle', 'meters', 3)
+        .focal_mode(scale * 3, 'circle', 'meters')
 
     # vectorize
     water_mask_vector = water_mask.mask(water_mask) \
@@ -492,7 +492,7 @@ def get_water_mask_vector(region, scale, start, stop):
     )
 
     # simplify
-    water_mask_vector = water_mask_vector.simplify(scale * 2)
+    water_mask_vector = water_mask_vector.simplify(scale * 1.5)
 
     water_mask_vector = ee.FeatureCollection(water_mask_vector)
 
@@ -607,10 +607,10 @@ def generate_voronoi_polygons(points, scale, aoi):
     # label connected components
     connected = edges.Not() \
         .connectedComponents(ee.Kernel.circle(1), 256) \
-        .clip(aoi.buffer(-scale * 3, scale)) \
+        .clip(aoi) \
         .focal_max(scale * 3, 'circle', 'meters') \
         .focal_min(scale * 3, 'circle', 'meters') \
-        .focal_mode(scale * 3, 'circle', 'meters') \
+        .focal_mode(scale * 5, 'circle', 'meters') \
         .reproject(proj)
 
     # fixing reduceToVectors() bug, remap to smaller int
@@ -667,10 +667,10 @@ def generate_skeleton_from_voronoi(scale, water_vector):
 
     geometry = water_vector.geometry()
 
-    geometry_buffer = geometry.buffer(scale * 5, error)
+    geometry_buffer = geometry.buffer(scale * 4, error)
 
     perimeter_geometry = geometry_buffer \
-        .difference(geometry.buffer(scale * 2, error), error)
+        .difference(geometry_buffer.buffer(-scale * 2, error), error)
 
     geometry = geometry_buffer
 
@@ -699,15 +699,17 @@ def generate_skeleton_from_voronoi(scale, water_vector):
         def find_neighbours2(ff2):
             i = ff2.intersection(ff1, error, proj)
             t = i.intersects(perimeter_geometry, error, proj)
+            m = i.intersects(geometry, error, proj)
 
-            return i.set({"touchesPerimeter": t})
+            return i.set({"touchesPerimeter": t}).set({"intersectsWithMask": m})
 
         return matches.map(find_neighbours2)
 
     features = features.map(find_neighbours).flatten()
 
     # find a centerline
-    centerline = features.filter(ee.Filter.eq('touchesPerimeter', False))
+    f = ee.Filter.And(ee.Filter.eq('touchesPerimeter', False), ee.Filter.eq('intersectsWithMask', True))
+    centerline = features.filter(f)
     centerline = centerline.geometry().dissolve(scale, proj) \
         .simplify(scale * simplify_centerline_factor, proj)
     centerline = centerline.geometries().map(
@@ -743,6 +745,8 @@ def get_water_network():
     # skeletonize
     output = generate_skeleton_from_voronoi(scale, water_vector)
     centerline = output["centerline"]
+
+    centerline = centerline.map(lambda line: line.set('length', line.length(scale / 10)))
 
     centerline = centerline.map(transform_feature(crs, scale))
 
