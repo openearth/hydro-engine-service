@@ -474,7 +474,6 @@ def get_water_mask_vector(region, scale, start, stop):
 
     # clean-up
     water_mask = water_mask \
-    #     .focal_max(scale * 3, 'circle', 'meters') \
         .focal_mode(scale * 3, 'circle', 'meters')
 
     # vectorize
@@ -701,14 +700,16 @@ def generate_skeleton_from_voronoi(scale, water_vector):
             t = i.intersects(perimeter_geometry, error, proj)
             m = i.intersects(geometry, error, proj)
 
-            return i.set({"touchesPerimeter": t}).set({"intersectsWithMask": m})
+            return i.set({"touchesPerimeter": t}).set(
+                {"intersectsWithMask": m})
 
         return matches.map(find_neighbours2)
 
     features = features.map(find_neighbours).flatten()
 
     # find a centerline
-    f = ee.Filter.And(ee.Filter.eq('touchesPerimeter', False), ee.Filter.eq('intersectsWithMask', True))
+    f = ee.Filter.And(ee.Filter.eq('touchesPerimeter', False),
+                      ee.Filter.eq('intersectsWithMask', True))
     centerline = features.filter(f)
     centerline = centerline.geometry().dissolve(scale, proj) \
         .simplify(scale * simplify_centerline_factor, proj)
@@ -746,7 +747,8 @@ def get_water_network():
     output = generate_skeleton_from_voronoi(scale, water_vector)
     centerline = output["centerline"]
 
-    centerline = centerline.map(lambda line: line.set('length', line.length(scale / 10)))
+    centerline = centerline.map(
+        lambda line: line.set('length', line.length(scale / 10)))
 
     centerline = centerline.map(transform_feature(crs, scale))
 
@@ -825,11 +827,23 @@ def get_water_network_properties():
 
         return ee.Feature(geom) \
             .set("lineId", line.id()) \
-            .set("offset", 0) \
+            .set("offset", 0)
 
     short_line_points = short_lines.map(process_short_line)
 
     points = long_line_points.merge(short_line_points)
+
+    fa = ee.Image('WWF/HydroSHEDS/15ACC')
+    dem = ee.Image('JAXA/ALOS/AW3D30_V1_1').select('MED')
+
+    def add_flow_accumulation(pt):
+        flow_accumulation = fa.reduceRegion(
+            reducer=ee.Reducer.max(),
+            geometry=pt.geometry().buffer(scale * 10),
+            scale=scale).values().get(0)
+
+        return pt \
+            .set("flow_accumulation", ee.Number(flow_accumulation))
 
     def add_width(pt):
         width = distance.reduceRegion(
@@ -840,7 +854,18 @@ def get_water_network_properties():
         return pt \
             .set("width", ee.Number(width).multiply(scale).multiply(2))
 
+    def add_elevation(pt):
+        elevation = dem.reduceRegion(
+            reducer=ee.Reducer.median(),
+            geometry=pt.geometry().buffer(scale * 10),
+            scale=scale).values().get(0)
+
+        return pt \
+            .set("elevation", ee.Number(elevation))
+
     points = points.map(add_width)
+    points = points.map(add_elevation)
+    points = points.map(add_flow_accumulation)
 
     points = points.map(transform_feature(crs, scale))
 
