@@ -1074,6 +1074,30 @@ def api_get_lake_time_series():
                     mimetype='application/json')
 
 
+@app.route('/get_feature_collection', methods=['GET', 'POST'])
+def api_get_feature_collection():
+    region = ee.Geometry(request.json['region'])
+
+    asset = request.json['asset']
+
+    features = ee.FeatureCollection(asset)
+
+    region_feature = ee.Feature(region)
+
+    # clip
+    def clip_feature(feature):
+        return feature.intersection(region_feature)
+
+    features = features.filterBounds(region)\
+        .map(clip_feature)
+
+    data = features.getInfo()
+
+    str = json.dumps(data)
+
+    return Response(str, status=200, mimetype='application/json')
+
+
 @app.route('/get_raster', methods=['GET', 'POST'])
 def api_get_raster():
     variable = request.json['variable']
@@ -1122,7 +1146,9 @@ def api_get_raster():
         'LAI09': 'users/gena/HydroEngine/static/LAI/LAI00000-009',
         'LAI10': 'users/gena/HydroEngine/static/LAI/LAI00000-010',
         'LAI11': 'users/gena/HydroEngine/static/LAI/LAI00000-011',
-        'LAI12': 'users/gena/HydroEngine/static/LAI/LAI00000-012'
+        'LAI12': 'users/gena/HydroEngine/static/LAI/LAI00000-012',
+        'thickness-NASA': 'users/huite/GlobalThicknessNASA/average_soil_and_sedimentary-deposit_thickness',
+        'thickness-SoilGrids': 'users/huite/SoilGrids/AbsoluteDepthToBedrock__cm',
     }
 
     if variable == 'hand':

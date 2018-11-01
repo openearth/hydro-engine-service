@@ -137,6 +137,21 @@ class TestClient(unittest.TestCase):
         # assert r.status_code == 200
         # assert 'Welcome' in r.data.decode('utf-8')
 
+    def test_get_feature_collection(self):
+        request = '''{
+            "region":
+                {"type": "Polygon", "coordinates":
+                    [[[5.995833, 4.387513999999975], [7.704733999999998, 4.387513999999975],
+                      [7.704733999999998, 7.925567000000025], [5.995833, 7.925567000000025],
+                      [5.995833, 4.387513999999975]]]},
+            "asset": "users/gena/HydroEngine/riv_15s_lev06"
+        }'''
+
+        r = self.client.get('/get_feature_collection', data=request,
+                            content_type='application/json')
+
+        assert r.status_code == 200
+
 
 # class TestPalettes(unittest.TestCase):
 #    def test_cpt(self):
