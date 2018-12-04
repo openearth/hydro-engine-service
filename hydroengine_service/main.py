@@ -326,13 +326,26 @@ def api_get_bathymetry():
         mean_composite = images.reduce(reducer)
         return mean_composite
 
+    image_min = colorbar_min[dataset]
+    image_max = colorbar_min[dataset]
+    image_palette = palettes[dataset]
+
+    if 'min' in r:
+        image_min = r['min']
+
+    if 'max' in r:
+        image_min = r['max']
+
+    if 'palette' in r:
+        image_palette = r['palette']
+
     def generate_image_info(image):
         """generate url and tokens for image"""
         image = ee.Image(image)
         m = image.visualize(**{
-            'min': colorbar_min[dataset],
-            'max': colorbar_max[dataset],
-            'palette': palettes[dataset]
+            'min': image_min,
+            'max': image_max,
+            'palette': image_palette
         }).getMapId()
 
         mapid = m.get('mapid')
@@ -361,6 +374,7 @@ def api_get_bathymetry():
 
     info['begin'] = r['begin_date']
     info['end'] = r['end_date']
+    info['palette'] = image_palette
 
     resp = Response(json.dumps(info), status=200, mimetype='application/json')
     return resp

@@ -38,6 +38,27 @@ class TestClient(unittest.TestCase):
 
         assert 'mapid' in result
 
+    def test_get_bathymetry_vaklodingen_custom_palette(self):
+        palette = "#064273,#76b6c4"
+
+        input = {
+            "dataset": "vaklodingen",
+            "begin_date": "2010-01-01",
+            "end_date": "2015-01-01",
+            "palette": palette
+        }
+
+        r = self.client.get('/get_bathymetry', data=json.dumps(input),
+                            content_type='application/json')
+
+        assert r.status_code == 200
+
+        result = json.loads(r.data)
+
+        assert 'mapid' in result
+
+        assert result['palette'] == palette
+
     def test_get_bathymetry_kustlidar(self):
         input = {
             "dataset": "kustlidar",
