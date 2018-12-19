@@ -237,11 +237,7 @@ def get_sea_surface_height_time_series():
 
     def get_time_value(i):
         t = i.date().millis()
-        mean = i.getRegion(
-            geometry=region,
-            scale=scale,
-            crs='EPSG:4326'
-        )
+        mean = i.reduceRegion(ee.Reducer.mean(), region, scale)
         i = i.set('t', t).set('v', mean.get('b1'))
 
         return i
