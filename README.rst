@@ -3,19 +3,19 @@ hydroengine-service
 ===================
 
 
-.. image:: https://img.shields.io/pypi/v/hydroengine_service.svg
-        :target: https://pypi.python.org/pypi/hydroengine_service
+.. image:: https://img.shields.io/pypi/v/hydroengine.svg
+        :target: https://pypi.python.org/pypi/hydroengine
 
-.. image:: https://img.shields.io/travis/openearth/hydroengine_service.svg
-        :target: https://travis-ci.org/openearth/hydroengine_service
+.. image:: https://img.shields.io/travis/openearth/hydro-engine-service.svg
+        :target: https://travis-ci.org/openearth/hydro-engine-service
 
 .. image:: https://readthedocs.org/projects/hydroengine-service/badge/?version=latest
         :target: https://hydroengine-service.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
 
-.. image:: https://pyup.io/repos/github/openearth/hydroengine_service/shield.svg
-     :target: https://pyup.io/repos/github/openearth/hydroengine_service/
+.. image:: https://pyup.io/repos/github/openearth/hydro-engine-service/shield.svg
+     :target: https://pyup.io/repos/github/openearth/hydro-engine-service/
      :alt: Updates
 
 
