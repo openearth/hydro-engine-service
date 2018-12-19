@@ -5,7 +5,7 @@ python:
   - 3.6
 
 # Command to install dependencies
-install: pip install -r requirements.txt --use-mirrors
+install: pip install -r requirements.txt 
 
 # Command to run tests, e.g. python setup.py test
 script: tox
