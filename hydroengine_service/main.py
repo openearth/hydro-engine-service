@@ -92,7 +92,7 @@ def get_upstream_catchments(level):
         raise Exception(
             'Currently, only level 6 is supported for upstream catchments')
 
-    def _get_upstream_catchments(basin_source) -> ee.FeatureCollection:
+    def _get_upstream_catchments(basin_source)  -> ee.FeatureCollection:
         hybas_id = ee.Number(basin_source.get('HYBAS_ID'))
         upstream_ids = index.filter(
             ee.Filter.eq('hybas_id', hybas_id)).aggregate_array('parent_from')

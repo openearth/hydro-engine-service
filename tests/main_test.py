@@ -164,8 +164,10 @@ class TestClient(unittest.TestCase):
                 ]]
             },
             "use_url": false,
-            "start": "2017-01-01",
-            "stop": "2017-06-01"
+            "start": "2013-01-01",
+            "stop": "2015-01-01",
+            "scale": 30,
+            "crs": "EPSG:3857"
         }'''
 
         r = self.client.post('/get_water_mask', data=request,
