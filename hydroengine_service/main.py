@@ -132,7 +132,7 @@ def reduceImageProfile(image, line, reducer, scale):
 @app.route('/get_image_urls', methods=['GET', 'POST'])
 @flask_cors.cross_origin()
 def api_get_image_urls():
-    logger.warn('get_image_urls is no longer supported, please update to get_bathymetry')
+    logger.warning('get_image_urls is no longer supported, please update to get_bathymetry')
     r = request.get_json()
     dataset = r[
         'dataset']  # bathymetry_jetski | bathymetry_vaklodingen | dem_srtm | ...
@@ -217,35 +217,23 @@ def get_sea_surface_height_time_series():
 
     # get info from the request
     dataset = r['region']
+    print(dataset)
 
-    scale = 1000.0
+    scale = 30
 
     if 'scale' in r:
         scale = float(r['scale'])
 
     region = ee.Geometry(dataset)
-
     images = ee.ImageCollection("users/fbaart/ssh_grids_v1609")
 
-    def get_time_value(i):
-        t = i.date().millis()
-        mean = i.getRegion(
-            geometry=region,
-            scale=scale,
-            crs='EPSG:4326'
-        )
-        i = i.set('t', t).set('v', mean.get('b1'))
+    ssh_list = images.getRegion(region, scale, 'EPSG:4326')
 
-        return i
+    ssh_rows = ssh_list.slice(1).map(
+        lambda x: {'t': ee.List(x).get(3), 'v': ee.List(x).get(4)}
+    )
 
-    images = images.map(get_time_value)
-
-    times = images.aggregate_array('t').getInfo()
-    values = images.aggregate_array('v').getInfo()
-
-    time_series = { "times": times, "values": values }
-
-    return Response(json.dumps(time_series), status=200, mimetype='application/json')
+    return Response(json.dumps(ssh_rows.getInfo()), status=200, mimetype='application/json')
 
 @app.route('/get_sea_surface_height_trend_image', methods=['GET', 'POST'])
 @flask_cors.cross_origin()

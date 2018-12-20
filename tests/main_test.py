@@ -164,22 +164,19 @@ class TestClient(unittest.TestCase):
 
         assert r.status_code == 200
 
-    def test_get_raster(self):
-        r = self.client.get('/')
+    def test_get_sea_surface_height_time_series(self):
+        """test sea surface height timeseries"""
+        request = '''{
+        "region": {"type": "Point", "coordinates": [54.0, 0.0]}
+        }
+        '''
+
+        r = self.client.post(
+            '/get_sea_surface_height_time_series',
+            data=request,
+            content_type='application/json'
+        )
         assert r.status_code == 200
-
-        # r = client.get('/get_catchments')
-        # assert r.status_code == 200
-        # assert 'Welcome' in r.data.decode('utf-8')
-
-
-# class TestPalettes(unittest.TestCase):
-#    def test_cpt(self):
-#        palette = palettes.pycpt2gee()
-#        assert palette.endswith('faffff')
-
-
-
 
 if __name__ == '__main__':
     unittest.main()
