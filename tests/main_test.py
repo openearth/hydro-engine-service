@@ -1,7 +1,9 @@
-# TODO: migrate to nose or pytest
+import os
 import json
 import unittest
 import logging
+
+from . import auth
 
 from hydroengine_service import main
 
@@ -20,20 +22,6 @@ class TestClient(unittest.TestCase):
         assert r.status_code == 200
         assert 'Welcome' in r.data.decode('utf-8')
 
-    def test_get_image_urls(self):
-        input = {
-            "dataset": "bathymetry_jetski",
-            "begin_date": "2011-08-01",
-            "end_date": "2011-09-01",
-            "step": 30,
-            "interval": 30,
-            "unit": "day"
-        }
-        r = self.client.post('/get_image_urls', data=json.dumps(input),
-                             content_type='application/json')
-        logger.debug(r)
-        assert r.status_code == 200
-
     def test_get_bathymetry_vaklodingen(self):
         input = {
             "dataset": "vaklodingen",
@@ -49,6 +37,27 @@ class TestClient(unittest.TestCase):
         result = json.loads(r.data)
 
         assert 'mapid' in result
+
+    def test_get_bathymetry_vaklodingen_custom_palette(self):
+        palette = "#064273,#76b6c4"
+
+        input = {
+            "dataset": "vaklodingen",
+            "begin_date": "2010-01-01",
+            "end_date": "2015-01-01",
+            "palette": palette
+        }
+
+        r = self.client.get('/get_bathymetry', data=json.dumps(input),
+                            content_type='application/json')
+
+        assert r.status_code == 200
+
+        result = json.loads(r.data)
+
+        assert 'mapid' in result
+
+        assert result['palette'] == palette
 
     def test_get_bathymetry_kustlidar(self):
         input = {
