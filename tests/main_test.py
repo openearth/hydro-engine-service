@@ -150,35 +150,42 @@ class TestClient(unittest.TestCase):
 
         assert r.status_code == 200
 
-    def test_get_raster(self):
-        r = self.client.get('/')
-        assert r.status_code == 200
-
-        # r = client.get('/get_catchments')
-        # assert r.status_code == 200
-        # assert 'Welcome' in r.data.decode('utf-8')
-
-    def test_get_feature_collection(self):
+    def test_get_water_mask(self):
         request = '''{
-            "region":
-                {"type": "Polygon", "coordinates":
-                    [[[5.995833, 4.387513999999975], [7.704733999999998, 4.387513999999975],
-                      [7.704733999999998, 7.925567000000025], [5.995833, 7.925567000000025],
-                      [5.995833, 4.387513999999975]]]},
-            "asset": "users/gena/HydroEngine/riv_15s_lev06"
+            "region": {
+                "geodesic": false,
+                "type": "Polygon",
+                "coordinates": [[
+                    [5.986862182617186, 52.517369933821186],
+                    [6.030635833740234, 52.517369933821186],
+                    [6.030635833740234, 52.535439735112924],
+                    [5.986862182617186, 52.535439735112924],
+                    [5.986862182617186, 52.517369933821186]
+                ]]
+            },
+            "use_url": false,
+            "start": "2017-01-01",
+            "stop": "2017-06-01"
         }'''
 
-        r = self.client.get('/get_feature_collection', data=request,
-                            content_type='application/json')
+        r = self.client.post('/get_water_mask', data=request,
+                             content_type='application/json')
 
         assert r.status_code == 200
 
+    def test_get_sea_surface_height_time_series(self):
+        """test sea surface height timeseries"""
+        request = '''{
+        "region": {"type": "Point", "coordinates": [54.0, 0.0]}
+        }
+        '''
 
-# class TestPalettes(unittest.TestCase):
-#    def test_cpt(self):
-#        palette = palettes.pycpt2gee()
-#        assert palette.endswith('faffff')
-
+        r = self.client.post(
+            '/get_sea_surface_height_time_series',
+            data=request,
+            content_type='application/json'
+        )
+        assert r.status_code == 200
 
 if __name__ == '__main__':
     unittest.main()
