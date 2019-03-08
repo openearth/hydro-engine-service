@@ -1177,6 +1177,87 @@ def api_get_raster():
     return Response(json.dumps(data), status=200, mimetype='application/json')
 
 
+@app.route('/get_liwo_scenarios_max', methods=['GET', 'POST'])
+def get_liwo_scenarios_max():
+    r = request.get_json()
+
+    # Currently 'liwo' only option
+    variable = r['variable']
+    # name of breach location as string
+    breach_name = r['breach_name']
+    # band name as string
+    band_filter = r['band_filter']
+
+    # Following needed for export:
+    # Specify region over which to compute
+    region = ee.Geometry(r['region'])
+    # scale of pixels for export, in meters
+    scale = float(r['scale'])
+    # coordinate system for export projection
+    crs = r['crs']
+
+    raster_assets = {'liwo': 'users/rogersckw9/liwo/liwo-scenarios-03-2019'}
+    bands = {'waterdepth': 'b1',
+             'velocity': 'b2',
+             'riserate': 'b3',
+             'damage': 'b4',
+             'slachtoffers': 'b5'
+             }
+
+    # Filter based on breach location
+    collection = ee.ImageCollection(raster_assets[variable]).filterMetadata('BREACHNAME', 'equals', breach_name)
+    # Filter based on band name (characteristic to display)
+    collection = collection.select(bands[band_filter])
+    logger.debug("Number of images at breach location: %s"
+                 % collection.size().getInfo())
+    # get max image
+    image = ee.Image(collection.reduce(ee.Reducer.max()))
+    # clip image to region and mask all 0 values (no-data value given in images) .clip(region)
+    image = image.mask(image.neq(0))
+
+    # def export_image_response(im):
+    #     """create export response for image"""
+    #     url = image.getDownloadURL({
+    #         'name': breach_name,
+    #         'format': 'tif',
+    #         'crs': crs,
+    #         'scale': scale,
+    #         'region': json.dumps(region.bounds(cell_size).getInfo())
+    #     })
+    #     result = {'url': url}
+    #     return result
+
+    def generate_image_info(im):
+        """generate url and tokens for image"""
+        im = ee.Image(im)
+        m = im.getMapId()
+
+        mapid = m.get('mapid')
+        token = m.get('token')
+
+        url = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'.format(
+            mapid=mapid,
+            token=token
+        )
+
+        result = {
+            'mapid': mapid,
+            'token': token,
+            'url': url
+        }
+        return result
+
+    info = generate_image_info(image)
+
+    info['variable'] = variable
+    info['breach_name'] = breach_name
+    info['band_filter'] = band_filter
+    info['scale'] = scale
+    info['crs'] = crs
+
+    return Response(json.dumps(info), status=200, mimetype='application/json')
+
+
 @app.route('/')
 def root():
     return 'Welcome to Hydro Earth Engine. Currently, only RESTful API is supported. Visit <a href="http://github.com/deltares/hydro-engine">http://github.com/deltares/hydro-engine</a> for more information ...'

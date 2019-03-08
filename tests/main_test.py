@@ -189,5 +189,37 @@ class TestClient(unittest.TestCase):
         )
         assert r.status_code == 200
 
+    def test_get_liwo_scenarios_max(self):
+        """test get liwo scenarios max"""
+        request = '''{
+            "variable": "liwo",
+            "breach_name": "Afvoergolf",
+            "band_filter": "waterdepth",
+            "region":{
+                "geodesic": false,
+                "type": "Polygon",
+                "coordinates": [[
+                    [6.0161056877902865,51.41901371286102],
+                    [6.2495651604465365,51.417729076754576],
+                    [6.245101964645755,51.54985700463136],
+                    [6.0174789788059115,51.54836255319905],
+                    [6.0161056877902865,51.41901371286102]
+                ]]
+            },
+            "scale": 30,
+            "crs": "EPSG:28992"
+        }'''
+        resp = self.client.post(
+            '/get_liwo_scenarios_max',
+            data=request,
+            content_type='application/json'
+        )
+        print('code:', resp.status_code)
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+
+        assert 'mapid' in result
+
 if __name__ == '__main__':
     unittest.main()
