@@ -92,7 +92,7 @@ def get_upstream_catchments(level):
         raise Exception(
             'Currently, only level 6 is supported for upstream catchments')
 
-    def _get_upstream_catchments(basin_source)  -> ee.FeatureCollection:
+    def _get_upstream_catchments(basin_source) -> ee.FeatureCollection:
         hybas_id = ee.Number(basin_source.get('HYBAS_ID'))
         upstream_ids = index.filter(
             ee.Filter.eq('hybas_id', hybas_id)).aggregate_array('parent_from')
@@ -115,7 +115,7 @@ def number_to_string(i):
 def reduceImageProfile(image, line, reducer, scale):
     length = line.length()
     distances = ee.List.sequence(0, length, scale)
-    lines = line.cutLines(distances).geometries();
+    lines = line.cutLines(distances).geometries()
 
     def generate_line_segment(l):
         l = ee.List(l)
@@ -238,12 +238,12 @@ def get_sea_surface_height_time_series():
 
     ssh_list = images.getRegion(region, scale, 'EPSG:4326')
 
-
     ssh_rows = ssh_list.slice(1).map(
         lambda x: {'t': ee.List(x).get(3), 'v': ee.List(x).get(4)}
     )
 
     return Response(json.dumps(ssh_rows.getInfo()), status=200, mimetype='application/json')
+
 
 @app.route('/get_sea_surface_height_trend_image', methods=['GET', 'POST'])
 @flask_cors.cross_origin()
@@ -448,9 +448,9 @@ def get_water_mask_raw():
     water_mask_vector = water_mask \
         .mask(water_mask) \
         .reduceToVectors(**{
-        "geometry": region,
-        "scale": scale / 2
-    })
+            "geometry": region,
+            "scale": scale / 2
+        })
 
     water_mask_vector = water_mask_vector.toList(10000) \
         .map(lambda o: ee.Feature(o).simplify(scale))
@@ -910,7 +910,8 @@ def api_get_catchments():
     # TODO: dissolve output
 
     # get GeoJSON
-    data = upstream_catchments.getInfo()  # TODO: use ZIP to prevent 5000 feature limit
+    # TODO: use ZIP to prevent 5000 feature limit
+    data = upstream_catchments.getInfo()
 
     # fill response
     resp = Response(json.dumps(data), status=200, mimetype='application/json')
@@ -1175,6 +1176,105 @@ def api_get_raster():
 
     data = {'url': url}
     return Response(json.dumps(data), status=200, mimetype='application/json')
+
+
+@app.route('/get_liwo_scenarios', methods=['GET', 'POST'])
+def get_liwo_scenarios_max():
+    r = request.get_json()
+
+    # Currently 'liwo' only option
+    variable = 'liwo'
+    # name of breach location as string
+    liwo_ids = r['liwo_ids']
+    # band name as string
+    band = r['band']
+    reducer = r['reducer']
+
+    assert reducer == 'max'
+
+
+    raster_assets = {
+        'liwo': 'users/rogersckw9/liwo/liwo-scenarios-03-2019'
+    }
+    bands = {
+        'waterdepth': 'b1',
+        'velocity': 'b2',
+        'riserate': 'b3',
+        'damage': 'b4',
+        'slachtoffers': 'b5'
+    }
+
+    # Filter based on breach location
+    collection = ee.ImageCollection(raster_assets[variable])
+    # TODO: how to make this generic??
+    collection = collection.filter(
+        ee.Filter.inList('LIWO_ID', liwo_ids)
+    )
+
+    # Filter based on band name (characteristic to display)
+    collection = collection.select(bands[band])
+    logger.debug("Number of images at breach location: %s"
+                 % collection.size().getInfo())
+    # get max image
+    reduce_func = getattr(ee.Reducer, reducer)()
+    image = ee.Image(collection.reduce(reduce_func))
+    # clip image to region and mask all 0 values (no-data value given in images) .clip(region)
+    image = image.mask(image.neq(0))
+
+    def generate_image_info(im):
+        """generate url and tokens for image"""
+        im = ee.Image(im)
+        m = im.getMapId()
+
+        mapid = m.get('mapid')
+        token = m.get('token')
+
+        url = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'.format(
+            mapid=mapid,
+            token=token
+        )
+
+        result = {
+            'mapid': mapid,
+            'token': token,
+            'url': url
+        }
+        return result
+
+    def export_image_response(image, region, info):
+        """create export response for image"""
+        url = image.getDownloadURL({
+            'name': 'export',
+            'format': 'tif',
+            'crs': info['crs'],
+            'scale': info['scale'],
+            'region': json.dumps(region.bounds(info['scale']).getInfo())
+        })
+        result = {'export_url': url}
+        return result
+
+    info = generate_image_info(image)
+    info['variable'] = variable
+    info['liwo_ids'] = liwo_ids
+    info['band'] = band
+
+    # # Following needed for export:
+    # # Specify region over which to compute
+    # export  is True or None/False
+    if r.get('export'):
+        region = ee.Geometry(r['region'])
+        # scale of pixels for export, in meters
+        info['scale'] = float(r['scale'])
+        # coordinate system for export projection
+        info['crs'] = r['crs']
+        extra_info = export_image_response(image, region, info)
+        info.update(extra_info)
+
+    return Response(
+        json.dumps(info),
+        status=200,
+        mimetype='application/json'
+    )
 
 
 @app.route('/')

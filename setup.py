@@ -14,7 +14,7 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
 # parse_requirements() returns generator of pip.req.InstallRequirement objects
-# TODO: 
+# TODO:
 # requirements = [str(r) for r in parse_requirements(open('requirements.txt').read())]
 
 setup_requirements = ['pytest-runner', ]
