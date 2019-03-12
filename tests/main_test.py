@@ -158,7 +158,7 @@ class TestClient(unittest.TestCase):
                       [7.704733999999998, 7.925567000000025], [
                           5.995833, 7.925567000000025],
                       [5.995833, 4.387513999999975]]]},
-            "id_only": false
+            "id_only": False
         }
 
         r = self.client.post(
@@ -172,7 +172,7 @@ class TestClient(unittest.TestCase):
     def test_get_water_mask(self):
         request = {
             "region": {
-                "geodesic": false,
+                "geodesic": False,
                 "type": "Polygon",
                 "coordinates": [[
                     [5.986862182617186, 52.517369933821186],
@@ -182,7 +182,7 @@ class TestClient(unittest.TestCase):
                     [5.986862182617186, 52.517369933821186]
                 ]]
             },
-            "use_url": false,
+            "use_url": False,
             "start": "2013-01-01",
             "stop": "2015-01-01",
             "scale": 30,
