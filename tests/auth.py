@@ -9,5 +9,5 @@ if 'key' in os.environ:
     print('Writing privatekey.json from environmental variable ...')
     content = base64.b64decode(os.environ['key']).decode('ascii')
 
-    with open(pathlib.Path(__file__) / '..' / 'privatekey.json', 'w') as f:
+    with open(pathlib.Path(__file__).parent / '..' / 'privatekey.json', 'w') as f:
         f.write(content)
