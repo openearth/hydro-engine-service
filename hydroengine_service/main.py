@@ -1189,12 +1189,13 @@ def get_liwo_scenarios_max():
     band_filter = r['band_filter']
 
     raster_assets = {'liwo': 'users/rogersckw9/liwo/liwo-scenarios-03-2019'}
-    bands = {'waterdepth': 'b1',
-             'velocity': 'b2',
-             'riserate': 'b3',
-             'damage': 'b4',
-             'slachtoffers': 'b5'
-             }
+    bands = {
+        'waterdepth': 'b1',
+        'velocity': 'b2',
+        'riserate': 'b3',
+        'damage': 'b4',
+        'slachtoffers': 'b5'
+    }
 
     # Filter based on breach location
     collection = ee.ImageCollection(raster_assets[variable]).filterMetadata('BREACHNAME', 'equals', breach_name)
@@ -1207,25 +1208,6 @@ def get_liwo_scenarios_max():
     # clip image to region and mask all 0 values (no-data value given in images) .clip(region)
     image = image.mask(image.neq(0))
 
-    # # Following needed for export:
-    # # Specify region over which to compute
-    # region = ee.Geometry(r['region'])
-    # # scale of pixels for export, in meters
-    # scale = float(r['scale'])
-    # # coordinate system for export projection
-    # crs = r['crs']
-
-    # def export_image_response(im):
-    #     """create export response for image"""
-    #     url = image.getDownloadURL({
-    #         'name': breach_name,
-    #         'format': 'tif',
-    #         'crs': crs,
-    #         'scale': scale,
-    #         'region': json.dumps(region.bounds(cell_size).getInfo())
-    #     })
-    #     result = {'url': url}
-    #     return result
 
     def generate_image_info(im):
         """generate url and tokens for image"""
@@ -1247,15 +1229,41 @@ def get_liwo_scenarios_max():
         }
         return result
 
-    info = generate_image_info(image)
+    def export_image_response(image, region, info):
+        """create export response for image"""
+        url = image.getDownloadURL({
+            'name': info['breach_name'],
+            'format': 'tif',
+            'crs': info['crs'],
+            'scale': info['scale'],
+            'region': json.dumps(region.bounds(info['scale']).getInfo())
+        })
+        result = {'export_url': url}
+        return result
 
+
+    info = generate_image_info(image)
     info['variable'] = variable
     info['breach_name'] = breach_name
     info['band_filter'] = band_filter
-    # info['scale'] = scale
-    # info['crs'] = crs
 
-    return Response(json.dumps(info), status=200, mimetype='application/json')
+    # # Following needed for export:
+    # # Specify region over which to compute
+    # export  is True or None/False
+    if r.get('export'):
+        region = ee.Geometry(r['region'])
+        # scale of pixels for export, in meters
+        info['scale'] = float(r['scale'])
+        # coordinate system for export projection
+        info['crs'] = r['crs']
+        extra_info = export_image_response(image, region, info)
+        info.update(extra_info)
+
+    return Response(
+        json.dumps(info),
+        status=200,
+        mimetype='application/json'
+    )
 
 
 @app.route('/')

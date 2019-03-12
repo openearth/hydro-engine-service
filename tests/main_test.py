@@ -206,7 +206,26 @@ class TestClient(unittest.TestCase):
         )
         assert r.status_code == 200
 
-    def test_get_liwo_scenarios_max(self):
+    def test_get_liwo_scenarios_max_no_region(self):
+        """test get liwo scenarios max"""
+        request = {
+            "variable": "liwo",
+            "breach_name": "Afvoergolf",
+            "band_filter": "waterdepth"
+        }
+        resp = self.client.post(
+            '/get_liwo_scenarios_max',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        print('code:', resp.status_code)
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+
+        assert 'mapid' in result
+
+    def test_get_liwo_scenarios_max_export(self):
         """test get liwo scenarios max"""
 
         # some of these variables are only used for export
@@ -226,6 +245,7 @@ class TestClient(unittest.TestCase):
                 ]]
             },
             "scale": 30,
+            "export": True,
             "crs": "EPSG:28992"
         }
         resp = self.client.post(
@@ -240,24 +260,6 @@ class TestClient(unittest.TestCase):
 
         assert 'mapid' in result
 
-    def test_get_liwo_scenarios_max_no_region(self):
-        """test get liwo scenarios max"""
-        request = {
-            "variable": "liwo",
-            "breach_name": "Afvoergolf",
-            "band_filter": "waterdepth"
-        }
-        resp = self.client.post(
-            '/get_liwo_scenarios_max',
-            data=json.dumps(request),
-            content_type='application/json'
-        )
-        print('code:', resp.status_code)
-        assert resp.status_code == 200
-
-        result = json.loads(resp.data)
-
-        assert 'mapid' in result
 
 if __name__ == '__main__':
     unittest.main()
