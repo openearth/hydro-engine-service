@@ -48,8 +48,11 @@ class TestClient(unittest.TestCase):
             "palette": palette
         }
 
-        r = self.client.get('/get_bathymetry', data=json.dumps(input),
-                            content_type='application/json')
+        r = self.client.get(
+            '/get_bathymetry',
+            data=json.dumps(input),
+            content_type='application/json'
+        )
 
         assert r.status_code == 200
 
@@ -66,8 +69,11 @@ class TestClient(unittest.TestCase):
             "begin_date": "2001-01-01"
         }
 
-        r = self.client.get('/get_bathymetry', data=json.dumps(input),
-                            content_type='application/json')
+        r = self.client.get(
+            '/get_bathymetry',
+            data=json.dumps(input),
+            content_type='application/json'
+        )
 
         assert r.status_code == 200
 
@@ -76,7 +82,7 @@ class TestClient(unittest.TestCase):
         assert 'mapid' in result
 
     def test_get_raster_profile(self):
-        line = '''{
+        line = {
         "dataset": "bathymetry_jetski",
         "begin_date": "2011-08-02",
         "end_date": "2011-09-02",
@@ -95,14 +101,17 @@ class TestClient(unittest.TestCase):
               ]
             },
         "scale": 100
-        }'''
+        }
 
-        r = self.client.post('/get_raster_profile', data=line,
-                             content_type='application/json')
+        r = self.client.post(
+            '/get_raster_profile',
+            data=json.dumps(line),
+            content_type='application/json'
+        )
         assert r.status_code == 200
 
     def test_get_catchments(self):
-        request = '''{
+        request = {
             "region":
                 {"type": "Polygon", "coordinates":
                     [[[5.995833, 4.387513999999975], [7.704733999999998, 4.387513999999975],
@@ -111,14 +120,17 @@ class TestClient(unittest.TestCase):
             "dissolve": true,
             "catchment_level": 6,
             "region_filter": ""
-        }'''
+        }
 
-        r = self.client.post('/get_catchments', data=request,
-                             content_type='application/json')
+        r = self.client.post(
+            '/get_catchments',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
         assert r.status_code == 200
 
     def test_get_rivers(self):
-        request = '''{
+        request = {
             "region":
                 {"type": "Polygon", "coordinates":
                     [[[5.995833, 4.387513999999975], [7.704733999999998, 4.387513999999975],
@@ -127,31 +139,35 @@ class TestClient(unittest.TestCase):
             "filter_upstream_gt": 1000,
             "catchment_level": 6,
             "region_filter": ""
-        }'''
+        }
 
-        r = self.client.post('/get_rivers', data=request,
-                             content_type='application/json')
+        r = self.client.post(
+            '/get_rivers',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
         assert r.status_code == 200
 
     def test_get_lakes(self):
-        request = '''{
+        request = {
             "region":
                 {"type": "Polygon", "coordinates":
                     [[[5.995833, 4.387513999999975], [7.704733999999998, 4.387513999999975],
                       [7.704733999999998, 7.925567000000025], [5.995833, 7.925567000000025],
                       [5.995833, 4.387513999999975]]]},
             "id_only": false
-        }'''
+        }
 
-        r = self.client.post('/get_lakes', data=request,
-                             content_type='application/json')
-
-        print('LAKES: ')
+        r = self.client.post(
+            '/get_lakes',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
 
         assert r.status_code == 200
 
     def test_get_water_mask(self):
-        request = '''{
+        request = {
             "region": {
                 "geodesic": false,
                 "type": "Polygon",
@@ -168,35 +184,38 @@ class TestClient(unittest.TestCase):
             "stop": "2015-01-01",
             "scale": 30,
             "crs": "EPSG:3857"
-        }'''
+        }
 
-        r = self.client.post('/get_water_mask', data=request,
-                             content_type='application/json')
+        r = self.client.post(
+            '/get_water_mask',
+            data=json.dumps(request),
+            content_type='application/json')
 
         assert r.status_code == 200
 
     def test_get_sea_surface_height_time_series(self):
         """test sea surface height timeseries"""
-        request = '''{
-        "region": {"type": "Point", "coordinates": [54.0, 0.0]}
+        request = {
+            "region": {"type": "Point", "coordinates": [54.0, 0.0]}
         }
-        '''
 
         r = self.client.post(
             '/get_sea_surface_height_time_series',
-            data=request,
+            data=json.dumps(request),
             content_type='application/json'
         )
         assert r.status_code == 200
 
     def test_get_liwo_scenarios_max(self):
         """test get liwo scenarios max"""
-        request = '''{
+
+        # some of these variables are only used for export
+        request = {
             "variable": "liwo",
             "breach_name": "Afvoergolf",
             "band_filter": "waterdepth",
             "region":{
-                "geodesic": false,
+                "geodesic": False,
                 "type": "Polygon",
                 "coordinates": [[
                     [6.0161056877902865,51.41901371286102],
@@ -208,10 +227,29 @@ class TestClient(unittest.TestCase):
             },
             "scale": 30,
             "crs": "EPSG:28992"
-        }'''
+        }
         resp = self.client.post(
             '/get_liwo_scenarios_max',
-            data=request,
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        print('code:', resp.status_code)
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+
+        assert 'mapid' in result
+
+    def test_get_liwo_scenarios_max_no_region(self):
+        """test get liwo scenarios max"""
+        request = {
+            "variable": "liwo",
+            "breach_name": "Afvoergolf",
+            "band_filter": "waterdepth"
+        }
+        resp = self.client.post(
+            '/get_liwo_scenarios_max',
+            data=json.dumps(request),
             content_type='application/json'
         )
         print('code:', resp.status_code)

@@ -1188,14 +1188,6 @@ def get_liwo_scenarios_max():
     # band name as string
     band_filter = r['band_filter']
 
-    # Following needed for export:
-    # Specify region over which to compute
-    region = ee.Geometry(r['region'])
-    # scale of pixels for export, in meters
-    scale = float(r['scale'])
-    # coordinate system for export projection
-    crs = r['crs']
-
     raster_assets = {'liwo': 'users/rogersckw9/liwo/liwo-scenarios-03-2019'}
     bands = {'waterdepth': 'b1',
              'velocity': 'b2',
@@ -1214,6 +1206,14 @@ def get_liwo_scenarios_max():
     image = ee.Image(collection.reduce(ee.Reducer.max()))
     # clip image to region and mask all 0 values (no-data value given in images) .clip(region)
     image = image.mask(image.neq(0))
+
+    # # Following needed for export:
+    # # Specify region over which to compute
+    # region = ee.Geometry(r['region'])
+    # # scale of pixels for export, in meters
+    # scale = float(r['scale'])
+    # # coordinate system for export projection
+    # crs = r['crs']
 
     # def export_image_response(im):
     #     """create export response for image"""
@@ -1252,8 +1252,8 @@ def get_liwo_scenarios_max():
     info['variable'] = variable
     info['breach_name'] = breach_name
     info['band_filter'] = band_filter
-    info['scale'] = scale
-    info['crs'] = crs
+    # info['scale'] = scale
+    # info['crs'] = crs
 
     return Response(json.dumps(info), status=200, mimetype='application/json')
 
