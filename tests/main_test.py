@@ -87,7 +87,7 @@ class TestClient(unittest.TestCase):
             "begin_date": "2011-08-02",
             "end_date": "2011-09-02",
             "polyline": {
-                "geodesic": true,
+                "geodesic": True,
                 "type": "LineString",
                 "coordinates": [
                     [
@@ -118,7 +118,7 @@ class TestClient(unittest.TestCase):
                       [7.704733999999998, 7.925567000000025], [
                           5.995833, 7.925567000000025],
                       [5.995833, 4.387513999999975]]]},
-            "dissolve": true,
+            "dissolve": True,
             "catchment_level": 6,
             "region_filter": ""
         }
