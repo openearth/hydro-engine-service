@@ -212,12 +212,12 @@ class TestClient(unittest.TestCase):
     def test_get_liwo_scenarios_max_no_region(self):
         """test get liwo scenarios max"""
         request = {
-            "variable": "liwo",
-            "breach_name": "Afvoergolf",
-            "band_filter": "waterdepth"
+            "liwo_ids": [1903, 1948],
+            "band": "waterdepth",
+            "reducer": "max"
         }
         resp = self.client.post(
-            '/get_liwo_scenarios_max',
+            '/get_liwo_scenarios',
             data=json.dumps(request),
             content_type='application/json'
         )
@@ -233,9 +233,9 @@ class TestClient(unittest.TestCase):
 
         # some of these variables are only used for export
         request = {
-            "variable": "liwo",
-            "breach_name": "Afvoergolf",
-            "band_filter": "waterdepth",
+            "liwo_ids": [1948],
+            "band": "waterdepth",
+            "reducer": "max",
             "region": {
                 "geodesic": False,
                 "type": "Polygon",
@@ -252,7 +252,7 @@ class TestClient(unittest.TestCase):
             "crs": "EPSG:28992"
         }
         resp = self.client.post(
-            '/get_liwo_scenarios_max',
+            '/get_liwo_scenarios',
             data=json.dumps(request),
             content_type='application/json'
         )

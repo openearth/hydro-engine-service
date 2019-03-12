@@ -1178,18 +1178,24 @@ def api_get_raster():
     return Response(json.dumps(data), status=200, mimetype='application/json')
 
 
-@app.route('/get_liwo_scenarios_max', methods=['GET', 'POST'])
+@app.route('/get_liwo_scenarios', methods=['GET', 'POST'])
 def get_liwo_scenarios_max():
     r = request.get_json()
 
     # Currently 'liwo' only option
-    variable = r['variable']
+    variable = 'liwo'
     # name of breach location as string
-    breach_name = r['breach_name']
+    liwo_ids = r['liwo_ids']
     # band name as string
-    band_filter = r['band_filter']
+    band = r['band']
+    reducer = r['reducer']
 
-    raster_assets = {'liwo': 'users/rogersckw9/liwo/liwo-scenarios-03-2019'}
+    assert reducer == 'max'
+
+
+    raster_assets = {
+        'liwo': 'users/rogersckw9/liwo/liwo-scenarios-03-2019'
+    }
     bands = {
         'waterdepth': 'b1',
         'velocity': 'b2',
@@ -1199,14 +1205,19 @@ def get_liwo_scenarios_max():
     }
 
     # Filter based on breach location
-    collection = ee.ImageCollection(raster_assets[variable]).filterMetadata(
-        'BREACHNAME', 'equals', breach_name)
+    collection = ee.ImageCollection(raster_assets[variable])
+    # TODO: how to make this generic??
+    collection = collection.filter(
+        ee.Filter.inList('LIWO_ID', liwo_ids)
+    )
+
     # Filter based on band name (characteristic to display)
-    collection = collection.select(bands[band_filter])
+    collection = collection.select(bands[band])
     logger.debug("Number of images at breach location: %s"
                  % collection.size().getInfo())
     # get max image
-    image = ee.Image(collection.reduce(ee.Reducer.max()))
+    reduce_func = getattr(ee.Reducer, reducer)()
+    image = ee.Image(collection.reduce(reduce_func))
     # clip image to region and mask all 0 values (no-data value given in images) .clip(region)
     image = image.mask(image.neq(0))
 
@@ -1233,7 +1244,7 @@ def get_liwo_scenarios_max():
     def export_image_response(image, region, info):
         """create export response for image"""
         url = image.getDownloadURL({
-            'name': info['breach_name'],
+            'name': 'export',
             'format': 'tif',
             'crs': info['crs'],
             'scale': info['scale'],
@@ -1244,8 +1255,8 @@ def get_liwo_scenarios_max():
 
     info = generate_image_info(image)
     info['variable'] = variable
-    info['breach_name'] = breach_name
-    info['band_filter'] = band_filter
+    info['liwo_ids'] = liwo_ids
+    info['band'] = band
 
     # # Following needed for export:
     # # Specify region over which to compute
