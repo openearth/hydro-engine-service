@@ -1179,6 +1179,7 @@ def api_get_raster():
 
 
 @app.route('/get_liwo_scenarios', methods=['GET', 'POST'])
+@flask_cors.cross_origin()
 def get_liwo_scenarios_max():
     r = request.get_json()
 
