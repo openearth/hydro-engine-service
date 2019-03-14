@@ -1204,9 +1204,25 @@ def get_liwo_scenarios_max():
         'slachtoffers': 'b5'
     }
 
+    styles  = {
+        'waterdepth': {
+            'min': 0,
+            'max': 6,
+            'palette': ','.join([
+                '#00c3ff',
+                '#00c3ff',
+                '#006fff',
+                '#0043a8',
+                '#002673',
+                '#4d0073',
+                '#73004c'
+            ])
+        }
+    }
+
     # Filter based on breach location
     collection = ee.ImageCollection(raster_assets[variable])
-    # TODO: how to make this generic??
+    # TODO: how to make this generic, consider GraphQL
     collection = collection.filter(
         ee.Filter.inList('LIWO_ID', liwo_ids)
     )
@@ -1221,10 +1237,10 @@ def get_liwo_scenarios_max():
     # clip image to region and mask all 0 values (no-data value given in images) .clip(region)
     image = image.mask(image.neq(0))
 
-    def generate_image_info(im):
+    def generate_image_info(im, params):
         """generate url and tokens for image"""
         im = ee.Image(im)
-        m = im.getMapId()
+        m = im.getMapId(params)
 
         mapid = m.get('mapid')
         token = m.get('token')
@@ -1253,7 +1269,10 @@ def get_liwo_scenarios_max():
         result = {'export_url': url}
         return result
 
-    info = generate_image_info(image)
+    # TODO: generate visualization params for map ids
+    params = styles[band]
+
+    info = generate_image_info(image, params)
     info['variable'] = variable
     info['liwo_ids'] = liwo_ids
     info['band'] = band
