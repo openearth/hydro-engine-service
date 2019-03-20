@@ -1284,11 +1284,11 @@ def get_liwo_scenarios():
         lambda im: im.set('bandNames', im.bandNames())
     )
 
-    n_selected = collection.count().getInfo()
+    n_selected = collection.size().getInfo()
 
     collection = collection.filterMetadata('bandNames', 'equals', ['b1', 'b2', 'b3', 'b4', 'b5'])
 
-    n_filtered = collection.count().getInfo()
+    n_filtered = collection.size().getInfo()
 
     if n_selected != n_filtered:
         logging.warn('missing images, selected %s, filtered %s', n_selected, n_filtered)
