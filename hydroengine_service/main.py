@@ -98,7 +98,7 @@ def get_upstream_catchments(level):
             ee.Filter.eq('hybas_id', hybas_id)).aggregate_array('parent_from')
         upstream_basins = basins[level].filter(
             ee.Filter.inList('HYBAS_ID', upstream_ids)).merge(
-            ee.FeatureCollection([basin_source]))
+                ee.FeatureCollection([basin_source]))
 
         return upstream_basins
 
@@ -430,15 +430,15 @@ def get_water_mask_raw():
 
     # filter Sentinel-2 images
     images = ee.ImageCollection('COPERNICUS/S2') \
-        .select(bands) \
-        .filterBounds(region) \
-        .filterDate(start, stop) \
-        .map(lambda i: i.resample('bilinear'))
+               .select(bands) \
+               .filterBounds(region) \
+               .filterDate(start, stop) \
+               .map(lambda i: i.resample('bilinear'))
 
     # remove noise (clouds, shadows) using percentile composite
     image = images \
         .reduce(ee.Reducer.percentile([percentile])) \
- \
+        \
         # computer water mask using NDWI
     water_mask = image \
         .normalizedDifference() \
@@ -453,7 +453,7 @@ def get_water_mask_raw():
         })
 
     water_mask_vector = water_mask_vector.toList(10000) \
-        .map(lambda o: ee.Feature(o).simplify(scale))
+                                         .map(lambda o: ee.Feature(o).simplify(scale))
 
     water_mask_vector = ee.FeatureCollection(water_mask_vector)
 
@@ -484,9 +484,9 @@ def get_water_mask_vector(region, scale, start, stop):
 
     # vectorize
     water_mask_vector = water_mask.mask(water_mask) \
-        .reduceToVectors(**{"geometry": region,
-                            "scale": scale / 2,
-                            "tileScale": 4})
+                                  .reduceToVectors(**{"geometry": region,
+                                                      "scale": scale / 2,
+                                                      "tileScale": 4})
 
     # take the largest
     water_mask_vector = water_mask_vector \
@@ -559,8 +559,8 @@ def generate_perimeter_points(geom, step):
         distances = ee.List.sequence(0, ring.length(error), step)
 
         return ee.Feature(ring) \
-            .set({"distances": distances}) \
-            .set({"distancesCount": distances.length()})
+                 .set({"distances": distances}) \
+                 .set({"distancesCount": distances.length()})
 
     rings = geom.coordinates().map(wrap_ring)
 
@@ -597,11 +597,11 @@ def generate_voronoi_polygons(points, scale, aoi):
     proj = ee.Projection('EPSG:4326').atScale(scale)
 
     distance = ee.Image(0).float().paint(points, 1) \
-        .fastDistanceTransform().sqrt().clip(aoi) \
-        .reproject(proj)
+                                  .fastDistanceTransform().sqrt().clip(aoi) \
+                                                                 .reproject(proj)
 
     concavity = distance.convolve(ee.Kernel.laplacian8()) \
-        .reproject(proj)
+                        .reproject(proj)
 
     concavity = concavity.multiply(distance)
 
@@ -611,18 +611,18 @@ def generate_voronoi_polygons(points, scale, aoi):
 
     # label connected components
     connected = edges.Not() \
-        .connectedComponents(ee.Kernel.circle(1), 256) \
-        .clip(aoi) \
-        .focal_max(scale * 3, 'circle', 'meters') \
-        .focal_min(scale * 3, 'circle', 'meters') \
-        .focal_mode(scale * 5, 'circle', 'meters') \
-        .reproject(proj)
+                     .connectedComponents(ee.Kernel.circle(1), 256) \
+                     .clip(aoi) \
+                     .focal_max(scale * 3, 'circle', 'meters') \
+                     .focal_min(scale * 3, 'circle', 'meters') \
+                     .focal_mode(scale * 5, 'circle', 'meters') \
+                     .reproject(proj)
 
     # fixing reduceToVectors() bug, remap to smaller int
     def fixOverflowError(i):
         hist = i.reduceRegion(ee.Reducer.frequencyHistogram(), aoi, scale)
         uniqueLabels = ee.Dictionary(ee.Dictionary(hist).get('labels')).keys() \
-            .map(lambda o: ee.Number.parse(o))
+                                                                       .map(lambda o: ee.Number.parse(o))
 
         labels = ee.List.sequence(0, uniqueLabels.size().subtract(1))
 
@@ -718,7 +718,7 @@ def generate_skeleton_from_voronoi(scale, water_vector):
                       ee.Filter.eq('intersectsWithMask', True))
     centerline = features.filter(f)
     centerline = centerline.geometry().dissolve(scale, proj) \
-        .simplify(scale * simplify_centerline_factor, proj)
+                                      .simplify(scale * simplify_centerline_factor, proj)
     centerline = centerline.geometries().map(
         lambda g: ee.Feature(ee.Geometry(g)))
     centerline = ee.FeatureCollection(centerline)
@@ -816,11 +816,11 @@ def get_water_network_properties():
             centroid = ee.Geometry.Point(s.coordinates().get(0))
 
             return ee.Feature(centroid) \
-                .set("lineId", line.id()) \
-                .set("offset", offset)
+                     .set("lineId", line.id()) \
+                     .set("offset", offset)
 
         segments = segments.geometries().zip(distances) \
-            .map(generate_line_middle_point)
+                                        .map(generate_line_middle_point)
 
         return ee.FeatureCollection(segments)
 
@@ -832,8 +832,8 @@ def get_water_network_properties():
         geom = ee.Geometry.Point(geom.coordinates().get(0), 'EPSG:4326')
 
         return ee.Feature(geom) \
-            .set("lineId", line.id()) \
-            .set("offset", 0)
+                 .set("lineId", line.id()) \
+                 .set("offset", 0)
 
     short_line_points = short_lines.map(process_short_line)
 
@@ -900,7 +900,7 @@ def api_get_catchments():
         # for every selection, get and merge upstream
         upstream_catchments = ee.FeatureCollection(
             selection.map(get_upstream_catchments(catchment_level))) \
-            .flatten().distinct('HYBAS_ID')
+                                .flatten().distinct('HYBAS_ID')
     else:
         print('Getting intersected catchments ..')
 
@@ -934,7 +934,7 @@ def api_get_rivers():
         # for every selection, get and merge upstream catchments
         selected_catchments = ee.FeatureCollection(
             selected_catchments.map(get_upstream_catchments(catchment_level))) \
-            .flatten().distinct('HYBAS_ID')
+                                .flatten().distinct('HYBAS_ID')
 
     # get ids
     upstream_catchment_ids = ee.List(
@@ -1034,7 +1034,7 @@ def get_lake_water_area(lake_id, scale):
             # estimate scale from reservoir surface area, currently
             coords = ee.List(f.geometry().bounds().transform('EPSG:3857',
                                                              30).coordinates().get(
-                0))
+                                                                 0))
             ll = ee.List(coords.get(0))
             ur = ee.List(coords.get(2))
             width = ee.Number(ll.get(0)).subtract(ur.get(0)).abs()
@@ -1096,7 +1096,7 @@ def api_get_feature_collection():
         return feature.intersection(region_feature)
 
     features = features.filterBounds(region)\
-        .map(clip_feature)
+                       .map(clip_feature)
 
     data = features.getInfo()
 
@@ -1120,7 +1120,7 @@ def api_get_raster():
         # for every selection, get and merge upstream
         region = ee.FeatureCollection(
             selection_basins.map(get_upstream_catchments(catchment_level))) \
-            .flatten().distinct('HYBAS_ID').geometry()
+                   .flatten().distinct('HYBAS_ID').geometry()
 
         region = region.bounds()
 
@@ -1191,7 +1191,7 @@ def get_liwo_scenarios():
     band = r['band']
     reducer = r['reducer']
 
-    assert reducer == 'max'
+    assert reducer in ('max', 'min')
 
 
     raster_assets = {
@@ -1202,8 +1202,10 @@ def get_liwo_scenarios():
         'velocity': 'b2',
         'riserate': 'b3',
         'damage': 'b4',
-        'slachtoffers': 'b5'
+        'casualties': 'b5'
     }
+
+    assert band in bands
 
     styles  = {
         'waterdepth': {
@@ -1218,20 +1220,85 @@ def get_liwo_scenarios():
                 '#4d0073',
                 '#73004c'
             ])
+        },
+        'velocity': {
+            'min': 0,
+            'max': 4,
+            'palette': ','.join([
+                "#FFFFFF",
+                "#FAD7FE",
+                "#E95CF5",
+                "#CB00DB",
+                "#8100B1",
+                "#8100D2"
+            ])
+        },
+        'riserate': {
+            'min': 0,
+            'max': 4,
+            'palette': ','.join([
+                "#FFFFFF",
+                "#00D4FF",
+                "#6CAEE8",
+                "#AA7FE4",
+                "#D47FFF"
+            ])
+        },
+        'damage': {
+            'min': 0,
+            'max': 5,
+            'scale': 'log',
+            'palette': ','.join([
+                "#FFFFFF",
+                "#39D400",
+                "#52FF00",
+                "#FFAA00",
+                "#FF0000",
+                "#730000"
+            ])
+        },
+        'casualties': {
+            'min': 0,
+            'max': 3,
+            'scale': 'log',
+            'palette': ','.join([
+                "#FFFFFF",
+                "#39D400",
+                "#52FF00",
+                "#FFAA00",
+                "#FF0000",
+                "#730000"
+            ])
         }
     }
 
     # Filter based on breach location
     collection = ee.ImageCollection(raster_assets[variable])
+
     # TODO: how to make this generic, consider GraphQL
     collection = collection.filter(
         ee.Filter.inList('LIWO_ID', liwo_ids)
     )
 
+    collection = collection.map(
+        lambda im: im.set('bandNames', im.bandNames())
+    )
+
+    n_selected = collection.size().getInfo()
+
+    collection = collection.filterMetadata('bandNames', 'equals', ['b1', 'b2', 'b3', 'b4', 'b5'])
+
+    n_filtered = collection.size().getInfo()
+
+    if n_selected != n_filtered:
+        logging.warn('missing images, selected %s, filtered %s', n_selected, n_filtered)
+
+
     # Filter based on band name (characteristic to display)
     collection = collection.select(bands[band])
     logger.debug("Number of images at breach location: %s"
                  % collection.size().getInfo())
+
     # get max image
     reduce_func = getattr(ee.Reducer, reducer)()
     image = ee.Image(collection.reduce(reduce_func))
@@ -1241,6 +1308,11 @@ def get_liwo_scenarios():
     def generate_image_info(im, params):
         """generate url and tokens for image"""
         im = ee.Image(im)
+
+        # some images are scaled to a factor of 10.
+        if params.get('scale') == 'log':
+            im = im.log10()
+
         m = im.getMapId(params)
 
         mapid = m.get('mapid')
@@ -1315,4 +1387,4 @@ if __name__ == '__main__':
     # This is used when running locally. Gunicorn is used to run the
     # application on Google App Engine. See entrypoint in app.yaml.
     app.run(host='127.0.0.1', port=8080, debug=True)
-# [END app]
+    # [END app]
