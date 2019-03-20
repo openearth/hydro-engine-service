@@ -212,7 +212,7 @@ class TestClient(unittest.TestCase):
     def test_get_liwo_scenarios_max_no_region(self):
         """test get liwo scenarios max"""
         request = {
-            "liwo_ids": [1903, 1948],
+            "liwo_ids": [635, 1903, 1948],
             "band": "waterdepth",
             "reducer": "max"
         }
@@ -233,7 +233,7 @@ class TestClient(unittest.TestCase):
 
         # some of these variables are only used for export
         request = {
-            "liwo_ids": [1948],
+            "liwo_ids": [635, 1948],
             "band": "waterdepth",
             "reducer": "max",
             "region": {
