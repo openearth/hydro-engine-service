@@ -1202,7 +1202,7 @@ def get_liwo_scenarios():
         'velocity': 'b2',
         'riserate': 'b3',
         'damage': 'b4',
-        'casualties': 'b5'
+        'fatalities': 'b5'
     }
 
     assert band in bands
@@ -1257,7 +1257,7 @@ def get_liwo_scenarios():
                 "#730000"
             ])
         },
-        'casualties': {
+        'fatalities': {
             'min': 0,
             'max': 3,
             'scale': 'log',
