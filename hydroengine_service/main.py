@@ -1209,65 +1209,72 @@ def get_liwo_scenarios():
 
     styles  = {
         'waterdepth': {
-            '<RasterSymbolizer>\
-                <ColorMap type="intervals">\
-                    <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01999"/>\
-                    <ColorMapEntry color="#CEFEFE" opacity="1.0" quantity="0.5" label="&lt; 0.5"/>\
-                    <ColorMapEntry color="#94bff7" opacity="1.0" quantity="1" label="0.5 - 1.0"/>\
-                    <ColorMapEntry color="#278ef4" opacity="1.0" quantity="1.5" label="1.0 - 1.5"/>\
-                    <ColorMapEntry color="#0000cc" opacity="1.0" quantity="2.0" label="1.5 - 2.0"/>\
-                    <ColorMapEntry color="#4A0177" opacity="1.0" quantity="5" label="2.0 - 5.0"/>\
-                    <ColorMapEntry color="#73004c" opacity="1.0" quantity="9999" label="&gt; 5.0"/>\
-                </ColorMap>\
-            </RasterSymbolizer>'
+            'sld_style': '\
+                <RasterSymbolizer>\
+                    <ColorMap type="intervals">\
+                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01999"/>\
+                        <ColorMapEntry color="#CEFEFE" opacity="1.0" quantity="0.5" label="&lt; 0.5"/>\
+                        <ColorMapEntry color="#94bff7" opacity="1.0" quantity="1" label="0.5 - 1.0"/>\
+                        <ColorMapEntry color="#278ef4" opacity="1.0" quantity="1.5" label="1.0 - 1.5"/>\
+                        <ColorMapEntry color="#0000cc" opacity="1.0" quantity="2.0" label="1.5 - 2.0"/>\
+                        <ColorMapEntry color="#4A0177" opacity="1.0" quantity="5" label="2.0 - 5.0"/>\
+                        <ColorMapEntry color="#73004c" opacity="1.0" quantity="9999" label="&gt; 5.0"/>\
+                    </ColorMap>\
+                </RasterSymbolizer>'
         },
         'velocity': {
-            '<RasterSymbolizer>\
-                <ColorMap type="intervals">\
-                    <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01"/>\
-                    <ColorMapEntry color="#FAD7FE" opacity="1.0" quantity="0.5" label="&lt; 0.5"/>\
-                    <ColorMapEntry color="#E95CF5" opacity="1.0" quantity="1" label="0.5 - 1.0"/>\
-                    <ColorMapEntry color="#CB00DB" opacity="1.0" quantity="2" label="1.0 - 2.0"/>\
-                    <ColorMapEntry color="#8100B1" opacity="1.0" quantity="4" label="2.0 - 4.0"/>\
-                    <ColorMapEntry color="#8100D2" opacity="1.0" quantity="1000" label="&gt; 4.0"/>\
-                </ColorMap>\
-            </RasterSymbolizer>'
+            'sld_style': '\
+                <RasterSymbolizer>\
+                    <ColorMap type="intervals">\
+                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01"/>\
+                        <ColorMapEntry color="#FAD7FE" opacity="1.0" quantity="0.5" label="&lt; 0.5"/>\
+                        <ColorMapEntry color="#E95CF5" opacity="1.0" quantity="1" label="0.5 - 1.0"/>\
+                        <ColorMapEntry color="#CB00DB" opacity="1.0" quantity="2" label="1.0 - 2.0"/>\
+                        <ColorMapEntry color="#8100B1" opacity="1.0" quantity="4" label="2.0 - 4.0"/>\
+                        <ColorMapEntry color="#8100D2" opacity="1.0" quantity="1000" label="&gt; 4.0"/>\
+                    </ColorMap>\
+                </RasterSymbolizer>'
         },
         'riserate': {
-            '<RasterSymbolizer>\
-                <ColorMap type="intervals">\
-                    <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01"/>\
-                    <ColorMapEntry color="#FFF5E6" opacity="1.0" quantity="0.25" label="&lt; 0.25"/>\
-                    <ColorMapEntry color="#FFD2A8" opacity="1.0" quantity="0.5" label="0.25 - 0.5"/>\
-                    <ColorMapEntry color="#FFAD66" opacity="1.0" quantity="1" label="0.5 - 1.0"/>\
-                    <ColorMapEntry color="#EB7515" opacity="1.0" quantity="2" label="1.0 - 2.0"/>\
-                    <ColorMapEntry color="#B05500" opacity="1.0" quantity="1000000" label="&gt; 2.0"/>\
-                </ColorMap>\
-            </RasterSymbolizer>'
+            'sld_style': '\
+                <RasterSymbolizer>\
+                    <ColorMap type="intervals">\
+                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01"/>\
+                        <ColorMapEntry color="#FFF5E6" opacity="1.0" quantity="0.25" label="&lt; 0.25"/>\
+                        <ColorMapEntry color="#FFD2A8" opacity="1.0" quantity="0.5" label="0.25 - 0.5"/>\
+                        <ColorMapEntry color="#FFAD66" opacity="1.0" quantity="1" label="0.5 - 1.0"/>\
+                        <ColorMapEntry color="#EB7515" opacity="1.0" quantity="2" label="1.0 - 2.0"/>\
+                        <ColorMapEntry color="#B05500" opacity="1.0" quantity="1000000" label="&gt; 2.0"/>\
+                    </ColorMap>\
+                </RasterSymbolizer>'
         },
         'damage': {
-            '<RasterSymbolizer>\
-                <ColorMap type="intervals">\
-                    <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01"/>\
-                    <ColorMapEntry color="#499b1b" opacity="1.0" quantity="10000" label="&lt; 10.000"/>\
-                    <ColorMapEntry color="#61f033" opacity="1.0" quantity="100000" label="10.000 - 100.000"/>\
-                    <ColorMapEntry color="#ffbb33" opacity="1.0" quantity="1000000" label="100.000 - 1.000.000"/>\
-                    <ColorMapEntry color="#ff3333" opacity="1.0" quantity="5000000" label="1.000.000 - 5.000.000"/>\
-                    <ColorMapEntry color="#8f3333" opacity="1.0" quantity="1000000000000000" label="&gt; 5.000.000"/>\
-                </ColorMap>\
-            </RasterSymbolizer>'
+            'scale': 'log',
+            'sld_style': '\
+                <RasterSymbolizer>\
+                    <ColorMap type="intervals">\
+                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01"/>\
+                        <ColorMapEntry color="#499b1b" opacity="1.0" quantity="10000" label="&lt; 10.000"/>\
+                        <ColorMapEntry color="#61f033" opacity="1.0" quantity="100000" label="10.000 - 100.000"/>\
+                        <ColorMapEntry color="#ffbb33" opacity="1.0" quantity="1000000" label="100.000 - 1.000.000"/>\
+                        <ColorMapEntry color="#ff3333" opacity="1.0" quantity="5000000" label="1.000.000 - 5.000.000"/>\
+                        <ColorMapEntry color="#8f3333" opacity="1.0" quantity="1000000000000000" label="&gt; 5.000.000"/>\
+                    </ColorMap>\
+                </RasterSymbolizer>'
         },
         'fatalities': {
-            '<RasterSymbolizer>\
-                <ColorMap type="intervals">\
-                    <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.0001"/>\
-                    <ColorMapEntry color="#499b1b" opacity="1.0" quantity="0.1" label="&lt; 0.1"/>\
-                    <ColorMapEntry color="#61f033" opacity="1.0" quantity="0.3" label="0.1 - 0.3"/>\
-                    <ColorMapEntry color="#ffbb33" opacity="1.0" quantity="1" label="0.3 - 1"/>\
-                    <ColorMapEntry color="#ff3333" opacity="1.0" quantity="3" label="1 - 3"/>\
-                    <ColorMapEntry color="#8f3333" opacity="1.0" quantity="10000" label="&gt; 3"/>\
-                </ColorMap>\
-            </RasterSymbolizer>'
+            'scale': 'log',
+            'sld_style': '\
+                <RasterSymbolizer>\
+                    <ColorMap type="intervals">\
+                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.0001"/>\
+                        <ColorMapEntry color="#499b1b" opacity="1.0" quantity="0.1" label="&lt; 0.1"/>\
+                        <ColorMapEntry color="#61f033" opacity="1.0" quantity="0.3" label="0.1 - 0.3"/>\
+                        <ColorMapEntry color="#ffbb33" opacity="1.0" quantity="1" label="0.3 - 1"/>\
+                        <ColorMapEntry color="#ff3333" opacity="1.0" quantity="3" label="1 - 3"/>\
+                        <ColorMapEntry color="#8f3333" opacity="1.0" quantity="10000" label="&gt; 3"/>\
+                    </ColorMap>\
+                </RasterSymbolizer>'
 }
     }
 
@@ -1295,22 +1302,24 @@ def get_liwo_scenarios():
 
     # Filter based on band name (characteristic to display)
     collection = collection.select(bands[band])
-    # logger.debug("Number of images at breach location: %s"
-    #              % collection.size().getInfo())
+    logger.debug("Number of images at breach location: %s"
+                 % collection.size().getInfo())
 
     # get max image
     reduce_func = getattr(ee.Reducer, reducer)()
     image = ee.Image(collection.reduce(reduce_func))
     # clip image to region and mask all 0 values (no-data value given in images) .clip(region)
-    image = image.mask(image.neq(0)).sldStyle(styles[band])
+    image = image.mask(image.neq(0))
 
     def generate_image_info(im, params):
         """generate url and tokens for image"""
         im = ee.Image(im)
 
         # some images are scaled to a factor of 10.
-        # if params.get('scale') == 'log':
-        #     im = im.log10()
+        if params.get('scale') == 'log':
+            im = im.log10()
+
+        im = im.sldStyle(params.get('sld_style'))
 
         m = im.getMapId()
 
