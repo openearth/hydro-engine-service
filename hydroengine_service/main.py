@@ -1202,74 +1202,80 @@ def get_liwo_scenarios():
         'velocity': 'b2',
         'riserate': 'b3',
         'damage': 'b4',
-        'casualties': 'b5'
+        'fatalities': 'b5'
     }
 
     assert band in bands
 
     styles  = {
         'waterdepth': {
-            'min': 0,
-            'max': 6,
-            'palette': ','.join([
-                '#00c3ff',
-                '#00c3ff',
-                '#006fff',
-                '#0043a8',
-                '#002673',
-                '#4d0073',
-                '#73004c'
-            ])
+            'sld_style': '\
+                <RasterSymbolizer>\
+                    <ColorMap type="intervals">\
+                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01999"/>\
+                        <ColorMapEntry color="#CEFEFE" opacity="1.0" quantity="0.5" label="&lt; 0.5"/>\
+                        <ColorMapEntry color="#94bff7" opacity="1.0" quantity="1" label="0.5 - 1.0"/>\
+                        <ColorMapEntry color="#278ef4" opacity="1.0" quantity="1.5" label="1.0 - 1.5"/>\
+                        <ColorMapEntry color="#0000cc" opacity="1.0" quantity="2.0" label="1.5 - 2.0"/>\
+                        <ColorMapEntry color="#4A0177" opacity="1.0" quantity="5" label="2.0 - 5.0"/>\
+                        <ColorMapEntry color="#73004c" opacity="1.0" quantity="9999" label="&gt; 5.0"/>\
+                    </ColorMap>\
+                </RasterSymbolizer>'
         },
         'velocity': {
-            'min': 0,
-            'max': 4,
-            'palette': ','.join([
-                "#FFFFFF",
-                "#FAD7FE",
-                "#E95CF5",
-                "#CB00DB",
-                "#8100B1",
-                "#8100D2"
-            ])
+            'sld_style': '\
+                <RasterSymbolizer>\
+                    <ColorMap type="intervals">\
+                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01"/>\
+                        <ColorMapEntry color="#FAD7FE" opacity="1.0" quantity="0.5" label="&lt; 0.5"/>\
+                        <ColorMapEntry color="#E95CF5" opacity="1.0" quantity="1" label="0.5 - 1.0"/>\
+                        <ColorMapEntry color="#CB00DB" opacity="1.0" quantity="2" label="1.0 - 2.0"/>\
+                        <ColorMapEntry color="#8100B1" opacity="1.0" quantity="4" label="2.0 - 4.0"/>\
+                        <ColorMapEntry color="#8100D2" opacity="1.0" quantity="1000" label="&gt; 4.0"/>\
+                    </ColorMap>\
+                </RasterSymbolizer>'
         },
         'riserate': {
-            'min': 0,
-            'max': 4,
-            'palette': ','.join([
-                "#FFFFFF",
-                "#00D4FF",
-                "#6CAEE8",
-                "#AA7FE4",
-                "#D47FFF"
-            ])
+            'sld_style': '\
+                <RasterSymbolizer>\
+                    <ColorMap type="intervals">\
+                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01"/>\
+                        <ColorMapEntry color="#FFF5E6" opacity="1.0" quantity="0.25" label="&lt; 0.25"/>\
+                        <ColorMapEntry color="#FFD2A8" opacity="1.0" quantity="0.5" label="0.25 - 0.5"/>\
+                        <ColorMapEntry color="#FFAD66" opacity="1.0" quantity="1" label="0.5 - 1.0"/>\
+                        <ColorMapEntry color="#EB7515" opacity="1.0" quantity="2" label="1.0 - 2.0"/>\
+                        <ColorMapEntry color="#B05500" opacity="1.0" quantity="1000000" label="&gt; 2.0"/>\
+                    </ColorMap>\
+                </RasterSymbolizer>'
         },
         'damage': {
-            'min': 0,
-            'max': 5,
             'scale': 'log',
-            'palette': ','.join([
-                "#FFFFFF",
-                "#39D400",
-                "#52FF00",
-                "#FFAA00",
-                "#FF0000",
-                "#730000"
-            ])
+            'sld_style': '\
+                <RasterSymbolizer>\
+                    <ColorMap type="intervals">\
+                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01"/>\
+                        <ColorMapEntry color="#499b1b" opacity="1.0" quantity="10000" label="&lt; 10.000"/>\
+                        <ColorMapEntry color="#61f033" opacity="1.0" quantity="100000" label="10.000 - 100.000"/>\
+                        <ColorMapEntry color="#ffbb33" opacity="1.0" quantity="1000000" label="100.000 - 1.000.000"/>\
+                        <ColorMapEntry color="#ff3333" opacity="1.0" quantity="5000000" label="1.000.000 - 5.000.000"/>\
+                        <ColorMapEntry color="#8f3333" opacity="1.0" quantity="1000000000000000" label="&gt; 5.000.000"/>\
+                    </ColorMap>\
+                </RasterSymbolizer>'
         },
-        'casualties': {
-            'min': 0,
-            'max': 3,
+        'fatalities': {
             'scale': 'log',
-            'palette': ','.join([
-                "#FFFFFF",
-                "#39D400",
-                "#52FF00",
-                "#FFAA00",
-                "#FF0000",
-                "#730000"
-            ])
-        }
+            'sld_style': '\
+                <RasterSymbolizer>\
+                    <ColorMap type="intervals">\
+                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.0001"/>\
+                        <ColorMapEntry color="#499b1b" opacity="1.0" quantity="0.1" label="&lt; 0.1"/>\
+                        <ColorMapEntry color="#61f033" opacity="1.0" quantity="0.3" label="0.1 - 0.3"/>\
+                        <ColorMapEntry color="#ffbb33" opacity="1.0" quantity="1" label="0.3 - 1"/>\
+                        <ColorMapEntry color="#ff3333" opacity="1.0" quantity="3" label="1 - 3"/>\
+                        <ColorMapEntry color="#8f3333" opacity="1.0" quantity="10000" label="&gt; 3"/>\
+                    </ColorMap>\
+                </RasterSymbolizer>'
+}
     }
 
     # Filter based on breach location
@@ -1291,7 +1297,7 @@ def get_liwo_scenarios():
     n_filtered = collection.size().getInfo()
 
     if n_selected != n_filtered:
-        logging.warn('missing images, selected %s, filtered %s', n_selected, n_filtered)
+        logging.warning('missing images, selected %s, filtered %s', n_selected, n_filtered)
 
 
     # Filter based on band name (characteristic to display)
@@ -1313,7 +1319,9 @@ def get_liwo_scenarios():
         if params.get('scale') == 'log':
             im = im.log10()
 
-        m = im.getMapId(params)
+        im = im.sldStyle(params.get('sld_style'))
+
+        m = im.getMapId()
 
         mapid = m.get('mapid')
         token = m.get('token')
