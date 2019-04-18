@@ -1302,8 +1302,12 @@ def get_liwo_scenarios():
 
     # Filter based on band name (characteristic to display)
     collection = collection.select(bands[band])
-    logger.debug("Number of images at breach location: %s"
-                 % collection.size().getInfo())
+    n_images = collection.size().getInfo()
+    msg = 'No images available for breach locations: %s' % (liwo_ids, )
+    logger.debug(msg)
+
+    if not n_images:
+        raise error_handler.InvalidUsage(msg)
 
     # get max image
     reduce_func = getattr(ee.Reducer, reducer)()
