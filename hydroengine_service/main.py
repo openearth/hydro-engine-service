@@ -1189,10 +1189,6 @@ def get_liwo_scenarios():
     liwo_ids = r['liwo_ids']
     # band name as string
     band = r['band']
-    reducer = r['reducer']
-
-    assert reducer in ('max', 'min')
-
 
     raster_assets = {
         'liwo': 'users/rogersckw9/liwo/liwo-scenarios-03-2019'
@@ -1204,6 +1200,16 @@ def get_liwo_scenarios():
         'damage': 'b4',
         'fatalities': 'b5'
     }
+
+    reducers = {
+        'waterdepth': 'max',
+        'velocity': 'max',
+        'riserate': 'max',
+        'damage': 'max',
+        'fatalities': 'max'
+    }
+    # for now use max as a reducer
+    reducer = 'max'
 
     assert band in bands
 
