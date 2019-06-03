@@ -1209,7 +1209,7 @@ def get_liwo_scenarios():
         'fatalities': 'max'
     }
     # for now use max as a reducer
-    assert band
+    assert band in reducers
     assert band in bands
     reducer = reducers[band]
 
