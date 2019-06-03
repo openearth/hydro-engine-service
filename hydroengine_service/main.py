@@ -1209,7 +1209,7 @@ def get_liwo_scenarios():
         'fatalities': 'max'
     }
     # for now use max as a reducer
-    assert band in reducers
+    assert band
     assert band in bands
     reducer = reducers[band]
 
@@ -1256,7 +1256,6 @@ def get_liwo_scenarios():
                 </RasterSymbolizer>'
         },
         'damage': {
-            'scale': 'log',
             'sld_style': '\
                 <RasterSymbolizer>\
                     <ColorMap type="intervals">\
@@ -1270,7 +1269,6 @@ def get_liwo_scenarios():
                 </RasterSymbolizer>'
         },
         'fatalities': {
-            'scale': 'log',
             'sld_style': '\
                 <RasterSymbolizer>\
                     <ColorMap type="intervals">\
