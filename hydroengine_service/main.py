@@ -1256,7 +1256,6 @@ def get_liwo_scenarios():
                 </RasterSymbolizer>'
         },
         'damage': {
-            'scale': 'log',
             'sld_style': '\
                 <RasterSymbolizer>\
                     <ColorMap type="intervals">\
@@ -1270,7 +1269,6 @@ def get_liwo_scenarios():
                 </RasterSymbolizer>'
         },
         'fatalities': {
-            'scale': 'log',
             'sld_style': '\
                 <RasterSymbolizer>\
                     <ColorMap type="intervals">\
