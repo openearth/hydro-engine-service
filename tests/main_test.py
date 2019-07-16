@@ -48,8 +48,11 @@ class TestClient(unittest.TestCase):
             "palette": palette
         }
 
-        r = self.client.get('/get_bathymetry', data=json.dumps(input),
-                            content_type='application/json')
+        r = self.client.get(
+            '/get_bathymetry',
+            data=json.dumps(input),
+            content_type='application/json'
+        )
 
         assert r.status_code == 200
 
@@ -66,8 +69,11 @@ class TestClient(unittest.TestCase):
             "begin_date": "2001-01-01"
         }
 
-        r = self.client.get('/get_bathymetry', data=json.dumps(input),
-                            content_type='application/json')
+        r = self.client.get(
+            '/get_bathymetry',
+            data=json.dumps(input),
+            content_type='application/json'
+        )
 
         assert r.status_code == 200
 
@@ -76,84 +82,97 @@ class TestClient(unittest.TestCase):
         assert 'mapid' in result
 
     def test_get_raster_profile(self):
-        line = '''{
-        "dataset": "bathymetry_jetski",
-        "begin_date": "2011-08-02",
-        "end_date": "2011-09-02",
-        "polyline": {
-              "geodesic": true,
-              "type": "LineString",
-              "coordinates": [
-                [
-                  5.03448486328125,
-                  53.53541058046374
-                ],
-                [
-                  5.58380126953125,
-                  53.13029407190636
+        line = {
+            "dataset": "bathymetry_jetski",
+            "begin_date": "2011-08-02",
+            "end_date": "2011-09-02",
+            "polyline": {
+                "geodesic": True,
+                "type": "LineString",
+                "coordinates": [
+                    [
+                        5.03448486328125,
+                        53.53541058046374
+                    ],
+                    [
+                        5.58380126953125,
+                        53.13029407190636
+                    ]
                 ]
-              ]
             },
-        "scale": 100
-        }'''
+            "scale": 100
+        }
 
-        r = self.client.post('/get_raster_profile', data=line,
-                             content_type='application/json')
+        r = self.client.post(
+            '/get_raster_profile',
+            data=json.dumps(line),
+            content_type='application/json'
+        )
         assert r.status_code == 200
 
     def test_get_catchments(self):
-        request = '''{
+        request = {
             "region":
                 {"type": "Polygon", "coordinates":
                     [[[5.995833, 4.387513999999975], [7.704733999999998, 4.387513999999975],
-                      [7.704733999999998, 7.925567000000025], [5.995833, 7.925567000000025],
+                      [7.704733999999998, 7.925567000000025], [
+                          5.995833, 7.925567000000025],
                       [5.995833, 4.387513999999975]]]},
-            "dissolve": true,
+            "dissolve": True,
             "catchment_level": 6,
             "region_filter": ""
-        }'''
+        }
 
-        r = self.client.post('/get_catchments', data=request,
-                             content_type='application/json')
+        r = self.client.post(
+            '/get_catchments',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
         assert r.status_code == 200
 
     def test_get_rivers(self):
-        request = '''{
+        request = {
             "region":
                 {"type": "Polygon", "coordinates":
                     [[[5.995833, 4.387513999999975], [7.704733999999998, 4.387513999999975],
-                      [7.704733999999998, 7.925567000000025], [5.995833, 7.925567000000025],
+                      [7.704733999999998, 7.925567000000025], [
+                          5.995833, 7.925567000000025],
                       [5.995833, 4.387513999999975]]]},
             "filter_upstream_gt": 1000,
             "catchment_level": 6,
             "region_filter": ""
-        }'''
+        }
 
-        r = self.client.post('/get_rivers', data=request,
-                             content_type='application/json')
+        r = self.client.post(
+            '/get_rivers',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
         assert r.status_code == 200
 
     def test_get_lakes(self):
-        request = '''{
+        request = {
             "region":
                 {"type": "Polygon", "coordinates":
                     [[[5.995833, 4.387513999999975], [7.704733999999998, 4.387513999999975],
-                      [7.704733999999998, 7.925567000000025], [5.995833, 7.925567000000025],
+                      [7.704733999999998, 7.925567000000025], [
+                          5.995833, 7.925567000000025],
                       [5.995833, 4.387513999999975]]]},
-            "id_only": false
-        }'''
+            "id_only": False
+        }
 
-        r = self.client.post('/get_lakes', data=request,
-                             content_type='application/json')
-
-        print('LAKES: ')
+        r = self.client.post(
+            '/get_lakes',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
 
         assert r.status_code == 200
 
     def test_get_water_mask(self):
-        request = '''{
+        request = {
             "region": {
-                "geodesic": false,
+                "geodesic": False,
                 "type": "Polygon",
                 "coordinates": [[
                     [5.986862182617186, 52.517369933821186],
@@ -163,31 +182,87 @@ class TestClient(unittest.TestCase):
                     [5.986862182617186, 52.517369933821186]
                 ]]
             },
-            "use_url": false,
+            "use_url": False,
             "start": "2013-01-01",
             "stop": "2015-01-01",
             "scale": 30,
             "crs": "EPSG:3857"
-        }'''
+        }
 
-        r = self.client.post('/get_water_mask', data=request,
-                             content_type='application/json')
+        r = self.client.post(
+            '/get_water_mask',
+            data=json.dumps(request),
+            content_type='application/json')
 
         assert r.status_code == 200
 
     def test_get_sea_surface_height_time_series(self):
         """test sea surface height timeseries"""
-        request = '''{
-        "region": {"type": "Point", "coordinates": [54.0, 0.0]}
+        request = {
+            "region": {"type": "Point", "coordinates": [54.0, 0.0]}
         }
-        '''
 
         r = self.client.post(
             '/get_sea_surface_height_time_series',
-            data=request,
+            data=json.dumps(request),
             content_type='application/json'
         )
         assert r.status_code == 200
+
+    def test_get_liwo_scenarios_max_no_region(self):
+        """test get liwo scenarios max"""
+        request = {
+            "liwo_ids": [635, 1903, 1948],
+            "band": "waterdepth",
+            "reducer": "max"
+        }
+        resp = self.client.post(
+            '/get_liwo_scenarios',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        print('code:', resp.status_code)
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+
+        assert 'mapid' in result
+
+    def test_get_liwo_scenarios_max_export(self):
+        """test get liwo scenarios max"""
+
+        # some of these variables are only used for export
+        request = {
+            "liwo_ids": [635, 1948],
+            "band": "waterdepth",
+            "reducer": "max",
+            "region": {
+                "geodesic": False,
+                "type": "Polygon",
+                "coordinates": [[
+                    [6.0161056877902865, 51.41901371286102],
+                    [6.2495651604465365, 51.417729076754576],
+                    [6.245101964645755, 51.54985700463136],
+                    [6.0174789788059115, 51.54836255319905],
+                    [6.0161056877902865, 51.41901371286102]
+                ]]
+            },
+            "scale": 30,
+            "export": True,
+            "crs": "EPSG:28992"
+        }
+        resp = self.client.post(
+            '/get_liwo_scenarios',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        print('code:', resp.status_code)
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+
+        assert 'mapid' in result
+
 
 if __name__ == '__main__':
     unittest.main()

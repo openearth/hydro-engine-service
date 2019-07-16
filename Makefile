@@ -90,3 +90,5 @@ install: clean ## install the package to the active Python's site-packages
 deploy:
 	gcloud app deploy --project hydro-engine --version=dev2
 
+stage:
+	gcloud app deploy --no-promote --project hydro-engine --version=staging

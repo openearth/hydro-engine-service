@@ -92,13 +92,13 @@ def get_upstream_catchments(level):
         raise Exception(
             'Currently, only level 6 is supported for upstream catchments')
 
-    def _get_upstream_catchments(basin_source)  -> ee.FeatureCollection:
+    def _get_upstream_catchments(basin_source) -> ee.FeatureCollection:
         hybas_id = ee.Number(basin_source.get('HYBAS_ID'))
         upstream_ids = index.filter(
             ee.Filter.eq('hybas_id', hybas_id)).aggregate_array('parent_from')
         upstream_basins = basins[level].filter(
             ee.Filter.inList('HYBAS_ID', upstream_ids)).merge(
-            ee.FeatureCollection([basin_source]))
+                ee.FeatureCollection([basin_source]))
 
         return upstream_basins
 
@@ -115,7 +115,7 @@ def number_to_string(i):
 def reduceImageProfile(image, line, reducer, scale):
     length = line.length()
     distances = ee.List.sequence(0, length, scale)
-    lines = line.cutLines(distances).geometries();
+    lines = line.cutLines(distances).geometries()
 
     def generate_line_segment(l):
         l = ee.List(l)
@@ -238,12 +238,12 @@ def get_sea_surface_height_time_series():
 
     ssh_list = images.getRegion(region, scale, 'EPSG:4326')
 
-
     ssh_rows = ssh_list.slice(1).map(
         lambda x: {'t': ee.List(x).get(3), 'v': ee.List(x).get(4)}
     )
 
     return Response(json.dumps(ssh_rows.getInfo()), status=200, mimetype='application/json')
+
 
 @app.route('/get_sea_surface_height_trend_image', methods=['GET', 'POST'])
 @flask_cors.cross_origin()
@@ -430,15 +430,15 @@ def get_water_mask_raw():
 
     # filter Sentinel-2 images
     images = ee.ImageCollection('COPERNICUS/S2') \
-        .select(bands) \
-        .filterBounds(region) \
-        .filterDate(start, stop) \
-        .map(lambda i: i.resample('bilinear'))
+               .select(bands) \
+               .filterBounds(region) \
+               .filterDate(start, stop) \
+               .map(lambda i: i.resample('bilinear'))
 
     # remove noise (clouds, shadows) using percentile composite
     image = images \
         .reduce(ee.Reducer.percentile([percentile])) \
- \
+        \
         # computer water mask using NDWI
     water_mask = image \
         .normalizedDifference() \
@@ -448,12 +448,12 @@ def get_water_mask_raw():
     water_mask_vector = water_mask \
         .mask(water_mask) \
         .reduceToVectors(**{
-        "geometry": region,
-        "scale": scale / 2
-    })
+            "geometry": region,
+            "scale": scale / 2
+        })
 
     water_mask_vector = water_mask_vector.toList(10000) \
-        .map(lambda o: ee.Feature(o).simplify(scale))
+                                         .map(lambda o: ee.Feature(o).simplify(scale))
 
     water_mask_vector = ee.FeatureCollection(water_mask_vector)
 
@@ -484,9 +484,9 @@ def get_water_mask_vector(region, scale, start, stop):
 
     # vectorize
     water_mask_vector = water_mask.mask(water_mask) \
-        .reduceToVectors(**{"geometry": region,
-                            "scale": scale / 2,
-                            "tileScale": 4})
+                                  .reduceToVectors(**{"geometry": region,
+                                                      "scale": scale / 2,
+                                                      "tileScale": 4})
 
     # take the largest
     water_mask_vector = water_mask_vector \
@@ -559,8 +559,8 @@ def generate_perimeter_points(geom, step):
         distances = ee.List.sequence(0, ring.length(error), step)
 
         return ee.Feature(ring) \
-            .set({"distances": distances}) \
-            .set({"distancesCount": distances.length()})
+                 .set({"distances": distances}) \
+                 .set({"distancesCount": distances.length()})
 
     rings = geom.coordinates().map(wrap_ring)
 
@@ -597,11 +597,11 @@ def generate_voronoi_polygons(points, scale, aoi):
     proj = ee.Projection('EPSG:4326').atScale(scale)
 
     distance = ee.Image(0).float().paint(points, 1) \
-        .fastDistanceTransform().sqrt().clip(aoi) \
-        .reproject(proj)
+                                  .fastDistanceTransform().sqrt().clip(aoi) \
+                                                                 .reproject(proj)
 
     concavity = distance.convolve(ee.Kernel.laplacian8()) \
-        .reproject(proj)
+                        .reproject(proj)
 
     concavity = concavity.multiply(distance)
 
@@ -611,18 +611,18 @@ def generate_voronoi_polygons(points, scale, aoi):
 
     # label connected components
     connected = edges.Not() \
-        .connectedComponents(ee.Kernel.circle(1), 256) \
-        .clip(aoi) \
-        .focal_max(scale * 3, 'circle', 'meters') \
-        .focal_min(scale * 3, 'circle', 'meters') \
-        .focal_mode(scale * 5, 'circle', 'meters') \
-        .reproject(proj)
+                     .connectedComponents(ee.Kernel.circle(1), 256) \
+                     .clip(aoi) \
+                     .focal_max(scale * 3, 'circle', 'meters') \
+                     .focal_min(scale * 3, 'circle', 'meters') \
+                     .focal_mode(scale * 5, 'circle', 'meters') \
+                     .reproject(proj)
 
     # fixing reduceToVectors() bug, remap to smaller int
     def fixOverflowError(i):
         hist = i.reduceRegion(ee.Reducer.frequencyHistogram(), aoi, scale)
         uniqueLabels = ee.Dictionary(ee.Dictionary(hist).get('labels')).keys() \
-            .map(lambda o: ee.Number.parse(o))
+                                                                       .map(lambda o: ee.Number.parse(o))
 
         labels = ee.List.sequence(0, uniqueLabels.size().subtract(1))
 
@@ -718,7 +718,7 @@ def generate_skeleton_from_voronoi(scale, water_vector):
                       ee.Filter.eq('intersectsWithMask', True))
     centerline = features.filter(f)
     centerline = centerline.geometry().dissolve(scale, proj) \
-        .simplify(scale * simplify_centerline_factor, proj)
+                                      .simplify(scale * simplify_centerline_factor, proj)
     centerline = centerline.geometries().map(
         lambda g: ee.Feature(ee.Geometry(g)))
     centerline = ee.FeatureCollection(centerline)
@@ -816,11 +816,11 @@ def get_water_network_properties():
             centroid = ee.Geometry.Point(s.coordinates().get(0))
 
             return ee.Feature(centroid) \
-                .set("lineId", line.id()) \
-                .set("offset", offset)
+                     .set("lineId", line.id()) \
+                     .set("offset", offset)
 
         segments = segments.geometries().zip(distances) \
-            .map(generate_line_middle_point)
+                                        .map(generate_line_middle_point)
 
         return ee.FeatureCollection(segments)
 
@@ -832,8 +832,8 @@ def get_water_network_properties():
         geom = ee.Geometry.Point(geom.coordinates().get(0), 'EPSG:4326')
 
         return ee.Feature(geom) \
-            .set("lineId", line.id()) \
-            .set("offset", 0)
+                 .set("lineId", line.id()) \
+                 .set("offset", 0)
 
     short_line_points = short_lines.map(process_short_line)
 
@@ -900,7 +900,7 @@ def api_get_catchments():
         # for every selection, get and merge upstream
         upstream_catchments = ee.FeatureCollection(
             selection.map(get_upstream_catchments(catchment_level))) \
-            .flatten().distinct('HYBAS_ID')
+                                .flatten().distinct('HYBAS_ID')
     else:
         print('Getting intersected catchments ..')
 
@@ -910,7 +910,8 @@ def api_get_catchments():
     # TODO: dissolve output
 
     # get GeoJSON
-    data = upstream_catchments.getInfo()  # TODO: use ZIP to prevent 5000 feature limit
+    # TODO: use ZIP to prevent 5000 feature limit
+    data = upstream_catchments.getInfo()
 
     # fill response
     resp = Response(json.dumps(data), status=200, mimetype='application/json')
@@ -933,7 +934,7 @@ def api_get_rivers():
         # for every selection, get and merge upstream catchments
         selected_catchments = ee.FeatureCollection(
             selected_catchments.map(get_upstream_catchments(catchment_level))) \
-            .flatten().distinct('HYBAS_ID')
+                                .flatten().distinct('HYBAS_ID')
 
     # get ids
     upstream_catchment_ids = ee.List(
@@ -1033,7 +1034,7 @@ def get_lake_water_area(lake_id, scale):
             # estimate scale from reservoir surface area, currently
             coords = ee.List(f.geometry().bounds().transform('EPSG:3857',
                                                              30).coordinates().get(
-                0))
+                                                                 0))
             ll = ee.List(coords.get(0))
             ur = ee.List(coords.get(2))
             width = ee.Number(ll.get(0)).subtract(ur.get(0)).abs()
@@ -1095,7 +1096,7 @@ def api_get_feature_collection():
         return feature.intersection(region_feature)
 
     features = features.filterBounds(region)\
-        .map(clip_feature)
+                       .map(clip_feature)
 
     data = features.getInfo()
 
@@ -1119,7 +1120,7 @@ def api_get_raster():
         # for every selection, get and merge upstream
         region = ee.FeatureCollection(
             selection_basins.map(get_upstream_catchments(catchment_level))) \
-            .flatten().distinct('HYBAS_ID').geometry()
+                   .flatten().distinct('HYBAS_ID').geometry()
 
         region = region.bounds()
 
@@ -1177,6 +1178,214 @@ def api_get_raster():
     return Response(json.dumps(data), status=200, mimetype='application/json')
 
 
+@app.route('/get_liwo_scenarios', methods=['GET', 'POST'])
+@flask_cors.cross_origin()
+def get_liwo_scenarios():
+    r = request.get_json()
+
+    # Currently 'liwo' only option
+    variable = 'liwo'
+    # name of breach location as string
+    liwo_ids = r['liwo_ids']
+    # band name as string
+    band = r['band']
+
+    raster_assets = {
+        'liwo': 'users/rogersckw9/liwo/liwo-scenarios-03-2019'
+    }
+    bands = {
+        'waterdepth': 'b1',
+        'velocity': 'b2',
+        'riserate': 'b3',
+        'damage': 'b4',
+        'fatalities': 'b5'
+    }
+
+    reducers = {
+        'waterdepth': 'max',
+        'velocity': 'max',
+        'riserate': 'max',
+        'damage': 'max',
+        'fatalities': 'max'
+    }
+    # for now use max as a reducer
+    assert band in reducers
+    assert band in bands
+    reducer = reducers[band]
+
+
+    styles  = {
+        'waterdepth': {
+            'sld_style': '\
+                <RasterSymbolizer>\
+                    <ColorMap type="intervals">\
+                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01999"/>\
+                        <ColorMapEntry color="#CEFEFE" opacity="1.0" quantity="0.5" label="&lt; 0.5"/>\
+                        <ColorMapEntry color="#94bff7" opacity="1.0" quantity="1" label="0.5 - 1.0"/>\
+                        <ColorMapEntry color="#278ef4" opacity="1.0" quantity="1.5" label="1.0 - 1.5"/>\
+                        <ColorMapEntry color="#0000cc" opacity="1.0" quantity="2.0" label="1.5 - 2.0"/>\
+                        <ColorMapEntry color="#4A0177" opacity="1.0" quantity="5" label="2.0 - 5.0"/>\
+                        <ColorMapEntry color="#73004c" opacity="1.0" quantity="9999" label="&gt; 5.0"/>\
+                    </ColorMap>\
+                </RasterSymbolizer>'
+        },
+        'velocity': {
+            'sld_style': '\
+                <RasterSymbolizer>\
+                    <ColorMap type="intervals">\
+                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01"/>\
+                        <ColorMapEntry color="#FAD7FE" opacity="1.0" quantity="0.5" label="&lt; 0.5"/>\
+                        <ColorMapEntry color="#E95CF5" opacity="1.0" quantity="1" label="0.5 - 1.0"/>\
+                        <ColorMapEntry color="#CB00DB" opacity="1.0" quantity="2" label="1.0 - 2.0"/>\
+                        <ColorMapEntry color="#8100B1" opacity="1.0" quantity="4" label="2.0 - 4.0"/>\
+                        <ColorMapEntry color="#8100D2" opacity="1.0" quantity="1000" label="&gt; 4.0"/>\
+                    </ColorMap>\
+                </RasterSymbolizer>'
+        },
+        'riserate': {
+            'sld_style': '\
+                <RasterSymbolizer>\
+                    <ColorMap type="intervals">\
+                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01"/>\
+                        <ColorMapEntry color="#FFF5E6" opacity="1.0" quantity="0.25" label="&lt; 0.25"/>\
+                        <ColorMapEntry color="#FFD2A8" opacity="1.0" quantity="0.5" label="0.25 - 0.5"/>\
+                        <ColorMapEntry color="#FFAD66" opacity="1.0" quantity="1" label="0.5 - 1.0"/>\
+                        <ColorMapEntry color="#EB7515" opacity="1.0" quantity="2" label="1.0 - 2.0"/>\
+                        <ColorMapEntry color="#B05500" opacity="1.0" quantity="1000000" label="&gt; 2.0"/>\
+                    </ColorMap>\
+                </RasterSymbolizer>'
+        },
+        'damage': {
+            'sld_style': '\
+                <RasterSymbolizer>\
+                    <ColorMap type="intervals">\
+                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01"/>\
+                        <ColorMapEntry color="#499b1b" opacity="1.0" quantity="10000" label="&lt; 10.000"/>\
+                        <ColorMapEntry color="#61f033" opacity="1.0" quantity="100000" label="10.000 - 100.000"/>\
+                        <ColorMapEntry color="#ffbb33" opacity="1.0" quantity="1000000" label="100.000 - 1.000.000"/>\
+                        <ColorMapEntry color="#ff3333" opacity="1.0" quantity="5000000" label="1.000.000 - 5.000.000"/>\
+                        <ColorMapEntry color="#8f3333" opacity="1.0" quantity="1000000000000000" label="&gt; 5.000.000"/>\
+                    </ColorMap>\
+                </RasterSymbolizer>'
+        },
+        'fatalities': {
+            'sld_style': '\
+                <RasterSymbolizer>\
+                    <ColorMap type="intervals">\
+                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.0001"/>\
+                        <ColorMapEntry color="#499b1b" opacity="1.0" quantity="0.1" label="&lt; 0.1"/>\
+                        <ColorMapEntry color="#61f033" opacity="1.0" quantity="0.3" label="0.1 - 0.3"/>\
+                        <ColorMapEntry color="#ffbb33" opacity="1.0" quantity="1" label="0.3 - 1"/>\
+                        <ColorMapEntry color="#ff3333" opacity="1.0" quantity="3" label="1 - 3"/>\
+                        <ColorMapEntry color="#8f3333" opacity="1.0" quantity="10000" label="&gt; 3"/>\
+                    </ColorMap>\
+                </RasterSymbolizer>'
+}
+    }
+
+    # Filter based on breach location
+    collection = ee.ImageCollection(raster_assets[variable])
+
+    # TODO: how to make this generic, consider GraphQL
+    collection = collection.filter(
+        ee.Filter.inList('LIWO_ID', liwo_ids)
+    )
+
+    collection = collection.map(
+        lambda im: im.set('bandNames', im.bandNames())
+    )
+
+    n_selected = collection.size().getInfo()
+
+    collection = collection.filterMetadata('bandNames', 'equals', ['b1', 'b2', 'b3', 'b4', 'b5'])
+
+    n_filtered = collection.size().getInfo()
+
+    if n_selected != n_filtered:
+        logging.warning('missing images, selected %s, filtered %s', n_selected, n_filtered)
+
+
+    # Filter based on band name (characteristic to display)
+    collection = collection.select(bands[band])
+    n_images = collection.size().getInfo()
+    msg = 'No images available for breach locations: %s' % (liwo_ids, )
+    logger.debug(msg)
+
+    if not n_images:
+        raise error_handler.InvalidUsage(msg)
+
+    # get max image
+    reduce_func = getattr(ee.Reducer, reducer)()
+    image = ee.Image(collection.reduce(reduce_func))
+    # clip image to region and mask all 0 values (no-data value given in images) .clip(region)
+    image = image.mask(image.neq(0))
+
+    def generate_image_info(im, params):
+        """generate url and tokens for image"""
+        im = ee.Image(im)
+
+        # some images are scaled to a factor of 10.
+        if params.get('scale') == 'log':
+            im = im.log10()
+
+        im = im.sldStyle(params.get('sld_style'))
+
+        m = im.getMapId()
+
+        mapid = m.get('mapid')
+        token = m.get('token')
+
+        url = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'.format(
+            mapid=mapid,
+            token=token
+        )
+
+        result = {
+            'mapid': mapid,
+            'token': token,
+            'url': url
+        }
+        return result
+
+    def export_image_response(image, region, info):
+        """create export response for image"""
+        url = image.getDownloadURL({
+            'name': 'export',
+            'format': 'tif',
+            'crs': info['crs'],
+            'scale': info['scale'],
+            'region': json.dumps(region.bounds(info['scale']).getInfo())
+        })
+        result = {'export_url': url}
+        return result
+
+    # TODO: generate visualization params for map ids
+    params = styles[band]
+
+    info = generate_image_info(image, params)
+    info['variable'] = variable
+    info['liwo_ids'] = liwo_ids
+    info['band'] = band
+
+    # # Following needed for export:
+    # # Specify region over which to compute
+    # export  is True or None/False
+    if r.get('export'):
+        region = ee.Geometry(r['region'])
+        # scale of pixels for export, in meters
+        info['scale'] = float(r['scale'])
+        # coordinate system for export projection
+        info['crs'] = r['crs']
+        extra_info = export_image_response(image, region, info)
+        info.update(extra_info)
+
+    return Response(
+        json.dumps(info),
+        status=200,
+        mimetype='application/json'
+    )
+
+
 @app.route('/')
 def root():
     return 'Welcome to Hydro Earth Engine. Currently, only RESTful API is supported. Visit <a href="http://github.com/deltares/hydro-engine">http://github.com/deltares/hydro-engine</a> for more information ...'
@@ -1195,4 +1404,4 @@ if __name__ == '__main__':
     # This is used when running locally. Gunicorn is used to run the
     # application on Google App Engine. See entrypoint in app.yaml.
     app.run(host='127.0.0.1', port=8080, debug=True)
-# [END app]
+    # [END app]

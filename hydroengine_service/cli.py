@@ -8,10 +8,11 @@ import hydroengine_service.main
 
 
 @click.command()
-def main(args=None):
+@click.option('--port', default=8080, type=int, help='Port number')
+def main(port, args=None):
     """Console script for hydroengine_service."""
 
-    hydroengine_service.main.app.run(host='127.0.0.1', port=8080, debug=True)
+    hydroengine_service.main.app.run(host='127.0.0.1', port=port, debug=True)
 
 
 if __name__ == "__main__":
