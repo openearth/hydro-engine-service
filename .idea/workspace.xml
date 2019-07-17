@@ -1,0 +1,635 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="1d306aa4-3335-458a-a70b-099bd2ab71c3" name="Default" comment="fix tests" />
+    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="CoverageDataManager">
+    <SUITE FILE_PATH="coverage/hydro_engine_service$pytest_for_tests_main_test_TestClient_test_get_water_mask__1_.coverage" NAME="pytest for tests.main_test.TestClient.test_get_water_mask (1) Coverage Results" MODIFIED="1545337080225" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
+    <SUITE FILE_PATH="coverage/hydro_engine_service$pytest_in_main_test_py.coverage" NAME="pytest in main_test.py Coverage Results" MODIFIED="1545336548722" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/hydro_engine_service$pytest_in_tests.coverage" NAME="pytest in tests Coverage Results" MODIFIED="1545336566305" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
+    <SUITE FILE_PATH="coverage/hydro_engine_service$pytest_for_main_test_TestClient_test_get_bathymetry_vaklodingen_custom_palette.coverage" NAME="pytest for main_test.TestClient.test_get_bathymetry_vaklodingen_custom_palette Coverage Results" MODIFIED="1543957078242" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
+    <SUITE FILE_PATH="coverage/hydro_engine_service$pytest_for_tests_main_test_TestClient_test_get_water_mask.coverage" NAME="pytest for tests.main_test.TestClient.test_get_water_mask Coverage Results" MODIFIED="1545336527270" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
+  </component>
+  <component name="FileEditorManager">
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/tests/main_test.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="201">
+              <caret line="163" column="18" lean-forward="true" selection-start-line="163" selection-start-column="18" selection-end-line="163" selection-end-column="18" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+    </leaf>
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="FindInProjectRecents">
+    <findStrings>
+      <find>simpl</find>
+      <find>water_occ</find>
+      <find>'type</find>
+      <find>buff</find>
+      <find>maxE</find>
+      <find>error =</find>
+      <find>distance =</find>
+      <find>generate_voronoi_polygons</find>
+      <find>generate_skeleton_from_voronoi</find>
+      <find>private</find>
+      <find>crs</find>
+      <find>dissolve(</find>
+      <find>atScale</find>
+      <find>f</find>
+      <find>trans</find>
+      <find>transfo</find>
+      <find>EPSG</find>
+      <find>proj =</find>
+      <find>385</find>
+      <find>print(</find>
+      <find>chainage</find>
+      <find>offset</find>
+      <find>dem</find>
+      <find>short_line_points</find>
+      <find>get_ra</find>
+      <find>region_fil</find>
+      <find>rivers</find>
+      <find>bath</find>
+      <find>get_Water</find>
+      <find>get_water</find>
+    </findStrings>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="IdeDocumentHistory">
+    <option name="CHANGED_PATHS">
+      <list>
+        <option value="$PROJECT_DIR$/tests/river_test.py" />
+        <option value="$PROJECT_DIR$/hydroengine_service/main.py" />
+        <option value="$PROJECT_DIR$/tests/main_test.py" />
+      </list>
+    </option>
+  </component>
+  <component name="InvalidFacetManager">
+    <ignored-facets>
+      <facet id="hydro-engine-service/invalid/Google App Engine (Python)" />
+    </ignored-facets>
+  </component>
+  <component name="ProjectFrameBounds" extendedState="6">
+    <option name="x" value="-10" />
+    <option name="y" value="-10" />
+    <option name="width" value="1938" />
+    <option name="height" value="1098" />
+  </component>
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectView">
+    <navigator proportions="" version="1">
+      <autoscrollFromSource ProjectPane="true" />
+      <foldersAlwaysOnTop value="true" />
+    </navigator>
+    <panes>
+      <pane id="ProjectPane">
+        <subPane>
+          <expand>
+            <path>
+              <item name="hydro-engine-service" type="b2602c69:ProjectViewProjectNode" />
+              <item name="hydro-engine-service" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="hydro-engine-service" type="b2602c69:ProjectViewProjectNode" />
+              <item name="hydro-engine-service" type="462c0819:PsiDirectoryNode" />
+              <item name=".github" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="hydro-engine-service" type="b2602c69:ProjectViewProjectNode" />
+              <item name="hydro-engine-service" type="462c0819:PsiDirectoryNode" />
+              <item name="hydroengine_service" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="hydro-engine-service" type="b2602c69:ProjectViewProjectNode" />
+              <item name="hydro-engine-service" type="462c0819:PsiDirectoryNode" />
+              <item name="tests" type="462c0819:PsiDirectoryNode" />
+            </path>
+          </expand>
+          <select />
+        </subPane>
+      </pane>
+      <pane id="Scope" />
+    </panes>
+  </component>
+  <component name="PropertiesComponent">
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="editor.config.ad.shown" value="true" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
+    <property name="nodejs_npm_path_reset_for_default_project" value="true" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+  </component>
+  <component name="RunDashboard">
+    <option name="ruleStates">
+      <list>
+        <RuleState>
+          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
+        </RuleState>
+        <RuleState>
+          <option name="name" value="StatusDashboardGroupingRule" />
+        </RuleState>
+      </list>
+    </option>
+  </component>
+  <component name="RunManager" selected="Python tests.pytest for tests.main_test.TestClient.test_get_water_mask (1)">
+    <configuration name="hydro-engine-service" type="Python.AppEngineServer" factoryName="App Engine server">
+      <module name="hydro-engine-service" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="launchJavascriptDebuger" value="false" />
+      <option name="host" value="127.0.0.1" />
+      <option name="browserUrl" value="" />
+      <option name="additionalOptions" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="tests" factoryName="py.test">
+      <module name="hydro-engine-service" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="C:\ProgramData\Anaconda3\python.exe" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;-s&quot;" />
+      <option name="_new_target" value="&quot;&quot;" />
+      <option name="_new_targetType" value="&quot;PATH&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for main_test.TestClient.test_get_bathymetry_vaklodingen_custom_palette" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="hydro-engine-service" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="C:\ProgramData\Anaconda3\python.exe" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;-s&quot;" />
+      <option name="_new_target" value="&quot;main_test.TestClient.test_get_bathymetry_vaklodingen_custom_palette&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for tests.main_test.TestClient.test_get_water_mask (1)" type="tests" factoryName="py.test" nameIsGenerated="true">
+      <module name="hydro-engine-service" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="C:\ProgramData\Anaconda3\python.exe" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_keywords" value="&quot;test_get_water_mask&quot;" />
+      <option name="_new_additionalArguments" value="&quot;-s&quot;" />
+      <option name="_new_target" value="&quot;tests.main_test.TestClient.test_get_water_mask&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for tests.main_test.TestClient.test_get_water_mask" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="hydro-engine-service" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_keywords" value="&quot;TestClient.test_get_water_mask&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;tests.main_test.TestClient.test_get_water_mask&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest in main_test.py" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="hydro-engine-service" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="C:\ProgramData\Anaconda3\python.exe" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;-s&quot;" />
+      <option name="_new_target" value="&quot;$PROJECT_DIR$/tests/main_test.py&quot;" />
+      <option name="_new_targetType" value="&quot;PATH&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest in tests" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="hydro-engine-service" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="C:\ProgramData\Anaconda3\python.exe" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;-s&quot;" />
+      <option name="_new_target" value="&quot;$PROJECT_DIR$/tests&quot;" />
+      <option name="_new_targetType" value="&quot;PATH&quot;" />
+      <method v="2" />
+    </configuration>
+    <list>
+      <item itemvalue="App Engine server.hydro-engine-service" />
+      <item itemvalue="Python tests.pytest for tests.main_test.TestClient.test_get_water_mask (1)" />
+      <item itemvalue="Python tests.pytest in tests" />
+      <item itemvalue="Python tests.pytest for tests.main_test.TestClient.test_get_water_mask" />
+      <item itemvalue="Python tests.pytest in main_test.py" />
+      <item itemvalue="Python tests.pytest for main_test.TestClient.test_get_bathymetry_vaklodingen_custom_palette" />
+    </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python tests.pytest in tests" />
+        <item itemvalue="Python tests.pytest in main_test.py" />
+        <item itemvalue="Python tests.pytest for tests.main_test.TestClient.test_get_water_mask" />
+        <item itemvalue="Python tests.pytest for main_test.TestClient.test_get_bathymetry_vaklodingen_custom_palette" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="1d306aa4-3335-458a-a70b-099bd2ab71c3" name="Default" comment="" />
+      <created>1535366104519</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1535366104519</updated>
+      <workItem from="1541088956611" duration="28000" />
+      <workItem from="1541088989488" duration="17000" />
+      <workItem from="1541345732945" duration="9000" />
+      <workItem from="1545208400923" duration="517000" />
+      <workItem from="1545317959586" duration="4240000" />
+    </task>
+    <task id="LOCAL-00001" summary="reorganize repositories, put App Engine service into a separate one">
+      <created>1535366944826</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1535366944826</updated>
+    </task>
+    <task id="LOCAL-00002" summary="add export water mask and network">
+      <created>1537974708925</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1537974708925</updated>
+    </task>
+    <task id="LOCAL-00003" summary="add export water mask and network">
+      <created>1538644556427</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1538644556427</updated>
+    </task>
+    <task id="LOCAL-00004" summary="added tests">
+      <created>1539596733488</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1539596733488</updated>
+    </task>
+    <task id="LOCAL-00005" summary="refactoring">
+      <created>1539596943818</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1539596943818</updated>
+    </task>
+    <task id="LOCAL-00006" summary="refactoring, rename methods">
+      <created>1539600904709</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1539600904709</updated>
+    </task>
+    <task id="LOCAL-00007" summary="add support for different output coordinate systems">
+      <created>1539611145775</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1539611145775</updated>
+    </task>
+    <task id="LOCAL-00008" summary="add short line points">
+      <created>1539616714959</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1539616714959</updated>
+    </task>
+    <task id="LOCAL-00009" summary="add elevation and flow accumulation to river properties">
+      <created>1540054192105</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1540054192105</updated>
+    </task>
+    <task id="LOCAL-00010" summary="add get_feature_collection&#10;add variables required by iMOD">
+      <created>1541091227922</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1541091227922</updated>
+    </task>
+    <task id="LOCAL-00011" summary="add get_feature_collection&#10;add variables required by iMOD">
+      <created>1541091238732</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1541091238732</updated>
+    </task>
+    <task id="LOCAL-00012" summary="add custom palette for bathymetry">
+      <created>1543957115268</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1543957115268</updated>
+    </task>
+    <task id="LOCAL-00013" summary="add custom palette for bathymetry">
+      <created>1543957300404</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1543957300404</updated>
+    </task>
+    <task id="LOCAL-00014" summary="fix tests">
+      <created>1545337143997</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1545337143997</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
+    <servers />
+  </component>
+  <component name="TestHistory">
+    <history-entry file="pytest_for_tests_main_test_TestClient_test_get_water_mask - 2018.12.20 at 21h 08m 50s.xml">
+      <configuration name="pytest for tests.main_test.TestClient.test_get_water_mask" configurationId="tests" />
+    </history-entry>
+    <history-entry file="pytest_in_main_test_py - 2018.12.20 at 21h 09m 10s.xml">
+      <configuration name="pytest in main_test.py" configurationId="tests" />
+    </history-entry>
+    <history-entry file="pytest_in_tests - 2018.12.20 at 21h 10m 01s.xml">
+      <configuration name="pytest in tests" configurationId="tests" />
+    </history-entry>
+    <history-entry file="pytest_for_tests_main_test_TestClient_test_get_water_mask_(1) - 2018.12.20 at 21h 10m 17s.xml">
+      <configuration name="pytest for tests.main_test.TestClient.test_get_water_mask (1)" configurationId="tests" />
+    </history-entry>
+    <history-entry file="pytest_for_tests_main_test_TestClient_test_get_water_mask_(1) - 2018.12.20 at 21h 12m 03s.xml">
+      <configuration name="pytest for tests.main_test.TestClient.test_get_water_mask (1)" configurationId="tests" />
+    </history-entry>
+    <history-entry file="pytest_for_tests_main_test_TestClient_test_get_water_mask_(1) - 2018.12.20 at 21h 12m 51s.xml">
+      <configuration name="pytest for tests.main_test.TestClient.test_get_water_mask (1)" configurationId="tests" />
+    </history-entry>
+    <history-entry file="pytest_for_tests_main_test_TestClient_test_get_water_mask_(1) - 2018.12.20 at 21h 14m 00s.xml">
+      <configuration name="pytest for tests.main_test.TestClient.test_get_water_mask (1)" configurationId="tests" />
+    </history-entry>
+    <history-entry file="pytest_for_tests_main_test_TestClient_test_get_water_mask_(1) - 2018.12.20 at 21h 14m 35s.xml">
+      <configuration name="pytest for tests.main_test.TestClient.test_get_water_mask (1)" configurationId="tests" />
+    </history-entry>
+    <history-entry file="pytest_for_tests_main_test_TestClient_test_get_water_mask_(1) - 2018.12.20 at 21h 16m 36s.xml">
+      <configuration name="pytest for tests.main_test.TestClient.test_get_water_mask (1)" configurationId="tests" />
+    </history-entry>
+    <history-entry file="pytest_for_tests_main_test_TestClient_test_get_water_mask_(1) - 2018.12.20 at 21h 18m 08s.xml">
+      <configuration name="pytest for tests.main_test.TestClient.test_get_water_mask (1)" configurationId="tests" />
+    </history-entry>
+  </component>
+  <component name="TimeTrackingManager">
+    <option name="totallyTimeSpent" value="4811000" />
+  </component>
+  <component name="ToolWindowManager">
+    <frame x="-7" y="-7" width="1550" height="878" extended-state="6" />
+    <layout>
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.29865772" />
+      <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
+      <window_info id="Favorites" order="2" side_tool="true" />
+      <window_info anchor="bottom" id="Message" order="0" />
+      <window_info anchor="bottom" id="Find" order="1" weight="0.3290735" />
+      <window_info anchor="bottom" id="Run" order="2" weight="0.4530831" />
+      <window_info anchor="bottom" id="Debug" order="3" weight="0.43297586" />
+      <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
+      <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
+      <window_info anchor="bottom" id="TODO" order="6" />
+      <window_info anchor="bottom" id="Docker" order="7" show_stripe_button="false" weight="0.3290735" />
+      <window_info anchor="bottom" id="Database Changes" order="8" show_stripe_button="false" />
+      <window_info anchor="bottom" id="Terminal" order="9" />
+      <window_info anchor="bottom" id="Event Log" order="10" side_tool="true" weight="0.3290735" />
+      <window_info anchor="bottom" id="Version Control" order="11" weight="0.9061662" />
+      <window_info anchor="bottom" id="Python Console" order="12" />
+      <window_info anchor="bottom" id="Messages" order="13" />
+      <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
+      <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
+      <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
+      <window_info anchor="right" id="SciView" order="3" />
+      <window_info anchor="right" id="Database" order="4" />
+    </layout>
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="1" />
+  </component>
+  <component name="Vcs.Log.History.Properties">
+    <option name="COLUMN_ORDER">
+      <list>
+        <option value="0" />
+        <option value="2" />
+        <option value="3" />
+        <option value="1" />
+      </list>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="reorganize repositories, put App Engine service into a separate one" />
+    <MESSAGE value="add export water mask and network" />
+    <MESSAGE value="added tests" />
+    <MESSAGE value="refactoring" />
+    <MESSAGE value="refactoring, rename methods" />
+    <MESSAGE value="add support for different output coordinate systems" />
+    <MESSAGE value="add short line points" />
+    <MESSAGE value="add elevation and flow accumulation to river properties" />
+    <MESSAGE value="add get_feature_collection&#10;add variables required by iMOD" />
+    <MESSAGE value="add custom palette for bathymetry" />
+    <MESSAGE value="fix tests" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix tests" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/hydroengine_service/main.py</url>
+          <line>526</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/hydroengine_service/main.py</url>
+          <line>531</line>
+          <option name="timeStamp" value="4" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+  <component name="debuggerHistoryManager">
+    <expressions id="evaluateExpression">
+      <expression>
+        <expression-string>e</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>points.first().getInfo()</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>distance</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>scale</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>water_vector.geometry().coordinates(ee.Projection('EPSG:4326').atScale(10)).getInfo()</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>water_vector.geometry(ee.Projection('EPSG:4326').atScale(10)).coordinates().getInfo()</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>water_vector.geometry('EPSG:4326').coordinates().getInfo()</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>water_vector.geometry().coordinates().getInfo()</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>water_vector.coordinates().getInfo()</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+    </expressions>
+  </component>
+  <component name="editorHistoryManager">
+    <entry file="file://C:/ProgramData/Anaconda3/Lib/unittest/case.py" />
+    <entry file="file://C:/ProgramData/Anaconda3/Lib/site-packages/flask/testing.py" />
+    <entry file="file://$PROJECT_DIR$/../../earthengine-api/python/ee/filter.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="168">
+          <caret line="188" selection-start-line="188" selection-end-line="188" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://C:/ProgramData/Anaconda3/Lib/site-packages/oauth2client/service_account.py" />
+    <entry file="file://$PROJECT_DIR$/requirements.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="136">
+          <caret line="8" column="10" lean-forward="true" selection-start-line="8" selection-start-column="10" selection-end-line="8" selection-end-column="10" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/hydroengine_service/cli.py">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://C:/ProgramData/Anaconda3/Lib/site-packages/werkzeug/test.py" />
+    <entry file="file://C:/ProgramData/Anaconda3/Lib/site-packages/flask/app.py" />
+    <entry file="file://$PROJECT_DIR$/hydroengine_service/config.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="51">
+          <caret line="3" column="39" selection-start-line="3" selection-end-line="3" selection-end-column="39" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://C:/Miniconda3/Lib/site-packages/flask_cors/__init__.py">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://C:/Miniconda3/Lib/site-packages/flask_cors/decorator.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="132">
+          <caret line="17" column="4" selection-start-line="17" selection-start-column="4" selection-end-line="17" selection-end-column="4" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://C:/Miniconda3/Lib/site-packages/flask/testing.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="210">
+          <caret line="131" column="22" selection-start-line="131" selection-start-column="22" selection-end-line="131" selection-end-column="22" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://C:/Miniconda3/Lib/site-packages/flask/app.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="142">
+          <caret line="1612" column="29" selection-start-line="1612" selection-start-column="28" selection-end-line="1612" selection-end-column="29" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/hydroengine_service/main.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="167">
+          <caret line="532" selection-start-line="532" selection-end-line="532" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://C:/Miniconda3/Lib/site-packages/werkzeug/test.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="125">
+          <caret line="839" selection-start-line="839" selection-end-line="839" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tests/river_test.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="136">
+          <caret line="15" column="8" selection-start-line="15" selection-start-column="8" selection-end-line="15" selection-end-column="8" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tests/main_test.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="201">
+          <caret line="163" column="18" lean-forward="true" selection-start-line="163" selection-start-column="18" selection-end-line="163" selection-end-column="18" />
+        </state>
+      </provider>
+    </entry>
+  </component>
+</project>

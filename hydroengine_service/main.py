@@ -271,6 +271,38 @@ def get_sea_surface_height_trend_image():
 
     return response
 
+def radians(image):
+    """
+    Converts image from degrees to radians 
+    """
+    
+    return ee.Image(image).toFloat().multiply(3.1415927).divide(180)
+
+def hillshade(image_rgb, elevation):
+    """
+    Styles RGB image using hillshading, mixes RGB and hillshade using HSV<->RGB transform
+    """
+
+    weight = 1.2
+    height_multiplier = 500
+    azimuth = 315
+    zenith = 40
+
+    hsv = image_rgb.unitScale(0, 255).rgbToHsv()
+
+    z = elevation.reproject(ee.Projection('EPSG:3857').atScale(30)).multiply(ee.Image.constant(height_multiplier))
+
+    terrain = ee.Algorithms.Terrain(z)
+    slope = radians(terrain.select(['slope']))
+    aspect = radians(terrain.select(['aspect'])).resample('bicubic')
+    azimuth = radians(ee.Image.constant(azimuth))
+    zenith = radians(ee.Image.constant(zenith))
+
+    hs = azimuth.subtract(aspect).cos().multiply(slope.sin()).multiply(zenith.sin()).add(zenith.cos().multiply(slope.cos())).resample('bicubic')
+    intensity = hs.multiply(ee.Image.constant(weight)).multiply(hsv.select('value'))
+    huesat = hsv.select('hue', 'saturation')
+
+    return ee.Image.cat(huesat, intensity).hsvToRgb()
 
 @app.route('/get_bathymetry', methods=['GET', 'POST'])
 @flask_cors.cross_origin()
@@ -326,7 +358,7 @@ def api_get_bathymetry():
         image_min = r['min']
 
     if 'max' in r:
-        image_min = r['max']
+        image_max = r['max']
 
     if 'palette' in r:
         image_palette = r['palette']
@@ -334,12 +366,19 @@ def api_get_bathymetry():
     def generate_image_info(image):
         """generate url and tokens for image"""
         image = ee.Image(image)
-        m = image.visualize(**{
+        image_vis = image.visualize(**{
             'min': image_min,
             'max': image_max,
             'palette': image_palette
-        }).getMapId()
+        })
+        
+        print(image_min, image_max)
 
+        if 'hillshade' in r and r['hillshade']:
+            image_vis = hillshade(image_vis, image.subtract(image_min).divide(ee.Image.constant(image_max).subtract(image_min)))
+
+        m = image_vis.getMapId()
+        
         mapid = m.get('mapid')
         token = m.get('token')
 
@@ -364,9 +403,13 @@ def api_get_bathymetry():
     # add metadata
     info = generate_image_info(image)
 
+
     info['begin'] = r['begin_date']
     info['end'] = r['end_date']
     info['palette'] = image_palette
+
+    if "hillshade" in r:
+        info["hillshade"] = r["hillshade"]
 
     resp = Response(json.dumps(info), status=200, mimetype='application/json')
     return resp

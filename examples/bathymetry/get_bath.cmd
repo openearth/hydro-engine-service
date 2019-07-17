@@ -1,2 +1,5 @@
-curl --header "Content-Type: application/json" --request POST  --data '@get_bath_data.json' --insecure https://hydro-engine.appspot.com/get_bathymetry
+curl -X POST --header "Content-Type: application/json" -d "@get_bath_data.json" https://hydro-engine.appspot.com/get_bathymetry
+
+
+
 

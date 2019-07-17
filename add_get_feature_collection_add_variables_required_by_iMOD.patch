@@ -1,0 +1,78 @@
+Index: tests/main_test.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- tests/main_test.py	(revision b91aa39e7488420fe4ea48b9bc3471dd7fb4f332)
++++ tests/main_test.py	(date 1541089974480)
+@@ -137,6 +137,21 @@
+         # assert r.status_code == 200
+         # assert 'Welcome' in r.data.decode('utf-8')
+ 
++    def test_get_feature_collection(self):
++        request = '''{
++            "region":
++                {"type": "Polygon", "coordinates":
++                    [[[5.995833, 4.387513999999975], [7.704733999999998, 4.387513999999975],
++                      [7.704733999999998, 7.925567000000025], [5.995833, 7.925567000000025],
++                      [5.995833, 4.387513999999975]]]},
++            "asset": "users/gena/HydroEngine/riv_15s_lev06"
++        }'''
++
++        r = self.client.get('/get_feature_collection', data=request,
++                            content_type='application/json')
++
++        assert r.status_code == 200
++
+ 
+ # class TestPalettes(unittest.TestCase):
+ #    def test_cpt(self):
+Index: hydroengine_service/main.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- hydroengine_service/main.py	(revision b91aa39e7488420fe4ea48b9bc3471dd7fb4f332)
++++ hydroengine_service/main.py	(date 1541090224066)
+@@ -1074,6 +1074,30 @@
+                     mimetype='application/json')
+ 
+ 
++@app.route('/get_feature_collection', methods=['GET', 'POST'])
++def api_get_feature_collection():
++    region = ee.Geometry(request.json['region'])
++
++    asset = request.json['asset']
++
++    features = ee.FeatureCollection(asset)
++
++    region_feature = ee.Feature(region)
++
++    # clip
++    def clip_feature(feature):
++        return feature.intersection(region_feature)
++
++    features = features.filterBounds(region)\
++        .map(clip_feature)
++
++    data = features.getInfo()
++
++    str = json.dumps(data)
++
++    return Response(str, status=200, mimetype='application/json')
++
++
+ @app.route('/get_raster', methods=['GET', 'POST'])
+ def api_get_raster():
+     variable = request.json['variable']
+@@ -1122,7 +1146,9 @@
+         'LAI09': 'users/gena/HydroEngine/static/LAI/LAI00000-009',
+         'LAI10': 'users/gena/HydroEngine/static/LAI/LAI00000-010',
+         'LAI11': 'users/gena/HydroEngine/static/LAI/LAI00000-011',
+-        'LAI12': 'users/gena/HydroEngine/static/LAI/LAI00000-012'
++        'LAI12': 'users/gena/HydroEngine/static/LAI/LAI00000-012',
++        'thickness-NASA': 'users/huite/GlobalThicknessNASA/average_soil_and_sedimentary-deposit_thickness',
++        'thickness-SoilGrids': 'users/huite/SoilGrids/AbsoluteDepthToBedrock__cm',
+     }
+ 
+     if variable == 'hand':

@@ -1,0 +1,8 @@
+{
+  "dataset": "vaklodingen",
+  "begin_date": "2010-01-01",
+  "end_date": "2019-01-01",
+  "min": -2000,
+  "max": 500,
+  "hillshade": true
+}
