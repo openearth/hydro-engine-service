@@ -59,6 +59,7 @@ class TestClient(unittest.TestCase):
         result = json.loads(r.data)
 
         assert 'mapid' in result
+        print(result['url'])
 
         assert result['palette'] == palette
 
@@ -104,7 +105,7 @@ class TestClient(unittest.TestCase):
         assert r.status_code == 200
 
         result = json.loads(r.data)
-
+        print(result)
         assert 'mapid' in result
 
     def test_get_raster_profile(self):
@@ -288,6 +289,49 @@ class TestClient(unittest.TestCase):
         result = json.loads(resp.data)
 
         assert 'mapid' in result
+
+    def test_get_glossis_data(self):
+        """test get glossis waterlevel data, latest with no time stamp"""
+
+        # some of these variables are only used for export
+        request = {
+            "dataset": "waterlevel",
+            "band": "water_level"
+        }
+        resp = self.client.post(
+            '/get_glossis_data',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        print('code:', resp.status_code)
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+
+        assert 'mapid' in result
+        assert result['dataset'] == "waterlevel"
+
+    # def test_get_glossis_data_with_time(self):
+    #     """test get glossis waterlevel data, with time stamp"""
+    #
+    #     # some of these variables are only used for export
+    #     request = {
+    #         "dataset": "waterlevel",
+    #         "band": "water_level",
+    #         "time": '2018-06-18'
+    #     }
+    #     resp = self.client.post(
+    #         '/get_glossis_data',
+    #         data=json.dumps(request),
+    #         content_type='application/json'
+    #     )
+    #     print('code:', resp.status_code)
+    #     assert resp.status_code == 200
+    #
+    #     result = json.loads(resp.data)
+    #
+    #     assert 'mapid' in result
+    #     assert result['dataset'] == "waterlevel"
 
 
 if __name__ == '__main__':

@@ -1428,6 +1428,122 @@ def get_liwo_scenarios():
         mimetype='application/json'
     )
 
+@app.route('/get_glossis_data', methods=['GET', 'POST'])
+@flask_cors.cross_origin()
+def get_glossis_data():
+    """
+    Fetch
+    :return:
+    """
+    r = request.get_json()
+
+    datasets = ['currents', 'waterlevel']
+
+    dataset = r['dataset']
+    band = r['band']
+    # time = r['time']
+
+    raster_assets = {
+        'currents': 'users/rogersckw9/dgds/GLOSSIS/currents',
+        'waterlevel': 'users/rogersckw9/dgds/GLOSSIS/waterlevel'
+    }
+    colorbar_min = {
+        'currents': 0.0,
+        'waterlevel': -0.2
+    }
+
+    colorbar_max = {
+        'currents': 1.0,
+        'waterlevel': 1.0
+    }
+
+    palettes = {
+        'currents': ["#151d44", "#156c72", "#7eb390", "#fdf5f4", "#db8d77", "#9c3060", "#340d35"],
+        'waterlevel': ["#fdfecc", "#a5dfa7", "#5dbaa4", "#488e9e", "#3e6495", "#3f396c", "#281a2c"]
+    }
+
+    bands = {
+        'currents': {
+            'currents_u': 'b1',
+            'currents_v': 'b2',
+            'landmask': 'b3'
+        },
+        'waterlevel':{
+            'water_level': 'b1',
+            'water_level_astronomical': 'b2',
+            'landmask': 'b3'
+        }
+    }
+
+    print(r)
+    print(bands[dataset][band])
+
+    assert dataset in datasets
+
+    # Get collection
+    collection = ee.ImageCollection(raster_assets[dataset])
+    # print(collection)
+
+    image_min = colorbar_min[dataset]
+    image_max = colorbar_max[dataset]
+    image_palette = palettes[dataset]
+
+    if 'min' in r:
+        image_min = r['min']
+
+    if 'max' in r:
+        image_max = r['max']
+
+    if 'palette' in r:
+        image_palette = r['palette']
+
+    # TODO: filter by date, if given
+    # if 'time' in r:
+    #     image = ee.Image(collection.filterDate(ee.Date(r['time'])).first())
+    # else:
+    image = ee.Image(collection.sort('system:time_start', False).first())
+
+    # Filter based on band name (characteristic to display)
+    image = image.select(bands[dataset][band])
+    # print(image)
+
+    def generate_image_info(im):
+        """generate url and tokens for image"""
+        image = ee.Image(im)
+
+        m = image.visualize(**{
+            'min': image_min,
+            'max': image_max,
+            'palette': image_palette
+        }).getMapId()
+        print(m)
+
+        mapid = m.get('mapid')
+        token = m.get('token')
+
+        url = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'.format(
+            mapid=mapid,
+            token=token
+        )
+
+        result = {
+            'mapid': mapid,
+            'token': token,
+            'url': url
+        }
+        print(result)
+        return result
+
+    info = generate_image_info(image)
+    info['dataset'] = dataset
+    info['band'] = band
+    # info['time'] = r['time']
+
+    return Response(
+        json.dumps(info),
+        status=200,
+        mimetype='application/json'
+    )
 
 @app.route('/')
 def root():
