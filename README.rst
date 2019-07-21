@@ -38,7 +38,7 @@ Deploy
 
 Deploy app, optionally: -v <version> - a bit faster:
 
-gcloud app deploy --project hydro-engine
+gcloud app deploy --project hydro-engine --version dev2
 
 Browse: 
 
