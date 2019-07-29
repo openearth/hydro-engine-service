@@ -1432,7 +1432,9 @@ def get_liwo_scenarios():
 @flask_cors.cross_origin()
 def get_glossis_data():
     """
-    Fetch
+    Get GLOSSIS data. Either currents or waterlevel dataset must be provided.
+    If waterlevel dataset is requested, must specify if band water_level or
+    water_level_astronomical is requested
     :return:
     """
     r = request.get_json()
@@ -1500,8 +1502,10 @@ def get_glossis_data():
         uv = image.select([bands[dataset]['currents_u'], bands[dataset]['currents_v']])
         image = uv.pow(2).reduce(ee.Reducer.sum()).sqrt().mask(land)
     else:
-        band = r['band']
-        assert band in bands[dataset]
+        band = 'water_level'
+        if 'band' in r:
+            band = r['band']
+            assert band in bands[dataset]
         image = image.select(bands[dataset][band]).mask(land)
 
     def generate_image_info(im):
