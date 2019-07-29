@@ -1475,9 +1475,6 @@ def get_glossis_data():
         }
     }
 
-    print(r)
-    print(bands[dataset][band])
-
     assert dataset in datasets
 
     # Get collection
