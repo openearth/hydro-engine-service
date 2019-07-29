@@ -1440,8 +1440,6 @@ def get_glossis_data():
     datasets = ['currents', 'waterlevel']
 
     dataset = r['dataset']
-    # band = r['band']
-    # time = r['time']
 
     raster_assets = {
         'currents': 'users/rogersckw9/dgds/GLOSSIS/currents',
@@ -1477,9 +1475,8 @@ def get_glossis_data():
 
     assert dataset in datasets
 
-    # Get collection
+    # Get collection based on dataset requested
     collection = ee.ImageCollection(raster_assets[dataset])
-    # print(collection)
 
     image_min = colorbar_min[dataset]
     image_max = colorbar_max[dataset]
@@ -1495,24 +1492,17 @@ def get_glossis_data():
         image_palette = r['palette']
 
     # TODO: filter by date, if given
-    # if 'time' in r:
-    #     image = ee.Image(collection.filterDate(ee.Date(r['time'])).first())
-    # else:
     image = ee.Image(collection.sort('system:time_start', False).first())
     land = image.select(bands[dataset]['landmask'])
 
-    # Filter based on band name (characteristic to display)
+    # Generate image on dataset requested (characteristic to display)
     if dataset == 'currents':
-        # TODO: prepare current data
         uv = image.select([bands[dataset]['currents_u'], bands[dataset]['currents_v']])
-        # print(uv)
         image = uv.pow(2).reduce(ee.Reducer.sum()).sqrt().mask(land)
-        # print(image)
     else:
         band = r['band']
         assert band in bands[dataset]
         image = image.select(bands[dataset][band]).mask(land)
-    # print(image)
 
     def generate_image_info(im):
         """generate url and tokens for image"""
