@@ -1440,7 +1440,7 @@ def get_glossis_data():
     datasets = ['currents', 'waterlevel']
 
     dataset = r['dataset']
-    band = r['band']
+    # band = r['band']
     # time = r['time']
 
     raster_assets = {
@@ -1449,17 +1449,17 @@ def get_glossis_data():
     }
     colorbar_min = {
         'currents': 0.0,
-        'waterlevel': -0.2
+        'waterlevel': -1
     }
 
     colorbar_max = {
         'currents': 1.0,
-        'waterlevel': 1.0
+        'waterlevel': 4.0
     }
-
+    # cmocean.Balance palette from https://github.com/gee-community/ee-palettes
     palettes = {
-        'currents': ["#151d44", "#156c72", "#7eb390", "#fdf5f4", "#db8d77", "#9c3060", "#340d35"],
-        'waterlevel': ["#fdfecc", "#a5dfa7", "#5dbaa4", "#488e9e", "#3e6495", "#3f396c", "#281a2c"]
+        'currents': ['181c43', '0c5ebe', '75aabe', 'f1eceb', 'd08b73','a52125', '3c0912'],
+        'waterlevel': ['181c43', '0c5ebe', '75aabe', 'f1eceb', 'd08b73','a52125', '3c0912']
     }
 
     bands = {
@@ -1499,9 +1499,19 @@ def get_glossis_data():
     #     image = ee.Image(collection.filterDate(ee.Date(r['time'])).first())
     # else:
     image = ee.Image(collection.sort('system:time_start', False).first())
+    land = image.select(bands[dataset]['landmask'])
 
     # Filter based on band name (characteristic to display)
-    image = image.select(bands[dataset][band])
+    if dataset == 'currents':
+        # TODO: prepare current data
+        uv = image.select([bands[dataset]['currents_u'], bands[dataset]['currents_v']])
+        # print(uv)
+        image = uv.pow(2).reduce(ee.Reducer.sum()).sqrt().mask(land)
+        # print(image)
+    else:
+        band = r['band']
+        assert band in bands[dataset]
+        image = image.select(bands[dataset][band]).mask(land)
     # print(image)
 
     def generate_image_info(im):
@@ -1513,7 +1523,6 @@ def get_glossis_data():
             'max': image_max,
             'palette': image_palette
         }).getMapId()
-        print(m)
 
         mapid = m.get('mapid')
         token = m.get('token')
@@ -1528,13 +1537,10 @@ def get_glossis_data():
             'token': token,
             'url': url
         }
-        print(result)
         return result
 
     info = generate_image_info(image)
     info['dataset'] = dataset
-    info['band'] = band
-    # info['time'] = r['time']
 
     return Response(
         json.dumps(info),
