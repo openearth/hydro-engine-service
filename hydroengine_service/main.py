@@ -1256,7 +1256,6 @@ def get_liwo_scenarios():
     assert band in bands
     reducer = reducers[band]
 
-
     styles  = {
         'waterdepth': {
             'sld_style': '\
@@ -1340,7 +1339,8 @@ def get_liwo_scenarios():
 
     n_selected = collection.size().getInfo()
 
-    collection = collection.filterMetadata('bandNames', 'equals', ['b1', 'b2', 'b3', 'b4', 'b5'])
+    if band != 'waterdepth':
+        collection = collection.filterMetadata('bandNames', 'equals', ['b1', 'b2', 'b3', 'b4', 'b5'])
 
     n_filtered = collection.size().getInfo()
 
@@ -1360,8 +1360,8 @@ def get_liwo_scenarios():
     # get max image
     reduce_func = getattr(ee.Reducer, reducer)()
     image = ee.Image(collection.reduce(reduce_func))
-    # clip image to region and mask all 0 values (no-data value given in images) .clip(region)
-    image = image.mask(image.neq(0))
+    # clip image to region and show only values greater than 0 (no-data value given in images) .clip(region)
+    image = image.mask(image.gt(0))
 
     def generate_image_info(im, params):
         """generate url and tokens for image"""

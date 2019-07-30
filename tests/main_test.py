@@ -59,7 +59,6 @@ class TestClient(unittest.TestCase):
         result = json.loads(r.data)
 
         assert 'mapid' in result
-        print(result['url'])
 
         assert result['palette'] == palette
 
@@ -105,7 +104,7 @@ class TestClient(unittest.TestCase):
         assert r.status_code == 200
 
         result = json.loads(r.data)
-        print(result)
+
         assert 'mapid' in result
 
     def test_get_raster_profile(self):
@@ -248,7 +247,6 @@ class TestClient(unittest.TestCase):
             data=json.dumps(request),
             content_type='application/json'
         )
-        print('code:', resp.status_code)
         assert resp.status_code == 200
 
         result = json.loads(resp.data)
@@ -283,10 +281,30 @@ class TestClient(unittest.TestCase):
             data=json.dumps(request),
             content_type='application/json'
         )
-        print('code:', resp.status_code)
         assert resp.status_code == 200
 
         result = json.loads(resp.data)
+
+        assert 'mapid' in result
+
+
+    def test_get_liwo_scenarios_max_regional_and_primary(self):
+        """test get liwo scenarios max"""
+        request = {
+            "liwo_ids": [209, 10634],
+            "band": "waterdepth",
+            "reducer": "max"
+        }
+        resp = self.client.post(
+            '/get_liwo_scenarios',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+        with open('test-data.txt', 'w') as outfile:
+            json.dump(result, outfile)
 
         assert 'mapid' in result
 
@@ -302,7 +320,6 @@ class TestClient(unittest.TestCase):
             data=json.dumps(request),
             content_type='application/json'
         )
-        print('code:', resp.status_code)
         assert resp.status_code == 200
 
         result = json.loads(resp.data)
@@ -321,15 +338,12 @@ class TestClient(unittest.TestCase):
             data=json.dumps(request),
             content_type='application/json'
         )
-        print('code:', resp.status_code)
         assert resp.status_code == 200
 
         result = json.loads(resp.data)
-        print(result)
 
         assert 'mapid' in result
         assert result['dataset'] == "currents"
-
 
 if __name__ == '__main__':
     unittest.main()
