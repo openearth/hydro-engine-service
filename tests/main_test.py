@@ -289,6 +289,27 @@ class TestClient(unittest.TestCase):
 
         assert 'mapid' in result
 
+    def test_get_liwo_scenarios_max_regional_and_primary(self):
+        """test get liwo scenarios max"""
+        request = {
+            "liwo_ids": [209, 10634],
+            "band": "waterdepth",
+            "reducer": "max"
+        }
+        resp = self.client.post(
+            '/get_liwo_scenarios',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        print('code:', resp.status_code)
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+        with open('test-data.txt', 'w') as outfile:
+            json.dump(result, outfile)
+
+        assert 'mapid' in result
+
 
 if __name__ == '__main__':
     unittest.main()
