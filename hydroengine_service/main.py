@@ -1428,7 +1428,7 @@ def get_liwo_scenarios():
         mimetype='application/json'
     )
 
-@app.route('/get_glossis_data', methods=['GET', 'POST'])
+@app.route('/get_glossis_data', methods=['POST'])
 @flask_cors.cross_origin()
 def get_glossis_data():
     """
@@ -1438,8 +1438,6 @@ def get_glossis_data():
     :return:
     """
     r = request.get_json()
-
-    datasets = ['currents', 'waterlevel']
 
     dataset = r['dataset']
 
@@ -1475,7 +1473,7 @@ def get_glossis_data():
         }
     }
 
-    assert dataset in datasets
+    assert (dataset in raster_assets), "{} not in assets. ".format(dataset)
 
     # Get collection based on dataset requested
     collection = ee.ImageCollection(raster_assets[dataset])
