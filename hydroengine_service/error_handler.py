@@ -1,7 +1,9 @@
 '''Application error handlers.'''
-from flask import Blueprint, jsonify
-
 import traceback
+
+from flask import Blueprint, jsonify
+import flask_cors
+
 
 error_handler = Blueprint('errors', __name__)
 
@@ -22,12 +24,14 @@ class InvalidUsage(Exception):
         return rv
 
 @error_handler.app_errorhandler(InvalidUsage)
+@flask_cors.cross_origin()
 def handle_invalid_usage(error):
     response = jsonify(error.to_dict())
     response.status_code = error.status_code
     return response
 
 @error_handler.app_errorhandler(Exception)
+@flask_cors.cross_origin()
 def handle_unexpected_error(error):
     stack = traceback.format_exc()
 
