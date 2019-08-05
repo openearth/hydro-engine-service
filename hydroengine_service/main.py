@@ -1447,7 +1447,7 @@ def get_glossis_data():
     }
     colorbar_min = {
         'currents': 0.0,
-        'waterlevel': -1
+        'waterlevel': -1.0
     }
 
     colorbar_max = {
@@ -1491,8 +1491,19 @@ def get_glossis_data():
     if 'palette' in r:
         image_palette = r['palette']
 
-    # TODO: filter by date, if given
+    if 'date' in r:
+        start = ee.Date(r['date'])
+        collection = collection.filterDate(start)
+        # check that at least one image returned. If not, return error
+        n_images = collection.size().getInfo()
+        msg = 'No images available for time: %s' % (r['date'])
+        logger.debug(msg)
+
+        if not n_images:
+            raise error_handler.InvalidUsage(msg)
+
     image = ee.Image(collection.sort('system:time_start', False).first())
+    image_date = collection.sort('system:time_start', False).first().date().format().getInfo()
     land = image.select(bands[dataset]['landmask'])
 
     # Generate image on dataset requested (characteristic to display)
@@ -1533,6 +1544,8 @@ def get_glossis_data():
 
     info = generate_image_info(image)
     info['dataset'] = dataset
+    info['date'] = image_date
+    # info['dates'] = date_list
 
     return Response(
         json.dumps(info),
