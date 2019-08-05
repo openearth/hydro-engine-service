@@ -345,5 +345,38 @@ class TestClient(unittest.TestCase):
         assert 'mapid' in result
         assert result['dataset'] == "currents"
 
+    def test_get_glossis_data_with_date(self):
+        """test get glossis current data"""
+
+        request = {
+            "dataset": "waterlevel",
+            "date": "2019-06-18T22:00:00"
+        }
+        resp = self.client.post(
+            '/get_glossis_data',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+
+        assert 'mapid' in result
+        assert result['date'] == "2019-06-18T22:00:00"
+
+    def test_get_glossis_data_with_wrong_date(self):
+        """test get glossis current data"""
+
+        request = {
+            "dataset": "waterlevel",
+            "date": "2018-06-18T22:00:00"
+        }
+        resp = self.client.post(
+            '/get_glossis_data',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        assert resp.status_code == 400
+
 if __name__ == '__main__':
     unittest.main()
