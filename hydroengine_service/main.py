@@ -1545,7 +1545,6 @@ def get_glossis_data():
     info = generate_image_info(image)
     info['dataset'] = dataset
     info['date'] = image_date
-    # info['dates'] = date_list
 
     return Response(
         json.dumps(info),
