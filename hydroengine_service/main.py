@@ -1465,7 +1465,7 @@ def get_glossis_data():
     }
 
     palettes = {
-        'currents': ['#D1CBFF', '#006391', '#1D1B1A', '#902F14', '#FCB0B2'],
+        'currents': ['1d1b1a',  '621d62',  '7642a5', '7871d5', '76a4e5', 'a2cee2', 'e6f1f1'],
         'waterlevel': ['#D1CBFF', '#006391', '#1D1B1A', '#902F14', '#FCB0B2'],
         'wind': ['172313', '144b2a', '187328', '5f920c', 'aaac20', 'e1cd73', 'fffdcd']
     }
