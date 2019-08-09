@@ -349,8 +349,8 @@ class TestClient(unittest.TestCase):
         """test get glossis current data"""
 
         request = {
-            "dataset": "waterlevel",
-            "date": "2019-06-18T22:00:00"
+            "dataset": "wind",
+            "date": "2019-08-08T00:00:00"
         }
         resp = self.client.post(
             '/get_glossis_data',
@@ -362,7 +362,7 @@ class TestClient(unittest.TestCase):
         result = json.loads(resp.data)
 
         assert 'mapid' in result
-        assert result['date'] == "2019-06-18T22:00:00"
+        assert result['date'] == "2019-08-08T00:00:00"
 
     def test_get_glossis_data_with_wrong_date(self):
         """test get glossis current data"""

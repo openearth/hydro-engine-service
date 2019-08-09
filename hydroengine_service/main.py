@@ -1442,45 +1442,83 @@ def get_glossis_data():
     dataset = r['dataset']
 
     raster_assets = {
-        'currents': 'users/rogersckw9/dgds/GLOSSIS/currents',
-        'waterlevel': 'users/rogersckw9/dgds/GLOSSIS/waterlevel'
+        'currents': 'projects/dgds-gee/glossis/currents',
+        'waterlevel': 'projects/dgds-gee/glossis/waterlevel',
+        'wind': 'projects/dgds-gee/glossis/wind'
     }
     colorbar_min = {
         'currents': 0.0,
-        'waterlevel': -1.0
+        'waterlevel':{
+            'water_level': -2.0,
+            'water_level_surge': -7.0
+        },
+        'wind': 0.0
     }
 
     colorbar_max = {
         'currents': 1.0,
-        'waterlevel': 4.0
+        'waterlevel':{
+            'water_level': 2.0,
+            'water_level_surge': 7.0
+        },
+        'wind': 30.0
     }
-    # cmocean.Balance palette from https://github.com/gee-community/ee-palettes
+
     palettes = {
-        'currents': ['181c43', '0c5ebe', '75aabe', 'f1eceb', 'd08b73','a52125', '3c0912'],
-        'waterlevel': ['181c43', '0c5ebe', '75aabe', 'f1eceb', 'd08b73','a52125', '3c0912']
+        'currents': ['#D1CBFF', '#006391', '#1D1B1A', '#902F14', '#FCB0B2'],
+        'waterlevel': ['#D1CBFF', '#006391', '#1D1B1A', '#902F14', '#FCB0B2'],
+        'wind': ['172313', '144b2a', '187328', '5f920c', 'aaac20', 'e1cd73', 'fffdcd']
     }
 
     bands = {
         'currents': {
             'currents_u': 'b1',
-            'currents_v': 'b2',
-            'landmask': 'b3'
+            'currents_v': 'b2'
         },
         'waterlevel':{
             'water_level': 'b1',
-            'water_level_astronomical': 'b2',
-            'landmask': 'b3'
+            'water_level_surge': 'b2'
+        },
+        'wind': {
+            'wind_u': 'b1',
+            'wind_v': 'b2'
         }
     }
 
-    assert (dataset in raster_assets), "{} not in assets. ".format(dataset)
+    assert (dataset in raster_assets), '{} not in assets. '.format(dataset)
 
     # Get collection based on dataset requested
     collection = ee.ImageCollection(raster_assets[dataset])
 
-    image_min = colorbar_min[dataset]
-    image_max = colorbar_max[dataset]
-    image_palette = palettes[dataset]
+    if 'date' in r:
+        start = ee.Date(r['date'])
+        collection = collection.filterDate(start)
+        # check that at least one image returned. If not, return error
+        n_images = collection.size().getInfo()
+        if not n_images:
+            msg = 'No images available for time: %s' % (r['date'])
+            logger.debug(msg)
+            raise error_handler.InvalidUsage(msg)
+
+    image = ee.Image(collection.sort('system:time_start', False).first())
+    image_date = collection.sort('system:time_start', False).first().date().format().getInfo()
+
+    # Generate image on dataset requested (characteristic to display)
+    if dataset == 'waterlevel':
+        band = 'water_level'
+        if 'band' in r:
+            band = r['band']
+            assert band in bands[dataset]
+
+        image_min = colorbar_min[dataset][band]
+        image_max = colorbar_max[dataset][band]
+        image_palette = palettes[dataset]
+        image = image.select(bands[dataset][band])
+    else:
+        image_min = colorbar_min[dataset]
+        image_max = colorbar_max[dataset]
+        image_palette = palettes[dataset]
+        image = image.pow(2).reduce(ee.Reducer.sum()).sqrt()
 
     if 'min' in r:
         image_min = r['min']
@@ -1491,58 +1529,7 @@ def get_glossis_data():
     if 'palette' in r:
         image_palette = r['palette']
 
-    if 'date' in r:
-        start = ee.Date(r['date'])
-        collection = collection.filterDate(start)
-        # check that at least one image returned. If not, return error
-        n_images = collection.size().getInfo()
-        msg = 'No images available for time: %s' % (r['date'])
-        logger.debug(msg)
-
-        if not n_images:
-            raise error_handler.InvalidUsage(msg)
-
-    image = ee.Image(collection.sort('system:time_start', False).first())
-    image_date = collection.sort('system:time_start', False).first().date().format().getInfo()
-    land = image.select(bands[dataset]['landmask'])
-
-    # Generate image on dataset requested (characteristic to display)
-    if dataset == 'currents':
-        uv = image.select([bands[dataset]['currents_u'], bands[dataset]['currents_v']])
-        image = uv.pow(2).reduce(ee.Reducer.sum()).sqrt().mask(land)
-    else:
-        band = 'water_level'
-        if 'band' in r:
-            band = r['band']
-            assert band in bands[dataset]
-        image = image.select(bands[dataset][band]).mask(land)
-
-    def generate_image_info(im):
-        """generate url and tokens for image"""
-        image = ee.Image(im)
-
-        m = image.visualize(**{
-            'min': image_min,
-            'max': image_max,
-            'palette': image_palette
-        }).getMapId()
-
-        mapid = m.get('mapid')
-        token = m.get('token')
-
-        url = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'.format(
-            mapid=mapid,
-            token=token
-        )
-
-        result = {
-            'mapid': mapid,
-            'token': token,
-            'url': url
-        }
-        return result
-
-    info = generate_image_info(image)
+    info = generate_image_info(image, image_min, image_max, image_palette)
     info['dataset'] = dataset
     info['date'] = image_date
 
@@ -1551,6 +1538,31 @@ def get_glossis_data():
         status=200,
         mimetype='application/json'
     )
+
+def generate_image_info(im, im_min, im_max, palette):
+    """generate url and tokens for image"""
+    image = ee.Image(im)
+
+    m = image.visualize(**{
+        'min': im_min,
+        'max': im_max,
+        'palette': palette
+    }).getMapId()
+
+    mapid = m.get('mapid')
+    token = m.get('token')
+
+    url = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'.format(
+        mapid=mapid,
+        token=token
+    )
+
+    result = {
+        'mapid': mapid,
+        'token': token,
+        'url': url
+    }
+    return result
 
 @app.route('/')
 def root():
