@@ -1476,8 +1476,8 @@ def get_glossis_data():
             'currents_v': 'b2'
         },
         'waterlevel':{
-            'water_level': 'b1',
-            'water_level_surge': 'b2'
+            'water_level_surge': 'b1',
+            'water_level': 'b2'
         },
         'wind': {
             'wind_u': 'b1',
