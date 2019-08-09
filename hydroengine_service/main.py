@@ -1449,8 +1449,8 @@ def get_glossis_data():
     colorbar_min = {
         'currents': 0.0,
         'waterlevel':{
-            'water_level': -2.0,
-            'water_level_surge': -7.0
+            'water_level_surge': -2.0,
+            'water_level': -7.0
         },
         'wind': 0.0
     }
@@ -1458,8 +1458,8 @@ def get_glossis_data():
     colorbar_max = {
         'currents': 1.0,
         'waterlevel':{
-            'water_level': 2.0,
-            'water_level_surge': 7.0
+            'water_level_surge': 2.0,
+            'water_level': 7.0
         },
         'wind': 30.0
     }
