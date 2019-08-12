@@ -1432,9 +1432,9 @@ def get_liwo_scenarios():
 @flask_cors.cross_origin()
 def get_glossis_data():
     """
-    Get GLOSSIS data. Either currents or waterlevel dataset must be provided.
-    If waterlevel dataset is requested, must specify if band water_level or
-    water_level_astronomical is requested
+    Get GLOSSIS data. Either currents, wind, or waterlevel dataset must be provided.
+    If waterlevel dataset is requested, must specify if band water_level_surge, water_level,
+    or astronomical_tide is requested
     :return:
     """
     r = request.get_json()
@@ -1522,6 +1522,102 @@ def get_glossis_data():
         image_max = colorbar_max[dataset]
         image_palette = palettes[dataset]
         image = image.pow(2).reduce(ee.Reducer.sum()).sqrt()
+
+    if 'min' in r:
+        image_min = r['min']
+
+    if 'max' in r:
+        image_max = r['max']
+
+    if 'palette' in r:
+        image_palette = r['palette']
+
+    info = generate_image_info(image, image_min, image_max, image_palette)
+    info['dataset'] = dataset
+    info['date'] = image_date
+
+    return Response(
+        json.dumps(info),
+        status=200,
+        mimetype='application/json'
+    )
+
+@app.route('/get_gloffis_data', methods=['POST'])
+@flask_cors.cross_origin()
+def get_gloffis_data():
+    """
+    Get GLOFFIS data. dataset must be provided.
+    :return:
+    """
+    raster_assets = {
+        'weather': 'projects/dgds-gee/gloffis/weather',
+        'hydro': 'projects/dgds-gee/gloffis/hydro'
+    }
+    colorbar_min = {
+        'weather':{
+            'daily_precipitation':0.0,
+            'mean_temperature':-50.0
+        },
+        'hydro': {
+            'discharge_routed_simulated': 0.0,
+            'soil_moisture': 0.0,
+            'runoff_simulated': 0.0,
+
+        }
+    }
+    colorbar_max = {
+        'weather': {
+            'daily_precipitation': 50.0,
+            'mean_temperature': 50.0
+        },
+        'hydro': {
+            'discharge_routed_simulated': 150000.0,
+            'soil_moisture': 10.0,
+            'runoff_simulated': 50.0,
+
+        }
+    }
+
+    palettes = {
+        'weather':{
+            'daily_precipitation': ['042333', '2c3395', '744992', 'b15f82', 'eb7958', 'fbb43d', 'e8fa5b'],
+            'mean_temperature': ['042333', '2c3395', '744992', 'b15f82', 'eb7958', 'fbb43d', 'e8fa5b']
+        },
+        'hydro': {
+            'discharge_routed_simulated': ['042333', '2c3395', '744992', 'b15f82', 'eb7958', 'fbb43d', 'e8fa5b'],
+            'soil_moisture': ['042333', '2c3395', '744992', 'b15f82', 'eb7958', 'fbb43d', 'e8fa5b'],
+            'runoff_simulated': ['042333', '2c3395', '744992', 'b15f82', 'eb7958', 'fbb43d', 'e8fa5b']
+        }
+    }
+
+    r = request.get_json()
+
+    dataset = r['dataset']
+    assert (dataset in raster_assets), '{} not in assets. '.format(dataset)
+
+    band = r['band']
+    assert band in colorbar_min[dataset].keys(), '{} not in bands. '.format(band)
+
+    # Get collection based on dataset requested
+    collection = ee.ImageCollection(raster_assets[dataset])
+
+    if 'date' in r:
+        start = ee.Date(r['date'])
+        collection = collection.filterDate(start)
+        # check that at least one image returned. If not, return error
+        n_images = collection.size().getInfo()
+        if not n_images:
+            msg = 'No images available for time: %s' % (r['date'])
+            logger.debug(msg)
+            raise error_handler.InvalidUsage(msg)
+
+    image = ee.Image(collection.sort('system:time_start', False).first())
+    image_date = collection.sort('system:time_start', False).first().date().format().getInfo()
+
+    image_min = colorbar_min[dataset][band]
+    image_max = colorbar_max[dataset][band]
+    image_palette = palettes[dataset][band]
+    image = image.select(band)
 
     if 'min' in r:
         image_min = r['min']
