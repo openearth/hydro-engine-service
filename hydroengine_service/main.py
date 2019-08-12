@@ -1450,7 +1450,8 @@ def get_glossis_data():
         'currents': 0.0,
         'waterlevel':{
             'water_level_surge': -2.0,
-            'water_level': -7.0
+            'water_level': -7.0,
+            'astronomical_tide': -7.0
         },
         'wind': 0.0
     }
@@ -1459,7 +1460,8 @@ def get_glossis_data():
         'currents': 1.0,
         'waterlevel':{
             'water_level_surge': 2.0,
-            'water_level': 7.0
+            'water_level': 7.0,
+            'astronomical_tide': 7.0
         },
         'wind': 30.0
     }
@@ -1477,7 +1479,8 @@ def get_glossis_data():
         },
         'waterlevel':{
             'water_level_surge': 'b1',
-            'water_level': 'b2'
+            'water_level': 'b2',
+            'astronomical_tide': 'b3'
         },
         'wind': {
             'wind_u': 'b1',
