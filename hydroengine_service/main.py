@@ -1428,6 +1428,144 @@ def get_liwo_scenarios():
         mimetype='application/json'
     )
 
+@app.route('/get_glossis_data', methods=['POST'])
+@flask_cors.cross_origin()
+def get_glossis_data():
+    """
+    Get GLOSSIS data. Either currents or waterlevel dataset must be provided.
+    If waterlevel dataset is requested, must specify if band water_level or
+    water_level_astronomical is requested
+    :return:
+    """
+    r = request.get_json()
+
+    dataset = r['dataset']
+
+    raster_assets = {
+        'currents': 'projects/dgds-gee/glossis/currents',
+        'waterlevel': 'projects/dgds-gee/glossis/waterlevel',
+        'wind': 'projects/dgds-gee/glossis/wind'
+    }
+    colorbar_min = {
+        'currents': 0.0,
+        'waterlevel':{
+            'water_level_surge': -2.0,
+            'water_level': -7.0,
+            'astronomical_tide': -7.0
+        },
+        'wind': 0.0
+    }
+
+    colorbar_max = {
+        'currents': 1.0,
+        'waterlevel':{
+            'water_level_surge': 2.0,
+            'water_level': 7.0,
+            'astronomical_tide': 7.0
+        },
+        'wind': 30.0
+    }
+
+    palettes = {
+        'currents': ['1d1b1a',  '621d62',  '7642a5', '7871d5', '76a4e5', 'e6f1f1'],
+        'waterlevel': ['#D1CBFF', '#006391', '#1D1B1A', '#902F14', '#FCB0B2'],
+        'wind': ['172313', '144b2a', '187328', '5f920c', 'aaac20', 'e1cd73', 'fffdcd']
+    }
+
+    bands = {
+        'currents': {
+            'currents_u': 'b1',
+            'currents_v': 'b2'
+        },
+        'waterlevel':{
+            'water_level_surge': 'b1',
+            'water_level': 'b2',
+            'astronomical_tide': 'b3'
+        },
+        'wind': {
+            'wind_u': 'b1',
+            'wind_v': 'b2'
+        }
+    }
+
+    assert (dataset in raster_assets), '{} not in assets. '.format(dataset)
+
+    # Get collection based on dataset requested
+    collection = ee.ImageCollection(raster_assets[dataset])
+
+    if 'date' in r:
+        start = ee.Date(r['date'])
+        collection = collection.filterDate(start)
+        # check that at least one image returned. If not, return error
+        n_images = collection.size().getInfo()
+        if not n_images:
+            msg = 'No images available for time: %s' % (r['date'])
+            logger.debug(msg)
+            raise error_handler.InvalidUsage(msg)
+
+    image = ee.Image(collection.sort('system:time_start', False).first())
+    image_date = collection.sort('system:time_start', False).first().date().format().getInfo()
+
+    # Generate image on dataset requested (characteristic to display)
+    if dataset == 'waterlevel':
+        band = 'water_level'
+        if 'band' in r:
+            band = r['band']
+            assert band in bands[dataset]
+
+        image_min = colorbar_min[dataset][band]
+        image_max = colorbar_max[dataset][band]
+        image_palette = palettes[dataset]
+        image = image.select(bands[dataset][band])
+    else:
+        image_min = colorbar_min[dataset]
+        image_max = colorbar_max[dataset]
+        image_palette = palettes[dataset]
+        image = image.pow(2).reduce(ee.Reducer.sum()).sqrt()
+
+    if 'min' in r:
+        image_min = r['min']
+
+    if 'max' in r:
+        image_max = r['max']
+
+    if 'palette' in r:
+        image_palette = r['palette']
+
+    info = generate_image_info(image, image_min, image_max, image_palette)
+    info['dataset'] = dataset
+    info['date'] = image_date
+
+    return Response(
+        json.dumps(info),
+        status=200,
+        mimetype='application/json'
+    )
+
+def generate_image_info(im, im_min, im_max, palette):
+    """generate url and tokens for image"""
+    image = ee.Image(im)
+
+    m = image.visualize(**{
+        'min': im_min,
+        'max': im_max,
+        'palette': palette
+    }).getMapId()
+
+    mapid = m.get('mapid')
+    token = m.get('token')
+
+    url = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'.format(
+        mapid=mapid,
+        token=token
+    )
+
+    result = {
+        'mapid': mapid,
+        'token': token,
+        'url': url
+    }
+    return result
 
 @app.route('/')
 def root():
