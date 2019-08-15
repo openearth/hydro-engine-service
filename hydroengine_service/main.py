@@ -78,7 +78,9 @@ lakes = ee.FeatureCollection('users/gena/HydroLAKES_polys_v10')
 bathymetry = {
     'jetski': ee.ImageCollection('users/gena/eo-bathymetry/sandengine_jetski'),
     'vaklodingen': ee.ImageCollection('users/gena/vaklodingen'),
-    'kustlidar': ee.ImageCollection('users/gena/eo-bathymetry/rws_lidar')
+    'kustlidar': ee.ImageCollection('users/gena/eo-bathymetry/rws_lidar'),
+    'jarkus': ee.ImageCollection('users/rogersckw9/eo-bathymetry/jarkus'),
+    'ahn': ee.ImageCollection('users/rogersckw9/eo-bathymetry/ahn')
 }
 
 # graph index
@@ -319,19 +321,25 @@ def api_get_bathymetry():
         'jetski': -12,
         'vaklodingen': -1200,
         # TODO: specify units in the dataset
-        'kustlidar': -1200
+        'kustlidar': -1200,
+        'jarkus': -30,
+        'ahn': -30
     }
 
     colorbar_max = {
         'jetski': 7,
         'vaklodingen': 700,
-        'kustlidar': 700
+        'kustlidar': 700,
+        'jarkus': 10,
+        'ahn': 10
     }
 
     palettes = {
         'jetski': '''#000033,#000037,#00003a,#00003e,#000042,#000045,#000049,#00004d,#000050,#000054,#000057,#00005b,#00005f,#000062,#000066,#010268,#03036a,#04056c,#05076e,#070971,#080a73,#0a0c75,#0b0e77,#0c1079,#0e117b,#0f137d,#10157f,#121781,#131884,#141a86,#161c88,#171e8a,#191f8c,#1a218e,#1b2390,#1d2492,#1e2695,#1f2897,#212a99,#222b9b,#242d9d,#252f9f,#2a35a2,#2e3ca6,#3342a9,#3848ac,#3c4faf,#4155b3,#465cb6,#4a62b9,#4f68bc,#546fc0,#5875c3,#5d7bc6,#6282ca,#6688cd,#6b8fd0,#7095d3,#749bd7,#79a2da,#7ea8dd,#82aee0,#87b5e4,#8cbbe7,#90c2ea,#95c8ed,#9acef1,#9ed5f4,#a3dbf7,#a8e1fa,#9edef7,#94daf4,#8ad6f0,#80d2ed,#84cacb,#87c2a9,#8bba87,#8eb166,#92a944,#95a122,#999900,#a4a50b,#afb116,#babd21,#c5c92c,#d0d537,#dce142,#e7ec4d,#f2f857,#f3f658,#f3f359,#f4f15a,#f5ee5b,#f6eb5c,#f6e95d,#f7e65d,#f8e35e,#f9e15f,#fade60,#fadc61,#fbd962,#fcd663,#fdd463,#fdd164,#fecf65,#ffcc66,#fdc861,#fcc55d,#fbc158,#f9be53,#f7ba4f,#f6b64a,#f5b346,#f3af41,#f1ac3c,#f0a838,#efa433,#eda12e,#eb9d2a,#ea9a25,#e99620,#e7931c,#e58f17,#e48b13,#e3880e,#e18409,#df8105,#de7d00''',
         'vaklodingen': '''#9900FF,#9900FF,#8810FF,#7621FF,#6532FF,#4354FF,#3265FF,#2176FF,#0099FF,#1AA4FF,#35AFFF,#6BC5FF,#86D0FF,#A1DBFF,#D7F1FF,#D9E0A3,#F3CA89,#E2B247,#B89E21,#A49018''',
-        'kustlidar': '''#000033,#000037,#00003a,#00003e,#000042,#000045,#000049,#00004d,#000050,#000054,#000057,#00005b,#00005f,#000062,#000066,#010268,#03036a,#04056c,#05076e,#070971,#080a73,#0a0c75,#0b0e77,#0c1079,#0e117b,#0f137d,#10157f,#121781,#131884,#141a86,#161c88,#171e8a,#191f8c,#1a218e,#1b2390,#1d2492,#1e2695,#1f2897,#212a99,#222b9b,#242d9d,#252f9f,#2a35a2,#2e3ca6,#3342a9,#3848ac,#3c4faf,#4155b3,#465cb6,#4a62b9,#4f68bc,#546fc0,#5875c3,#5d7bc6,#6282ca,#6688cd,#6b8fd0,#7095d3,#749bd7,#79a2da,#7ea8dd,#82aee0,#87b5e4,#8cbbe7,#90c2ea,#95c8ed,#9acef1,#9ed5f4,#a3dbf7,#a8e1fa,#9edef7,#94daf4,#8ad6f0,#80d2ed,#84cacb,#87c2a9,#8bba87,#8eb166,#92a944,#95a122,#999900,#a4a50b,#afb116,#babd21,#c5c92c,#d0d537,#dce142,#e7ec4d,#f2f857,#f3f658,#f3f359,#f4f15a,#f5ee5b,#f6eb5c,#f6e95d,#f7e65d,#f8e35e,#f9e15f,#fade60,#fadc61,#fbd962,#fcd663,#fdd463,#fdd164,#fecf65,#ffcc66,#fdc861,#fcc55d,#fbc158,#f9be53,#f7ba4f,#f6b64a,#f5b346,#f3af41,#f1ac3c,#f0a838,#efa433,#eda12e,#eb9d2a,#ea9a25,#e99620,#e7931c,#e58f17,#e48b13,#e3880e,#e18409,#df8105,#de7d00'''
+        'kustlidar': '''#000033,#000037,#00003a,#00003e,#000042,#000045,#000049,#00004d,#000050,#000054,#000057,#00005b,#00005f,#000062,#000066,#010268,#03036a,#04056c,#05076e,#070971,#080a73,#0a0c75,#0b0e77,#0c1079,#0e117b,#0f137d,#10157f,#121781,#131884,#141a86,#161c88,#171e8a,#191f8c,#1a218e,#1b2390,#1d2492,#1e2695,#1f2897,#212a99,#222b9b,#242d9d,#252f9f,#2a35a2,#2e3ca6,#3342a9,#3848ac,#3c4faf,#4155b3,#465cb6,#4a62b9,#4f68bc,#546fc0,#5875c3,#5d7bc6,#6282ca,#6688cd,#6b8fd0,#7095d3,#749bd7,#79a2da,#7ea8dd,#82aee0,#87b5e4,#8cbbe7,#90c2ea,#95c8ed,#9acef1,#9ed5f4,#a3dbf7,#a8e1fa,#9edef7,#94daf4,#8ad6f0,#80d2ed,#84cacb,#87c2a9,#8bba87,#8eb166,#92a944,#95a122,#999900,#a4a50b,#afb116,#babd21,#c5c92c,#d0d537,#dce142,#e7ec4d,#f2f857,#f3f658,#f3f359,#f4f15a,#f5ee5b,#f6eb5c,#f6e95d,#f7e65d,#f8e35e,#f9e15f,#fade60,#fadc61,#fbd962,#fcd663,#fdd463,#fdd164,#fecf65,#ffcc66,#fdc861,#fcc55d,#fbc158,#f9be53,#f7ba4f,#f6b64a,#f5b346,#f3af41,#f1ac3c,#f0a838,#efa433,#eda12e,#eb9d2a,#ea9a25,#e99620,#e7931c,#e58f17,#e48b13,#e3880e,#e18409,#df8105,#de7d00''',
+        'jarkus': '''#9900FF,#9900FF,#8810FF,#7621FF,#6532FF,#4354FF,#3265FF,#2176FF,#0099FF,#1AA4FF,#35AFFF,#6BC5FF,#86D0FF,#A1DBFF,#D7F1FF,#D9E0A3,#F3CA89,#E2B247,#B89E21,#A49018''',
+        'ahn': '''#9900FF,#9900FF,#8810FF,#7621FF,#6532FF,#4354FF,#3265FF,#2176FF,#0099FF,#1AA4FF,#35AFFF,#6BC5FF,#86D0FF,#A1DBFF,#D7F1FF,#D9E0A3,#F3CA89,#E2B247,#B89E21,#A49018'''
     }
 
     def sorted_composite(images):
@@ -351,7 +359,7 @@ def api_get_bathymetry():
         return mean_composite
 
     image_min = colorbar_min[dataset]
-    image_max = colorbar_min[dataset]
+    image_max = colorbar_max[dataset]
     image_palette = palettes[dataset]
 
     if 'min' in r:
