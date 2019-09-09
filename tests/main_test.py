@@ -378,5 +378,23 @@ class TestClient(unittest.TestCase):
         )
         assert resp.status_code == 400
 
+    def test_get_gloffis_data(self):
+        """test get gloffis weather data"""
+
+        request = {
+            "dataset": "weather",
+            "band": "mean_temperature"
+        }
+        resp = self.client.post(
+            '/get_gloffis_data',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+
+        assert 'mapid' in result
+
 if __name__ == '__main__':
     unittest.main()
