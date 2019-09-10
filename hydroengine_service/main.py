@@ -1452,7 +1452,8 @@ def get_glossis_data():
     raster_assets = {
         'currents': 'projects/dgds-gee/glossis/currents',
         'waterlevel': 'projects/dgds-gee/glossis/waterlevel',
-        'wind': 'projects/dgds-gee/glossis/wind'
+        'wind': 'projects/dgds-gee/glossis/wind',
+        'waveheight': 'projects/dgds-gee/glossis/waveheight'
     }
     colorbar_min = {
         'currents': 0.0,
@@ -1461,7 +1462,8 @@ def get_glossis_data():
             'water_level': -4.0,
             'astronomical_tide': -4.0
         },
-        'wind': 0.0
+        'wind': 0.0,
+        'waveheight': 0.0
     }
 
     colorbar_max = {
@@ -1471,13 +1473,15 @@ def get_glossis_data():
             'water_level': 4.0,
             'astronomical_tide': 4.0
         },
-        'wind': 30.0
+        'wind': 30.0,
+        'waveheight': 10.0
     }
 
     palettes = {
         'currents': ['1d1b1a',  '621d62',  '7642a5', '7871d5', '76a4e5', 'e6f1f1'],
         'waterlevel': ['#D1CBFF', '#006391', '#1D1B1A', '#902F14', '#FCB0B2'],
-        'wind': ['172313', '144b2a', '187328', '5f920c', 'aaac20', 'e1cd73', 'fffdcd']
+        'wind': ['172313', '144b2a', '187328', '5f920c', 'aaac20', 'e1cd73', 'fffdcd'],
+        'waveheight': ['042333', '3c0912', '730e27', 'a62225', 'c0583b', 'd08b73', 'dfbcb0', 'f1edec']
     }
 
     bands = {
@@ -1493,6 +1497,9 @@ def get_glossis_data():
         'wind': {
             'wind_u': 'b1',
             'wind_v': 'b2'
+        },
+        'waveheight':{
+            'waveheight': 'b1'
         }
     }
 
@@ -1525,6 +1532,10 @@ def get_glossis_data():
         image_max = colorbar_max[dataset][band]
         image_palette = palettes[dataset]
         image = image.select(bands[dataset][band])
+    elif dataset == 'waveheight':
+        image_min = colorbar_min[dataset]
+        image_max = colorbar_max[dataset]
+        image_palette = palettes[dataset]
     else:
         image_min = colorbar_min[dataset]
         image_max = colorbar_max[dataset]
@@ -1582,7 +1593,6 @@ def get_gloffis_data():
             'discharge_routed_simulated': 150000.0,
             'soil_moisture': 10.0,
             'runoff_simulated': 50.0,
-
         }
     }
 
@@ -1646,6 +1656,68 @@ def get_gloffis_data():
         mimetype='application/json'
     )
 
+@app.route('/get_metocean_data', methods=['POST'])
+@flask_cors.cross_origin()
+def get_metocean_data():
+    """
+    Get metocean data. dataset must be provided.
+    :return:
+    """
+    raster_assets = {
+        'percentiles': 'projects/dgds-gee/metocean/percentiles'
+    }
+    bands = {
+        'percentiles': {
+            '50th': 'b1',
+            '90th': 'b2'
+        }
+    }
+    colorbar_min = {
+        'percentiles':0.0
+    }
+    colorbar_max = {
+        'percentiles': 10.0
+    }
+    palettes = {
+        'percentiles': ["042333", "3c0912", "730e27", "a62225", "c0583b", "d08b73", "dfbcb0", "f1edec"]
+    }
+
+    r = request.get_json()
+
+    dataset = r['dataset']
+    assert (dataset in raster_assets), '{} not in assets. '.format(dataset)
+
+    band = '50th'
+    if 'band' in r:
+        band = r['band']
+        assert band in bands[dataset], '{} not in bands. '.format(band)
+
+    # Get collection based on dataset requested
+    image = ee.Image(raster_assets[dataset])
+
+    image = image.select(bands[dataset][band])
+    image_min = colorbar_min[dataset]
+    image_max = colorbar_max[dataset]
+    image_palette = palettes[dataset]
+
+    if 'min' in r:
+        image_min = r['min']
+
+    if 'max' in r:
+        image_max = r['max']
+
+    if 'palette' in r:
+        image_palette = r['palette']
+
+    info = generate_image_info(image, image_min, image_max, image_palette)
+    info['dataset'] = dataset
+
+    return Response(
+        json.dumps(info),
+        status=200,
+        mimetype='application/json'
+    )
+
 def generate_image_info(im, im_min, im_max, palette):
     """generate url and tokens for image"""
     image = ee.Image(im)
@@ -1667,7 +1739,10 @@ def generate_image_info(im, im_min, im_max, palette):
     result = {
         'mapid': mapid,
         'token': token,
-        'url': url
+        'url': url,
+        'min': im_min,
+        'max': im_max,
+        'palette': palette
     }
     return result
 
