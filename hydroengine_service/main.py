@@ -1736,10 +1736,20 @@ def generate_image_info(im, im_min, im_max, palette):
         token=token
     )
 
+    linear_gradient = []
+    n_colors = len(palette)
+    for i, color in enumerate(palette):
+        linear_gradient.append({
+            "offset": '{:.2f}%'.format((100/n_colors)*(i+1)),
+            "opacity": 100,
+            "color": color
+        })
+
     result = {
         'mapid': mapid,
         'token': token,
         'url': url,
+        'linearGradient': linear_gradient,
         'min': im_min,
         'max': im_max,
         'palette': palette
