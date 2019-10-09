@@ -280,7 +280,7 @@ def radians(image):
     
     return ee.Image(image).toFloat().multiply(3.1415927).divide(180)
 
-def hillshade(image_rgb, elevation):
+def hillshade(image_rgb, elevation, reproject):
     """
     Styles RGB image using hillshading, mixes RGB and hillshade using HSV<->RGB transform
     """
@@ -292,7 +292,10 @@ def hillshade(image_rgb, elevation):
 
     hsv = image_rgb.unitScale(0, 255).rgbToHsv()
 
-    z = elevation.reproject(ee.Projection('EPSG:3857').atScale(30)).multiply(ee.Image.constant(height_multiplier))
+    if reproject:
+        z = elevation.reproject(ee.Projection('EPSG:3857').atScale(30)).multiply(ee.Image.constant(height_multiplier))
+    else:
+        z = elevation.multiply(ee.Image.constant(height_multiplier))
 
     terrain = ee.Algorithms.Terrain(z)
     slope = radians(terrain.select(['slope']))
@@ -383,7 +386,7 @@ def api_get_bathymetry():
         print(image_min, image_max)
 
         if 'hillshade' in r and r['hillshade']:
-            image_vis = hillshade(image_vis, image.subtract(image_min).divide(ee.Image.constant(image_max).subtract(image_min)))
+            image_vis = hillshade(image_vis, image.subtract(image_min).divide(ee.Image.constant(image_max).subtract(image_min)), True)
 
         m = image_vis.getMapId()
         
@@ -1478,10 +1481,10 @@ def get_glossis_data():
     }
 
     palettes = {
-        'currents': ['1d1b1a',  '621d62',  '7642a5', '7871d5', '76a4e5', 'e6f1f1'],
+        'currents': ['#1d1b1a',  '#621d62',  '#7642a5', '#7871d5', '#76a4e5', '#e6f1f1'],
         'waterlevel': ['#D1CBFF', '#006391', '#1D1B1A', '#902F14', '#FCB0B2'],
-        'wind': ['172313', '144b2a', '187328', '5f920c', 'aaac20', 'e1cd73', 'fffdcd'],
-        'waveheight': ['042333', '3c0912', '730e27', 'a62225', 'c0583b', 'd08b73', 'dfbcb0', 'f1edec']
+        'wind': ['#172313', '#144b2a', '#187328', '#5f920c', '#aaac20', '#e1cd73', '#fffdcd'],
+        'waveheight': ['#042333', '#3c0912', '#730e27', '#a62225', '#c0583b', '#d08b73', '#dfbcb0', '#f1edec']
     }
 
     bands = {
@@ -1528,30 +1531,36 @@ def get_glossis_data():
             band = r['band']
             assert band in bands[dataset]
 
-        image_min = colorbar_min[dataset][band]
-        image_max = colorbar_max[dataset][band]
-        image_palette = palettes[dataset]
+        params = {
+            'min': colorbar_min[dataset][band],
+            'max': colorbar_max[dataset][band],
+            'palette': palettes[dataset]
+        }
         image = image.select(bands[dataset][band])
     elif dataset == 'waveheight':
-        image_min = colorbar_min[dataset]
-        image_max = colorbar_max[dataset]
-        image_palette = palettes[dataset]
+        params = {
+            'min': colorbar_min[dataset],
+            'max': colorbar_max[dataset],
+            'palette': palettes[dataset]
+        }
     else:
-        image_min = colorbar_min[dataset]
-        image_max = colorbar_max[dataset]
-        image_palette = palettes[dataset]
+        params = {
+            'min': colorbar_min[dataset],
+            'max': colorbar_max[dataset],
+            'palette': palettes[dataset]
+        }
         image = image.pow(2).reduce(ee.Reducer.sum()).sqrt()
 
     if 'min' in r:
-        image_min = r['min']
+        params['min'] = r['min']
 
     if 'max' in r:
-        image_max = r['max']
+        params['max'] = r['max']
 
     if 'palette' in r:
-        image_palette = r['palette']
+        params['palette'] = r['palette']
 
-    info = generate_image_info(image, image_min, image_max, image_palette)
+    info = generate_image_info(image, params)
     info['dataset'] = dataset
     info['date'] = image_date
 
@@ -1598,13 +1607,13 @@ def get_gloffis_data():
 
     palettes = {
         'weather':{
-            'daily_precipitation': ['042333', '2c3395', '744992', 'b15f82', 'eb7958', 'fbb43d', 'e8fa5b'],
-            'mean_temperature': ['042333', '2c3395', '744992', 'b15f82', 'eb7958', 'fbb43d', 'e8fa5b']
+            'daily_precipitation': ['#042333', '#2c3395', '#744992', '#b15f82', '#eb7958', '#fbb43d', '#e8fa5b'],
+            'mean_temperature': ['#042333', '#2c3395', '#744992', '#b15f82', '#eb7958', '#fbb43d', '#e8fa5b']
         },
         'hydro': {
-            'discharge_routed_simulated': ['042333', '2c3395', '744992', 'b15f82', 'eb7958', 'fbb43d', 'e8fa5b'],
-            'soil_moisture': ['042333', '2c3395', '744992', 'b15f82', 'eb7958', 'fbb43d', 'e8fa5b'],
-            'runoff_simulated': ['042333', '2c3395', '744992', 'b15f82', 'eb7958', 'fbb43d', 'e8fa5b']
+            'discharge_routed_simulated': ['#042333', '#2c3395', '#744992', '#b15f82', '#eb7958', '#fbb43d', '#e8fa5b'],
+            'soil_moisture': ['#042333', '#2c3395', '#744992', '#b15f82', '#eb7958', '#fbb43d', '#e8fa5b'],
+            'runoff_simulated': ['#042333', '#2c3395', '#744992', '#b15f82', '#eb7958', '#fbb43d', '#e8fa5b']
         }
     }
 
@@ -1632,21 +1641,23 @@ def get_gloffis_data():
     image = ee.Image(collection.sort('system:time_start', False).first())
     image_date = collection.sort('system:time_start', False).first().date().format().getInfo()
 
-    image_min = colorbar_min[dataset][band]
-    image_max = colorbar_max[dataset][band]
-    image_palette = palettes[dataset][band]
+    params ={
+        'min': colorbar_min[dataset][band],
+        'max': colorbar_max[dataset][band],
+        'palette': palettes[dataset][band]
+    }
     image = image.select(band)
 
     if 'min' in r:
-        image_min = r['min']
+        params['min'] = r['min']
 
     if 'max' in r:
-        image_max = r['max']
+        params['max'] = r['max']
 
     if 'palette' in r:
-        image_palette = r['palette']
+        params['palette'] = r['palette']
 
-    info = generate_image_info(image, image_min, image_max, image_palette)
+    info = generate_image_info(image, params)
     info['dataset'] = dataset
     info['date'] = image_date
 
@@ -1672,14 +1683,10 @@ def get_metocean_data():
             '90th': 'b2'
         }
     }
-    colorbar_min = {
-        'percentiles':0.0
-    }
-    colorbar_max = {
-        'percentiles': 10.0
-    }
-    palettes = {
-        'percentiles': ["042333", "3c0912", "730e27", "a62225", "c0583b", "d08b73", "dfbcb0", "f1edec"]
+    params = {
+        'min': 0.0,
+        'max': 10.0,
+        'palette': ['#042333', '#3c0912', '#730e27', '#a62225', '#c0583b', '#d08b73', '#dfbcb0', '#f1edec']
     }
 
     r = request.get_json()
@@ -1696,20 +1703,17 @@ def get_metocean_data():
     image = ee.Image(raster_assets[dataset])
 
     image = image.select(bands[dataset][band])
-    image_min = colorbar_min[dataset]
-    image_max = colorbar_max[dataset]
-    image_palette = palettes[dataset]
 
     if 'min' in r:
-        image_min = r['min']
+        params['min'] = r['min']
 
     if 'max' in r:
-        image_max = r['max']
+        params['max'] = r['max']
 
     if 'palette' in r:
-        image_palette = r['palette']
+        params['palette'] = r['palette']
 
-    info = generate_image_info(image, image_min, image_max, image_palette)
+    info = generate_image_info(image, params)
     info['dataset'] = dataset
 
     return Response(
@@ -1718,16 +1722,76 @@ def get_metocean_data():
         mimetype='application/json'
     )
 
-def generate_image_info(im, im_min, im_max, palette):
-    """generate url and tokens for image"""
+
+@app.route('/get_gebco_data', methods=['POST'])
+@flask_cors.cross_origin()
+def get_gebco_data():
+    r = request.get_json()
+
+    image = ee.Image('projects/dgds-gee/gebco/2019')
+    params = {
+        'min': -7000,
+        'max': 7000,
+        'palette': ['#281a2c', '#3f396c', '#3e6495', '#488e9e', '#5dbaa4', '#a5dfa7', '#fdfecc', '#0d2514',
+                    '#1d451d', '#475f2d', '#76753e', '#a78c3f', '#cca961', '#dfd1a0', '#f9ffe6', '#f9ffe6'],
+        'sld_style': '\
+                     <RasterSymbolizer> \
+                        <ColorMap  type="intervals" extended="false" > \
+                          <ColorMapEntry color="#281A2C" quantity="-7000" label="-7000"/> \
+                          <ColorMapEntry color="#281a2c" quantity="-6000" label="-6999 - -6000" /> \
+                          <ColorMapEntry color="#3f396c" quantity="-5000" label="-5999 - -5000" /> \
+                          <ColorMapEntry color="#3e6495" quantity="-4000" label="-4999 - -4000" /> \
+                          <ColorMapEntry color="#488e9e" quantity="-3000" label="-3999 - -3000" /> \
+                          <ColorMapEntry color="#5dbaa4" quantity="-2000" label="-2999 - -2000" /> \
+                          <ColorMapEntry color="#a5dfa7" quantity="-1000" label="-1999 - -1000" /> \
+                          <ColorMapEntry color="#fdfecc" quantity="0" label="-999-0" /> \
+                          <ColorMapEntry color="#0d2514" quantity="1000" label="-7000"/> \
+                          <ColorMapEntry color="#1d451d" quantity="2000" label="-6999-6000" /> \
+                          <ColorMapEntry color="#475f2d" quantity="3000" label="-5999-5000" /> \
+                          <ColorMapEntry color="#76753e" quantity="4000" label="-4999-4000" /> \
+                          <ColorMapEntry color="#a78c3f" quantity="5000" label="-3999-3000" /> \
+                          <ColorMapEntry color="#cca961" quantity="6000" label="-2999-2000" /> \
+                          <ColorMapEntry color="#f9ffe6" quantity="7000" label="-1999-1000" /> \
+                        </ColorMap> \
+                    </RasterSymbolizer>',
+        'hillshade': True
+    }
+
+    if 'min' in r:
+        params['min'] = r['min']
+
+    if 'max' in r:
+        params['max'] = r['max']
+
+    if 'palette' in r:
+        params['palette'] = r['palette']
+
+    info = generate_image_info(image, params)
+    info['dataset'] = 'gebco'
+    return Response(
+        json.dumps(info),
+        status=200,
+        mimetype='application/json'
+    )
+
+def generate_image_info(im, params):
+    """"generate url and tokens for image"""
     image = ee.Image(im)
 
-    m = image.visualize(**{
-        'min': im_min,
-        'max': im_max,
-        'palette': palette
-    }).getMapId()
+    if 'sld_style' in params.keys():
+        m = image.sldStyle(params.get('sld_style'))
+        del params['sld_style']
+    else:
+        m = image.visualize(**{
+            'min': params.get('min'),
+            'max': params.get('max'),
+            'palette': params.get('palette')
+        })
 
+    if 'hillshade' in params:
+        m = hillshade(m, image, False)
+
+    m = m.getMapId()
     mapid = m.get('mapid')
     token = m.get('token')
 
@@ -1737,24 +1801,20 @@ def generate_image_info(im, im_min, im_max, palette):
     )
 
     linear_gradient = []
-    n_colors = len(palette)
-    for i, color in enumerate(palette):
+    n_colors = len(params.get('palette'))
+    for i, color in enumerate(params.get('palette')):
         linear_gradient.append({
-            "offset": '{:.2f}%'.format((100/n_colors)*(i+1)),
-            "opacity": 100,
-            "color": color
+            'offset': '{:.2f}%'.format((100/n_colors)*(i+1)),
+            'opacity': 100,
+            'color': color
         })
 
-    result = {
+    params.update({
         'mapid': mapid,
         'token': token,
         'url': url,
-        'linearGradient': linear_gradient,
-        'min': im_min,
-        'max': im_max,
-        'palette': palette
-    }
-    return result
+        'linearGradient': linear_gradient})
+    return params
 
 @app.route('/')
 def root():
