@@ -1588,7 +1588,6 @@ def get_metocean_data():
     """
 
     data_params = DATASETS_VIS['metocean']
-    band = list(data_params['bandNames'].keys())[0]
 
     r = request.get_json()
 
@@ -1596,6 +1595,7 @@ def get_metocean_data():
     assert (dataset in data_params), '{} not in assets. '.format(dataset)
     data_params = data_params[dataset]
 
+    band = list(data_params['bandNames'].keys())[0]
     if 'band' in r:
         band = r['band']
         assert band in data_params['bandNames'], '{} not in bands. '.format(band)
@@ -1631,7 +1631,7 @@ def get_metocean_data():
     )
 
 
-@app.route('/get_gebco_data', methods=['GET', 'POST'])
+@app.route('/get_gebco_data', methods=['POST'])
 @flask_cors.cross_origin()
 def get_gebco_data():
     r = request.get_json()
