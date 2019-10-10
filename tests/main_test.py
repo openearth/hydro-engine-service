@@ -396,5 +396,40 @@ class TestClient(unittest.TestCase):
 
         assert 'mapid' in result
 
+    def test_get_metocean_data(self):
+        """test get metocean percentile data"""
+
+        request = {
+            "dataset": "percentiles",
+            "band": "50th"
+        }
+        resp = self.client.post(
+            '/get_metocean_data',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+
+        assert 'mapid' in result
+
+    def test_get_gebco_data(self):
+        """test get gebco data"""
+
+        request = {
+            "dataset": "gebco"
+        }
+        resp = self.client.post(
+            '/get_gebco_data',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+
+        assert 'mapid' in result
+
 if __name__ == '__main__':
     unittest.main()
