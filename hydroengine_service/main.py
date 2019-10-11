@@ -1477,24 +1477,36 @@ def get_glossis_data():
             raise error_handler.InvalidUsage(msg)
 
     image = ee.Image(collection.sort('system:time_start', False).first())
-    image_date = collection.sort('system:time_start', False).first().date().format().getInfo()
+    image_date = image.date().format().getInfo()
+    # image_id = image.id().getInfo()
 
     # Generate image on dataset requested (characteristic to display)
-    band = list(data_params['bandNames'].keys())[0]
-    if 'band' in r:
-        band = r['band']
-        assert band in data_params['bandNames']
+    band = r.get('band', list(data_params['bandNames'].keys())[0])
+    assert band in data_params['bandNames']
 
-    vis_params = {
-        'min': data_params['min'][band],
-        'max': data_params['max'][band],
-        'palette': data_params['palette'][band]
-    }
 
     if dataset in ['wind', 'currents']:
-        image = image.pow(2).reduce(ee.Reducer.sum()).sqrt()
+        function = r.get('function', 'magnitude')
+        assert function in data_params['function']
+        if function == 'magnitude':
+            image = image.pow(2).reduce(ee.Reducer.sum()).sqrt()
+            vis_params = {
+                'min': data_params['min'][function],
+                'max': data_params['max'][function],
+                'palette': data_params['palette'][function]
+            }
+        else:
+            image = image.unitScale(data_params['min'][function], data_params['max'][function]).unmask(-9999)
+            data_mask = image.eq(-9999).select(data_params['bandNames'][band])
+            image = image.clamp(0, 1).addBands(data_mask)
+            vis_params = {}
     else:
         image = image.select(data_params['bandNames'][band])
+        vis_params = {
+            'min': data_params['min'][band],
+            'max': data_params['max'][band],
+            'palette': data_params['palette'][band]
+        }
 
     if 'min' in r:
         vis_params['min'] = r['min']
@@ -1508,6 +1520,8 @@ def get_glossis_data():
     info = generate_image_info(image, vis_params)
     info['dataset'] = dataset
     info['date'] = image_date
+    # info['imageId'] = image_id
+    # info['imageSource'] = data_params['source']
 
     return Response(
         json.dumps(info),
@@ -1674,15 +1688,17 @@ def generate_image_info(im, params):
     """"generate url and tokens for image"""
     image = ee.Image(im)
 
-    if 'sld_style' in params.keys():
+    if 'sld_style' in params:
         m = image.sldStyle(params.get('sld_style'))
         del params['sld_style']
-    else:
+    elif 'palette' in params:
         m = image.visualize(**{
             'min': params.get('min'),
             'max': params.get('max'),
             'palette': params.get('palette')
         })
+    else:
+        m = image
 
     if 'hillshade' in params:
         m = hillshade(m, image, False)
@@ -1697,13 +1713,14 @@ def generate_image_info(im, params):
     )
 
     linear_gradient = []
-    n_colors = len(params.get('palette'))
-    for i, color in enumerate(params.get('palette')):
-        linear_gradient.append({
-            'offset': '{:.2f}%'.format((100 / n_colors) * (i + 1)),
-            'opacity': 100,
-            'color': color
-        })
+    if 'palette' in params:
+        n_colors = len(params.get('palette'))
+        for i, color in enumerate(params.get('palette')):
+            linear_gradient.append({
+                'offset': '{:.2f}%'.format((100 / n_colors) * (i + 1)),
+                'opacity': 100,
+                'color': color
+            })
 
     params.update({
         'mapid': mapid,

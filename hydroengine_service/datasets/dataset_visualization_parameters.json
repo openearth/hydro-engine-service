@@ -24,21 +24,25 @@
         "currents": {
             "source": "projects/dgds-gee/glossis/currents",
             "type": "ImageCollection",
+            "function": [
+                "magnitude",
+                "uvflowmap"
+            ],
             "bandNames": {
                 "currents_u": "b1",
                 "currents_v": "b2"
             },
             "min": {
-                "currents_u": 0.0,
-                "currents_v": 0.0
+                "magnitude": 0.0,
+                "uvflowmap": -5.0
             },
             "max": {
-                "currents_u":  1.0,
-                "currents_v": 1.0
+                "magnitude": 1.0,
+                "uvflowmap": 5.0
             },
             "palette": {
-                "currents_u": ["#1d1b1a",  "#621d62",  "#7642a5", "#7871d5", "#76a4e5", "#e6f1f1"],
-                "currents_v": ["#1d1b1a",  "#621d62",  "#7642a5", "#7871d5", "#76a4e5", "#e6f1f1"]
+                "magnitude": ["#1d1b1a",  "#621d62",  "#7642a5", "#7871d5", "#76a4e5", "#e6f1f1"],
+                "uvflowmap": []
             }
         },
         "waterlevel": {
@@ -68,21 +72,25 @@
         "wind": {
             "source": "projects/dgds-gee/glossis/wind",
             "type": "ImageCollection",
+            "function": [
+                "magnitude",
+                "uvflowmap"
+            ],
             "bandNames": {
                 "wind_u": "b1",
                 "wind_v": "b2"
             },
             "min": {
-                "wind_u": 0.0,
-                "wind_v": 0.0
+                "magnitude": 0.0,
+                "uvflowmap": -50.0
             },
             "max": {
-                "wind_u": 30.0,
-                "wind_v": 30.0
+                "magnitude": 50.0,
+                "uvflowmap": 50.0
             },
             "palette": {
-                "wind_u": ["#172313", "#144b2a", "#187328", "#5f920c", "#aaac20", "#e1cd73", "#fffdcd"],
-                "wind_v": ["#172313", "#144b2a", "#187328", "#5f920c", "#aaac20", "#e1cd73", "#fffdcd"]
+                "magnitude": ["#172313", "#144b2a", "#187328", "#5f920c", "#aaac20", "#e1cd73", "#fffdcd"],
+                "uvflowmap": []
             }
         },
         "waveheight": {
