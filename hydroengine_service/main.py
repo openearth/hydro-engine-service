@@ -8,6 +8,7 @@ import logging
 import os
 
 import ee
+import numpy as np
 import flask_cors
 from flask import Flask
 from flask import Response
@@ -279,7 +280,7 @@ def get_sea_surface_height_trend_image():
 
 def radians(image):
     """
-    Converts image from degrees to radians 
+    Converts image from degrees to radians
     """
 
     return ee.Image(image).toFloat().multiply(3.1415927).divide(180)
@@ -1715,9 +1716,11 @@ def generate_image_info(im, params):
     linear_gradient = []
     if 'palette' in params:
         n_colors = len(params.get('palette'))
-        for i, color in enumerate(params.get('palette')):
+        palette = params.get('palette')
+        offsets = np.linspace(0, 100, num=n_colors)
+        for color, offset in zip(palette, offsets):
             linear_gradient.append({
-                'offset': '{:.2f}%'.format((100 / n_colors) * (i + 1)),
+                'offset': '{:.3f}%'.format(offset),
                 'opacity': 100,
                 'color': color
             })
