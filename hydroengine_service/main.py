@@ -198,8 +198,12 @@ def api_get_image_urls():
     def generate_image_info(image):
         image = ee.Image(image)
         m = image.getMapId(
-            {'min': colorbar_min[dataset], 'max': colorbar_max[dataset],
-             'palette': sandengine_pallete})
+            {
+                'min': colorbar_min[dataset],
+                'max': colorbar_max[dataset],
+                'palette': sandengine_pallete
+            }
+        )
 
         mapid = m.get('mapid')
         token = m.get('token')
@@ -1500,7 +1504,10 @@ def get_glossis_data():
             image = image.unitScale(data_params['min'][function], data_params['max'][function]).unmask(-9999)
             data_mask = image.eq(-9999).select(data_params['bandNames'][band])
             image = image.clamp(0, 1).addBands(data_mask)
-            vis_params = {}
+            vis_params = {
+                'min': data_params['min'][function],
+                'max': data_params['max'][function]
+            }
     else:
         image = image.select(data_params['bandNames'][band])
         vis_params = {

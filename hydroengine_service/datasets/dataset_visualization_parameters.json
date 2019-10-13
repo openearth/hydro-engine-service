@@ -26,7 +26,7 @@
             "type": "ImageCollection",
             "function": [
                 "magnitude",
-                "uvflowmap"
+                "flowmap"
             ],
             "bandNames": {
                 "currents_u": "b1",
@@ -34,15 +34,15 @@
             },
             "min": {
                 "magnitude": 0.0,
-                "uvflowmap": -5.0
+                "flowmap": -0.5
             },
             "max": {
                 "magnitude": 1.0,
-                "uvflowmap": 5.0
+                "flowmap": 0.5
             },
             "palette": {
                 "magnitude": ["#1d1b1a",  "#621d62",  "#7642a5", "#7871d5", "#76a4e5", "#e6f1f1"],
-                "uvflowmap": []
+                "flowmap": []
             }
         },
         "waterlevel": {
@@ -74,7 +74,7 @@
             "type": "ImageCollection",
             "function": [
                 "magnitude",
-                "uvflowmap"
+                "flowmap"
             ],
             "bandNames": {
                 "wind_u": "b1",
@@ -82,15 +82,15 @@
             },
             "min": {
                 "magnitude": 0.0,
-                "uvflowmap": -50.0
+                "flowmap": -50.0
             },
             "max": {
                 "magnitude": 50.0,
-                "uvflowmap": 50.0
+                "flowmap": 50.0
             },
             "palette": {
                 "magnitude": ["#172313", "#144b2a", "#187328", "#5f920c", "#aaac20", "#e1cd73", "#fffdcd"],
-                "uvflowmap": []
+                "flowmap": []
             }
         },
         "waveheight": {
