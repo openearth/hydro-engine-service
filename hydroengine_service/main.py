@@ -2,19 +2,17 @@
 
 # TODO: move out all non-flask code to a separate file / library
 
-import sys
-import os
-import logging
-import json
 import base64
+import json
+import logging
+import os
 
+import ee
+import numpy as np
+import flask_cors
 from flask import Flask
 from flask import Response
 from flask import request
-
-import flask_cors
-
-import ee
 
 from hydroengine_service import config
 from hydroengine_service import error_handler
@@ -59,6 +57,12 @@ EE_CREDENTIALS = ee.ServiceAccountCredentials(config.EE_ACCOUNT,
 
 ee.Initialize(EE_CREDENTIALS)
 
+# visualization parameters for datasets
+APP_DIR = os.path.dirname(os.path.realpath(__file__))
+DATASET_DIR = os.path.join(APP_DIR, 'datasets')
+with open(DATASET_DIR + '/dataset_visualization_parameters.json') as json_file:
+    DATASETS_VIS = json.load(json_file)
+
 # HydroBASINS level 5
 basins = {
     5: ee.FeatureCollection('users/gena/HydroEngine/hybas_lev05_v1c'),
@@ -100,7 +104,7 @@ def get_upstream_catchments(level):
             ee.Filter.eq('hybas_id', hybas_id)).aggregate_array('parent_from')
         upstream_basins = basins[level].filter(
             ee.Filter.inList('HYBAS_ID', upstream_ids)).merge(
-                ee.FeatureCollection([basin_source]))
+            ee.FeatureCollection([basin_source]))
 
         return upstream_basins
 
@@ -194,8 +198,12 @@ def api_get_image_urls():
     def generate_image_info(image):
         image = ee.Image(image)
         m = image.getMapId(
-            {'min': colorbar_min[dataset], 'max': colorbar_max[dataset],
-             'palette': sandengine_pallete})
+            {
+                'min': colorbar_min[dataset],
+                'max': colorbar_max[dataset],
+                'palette': sandengine_pallete
+            }
+        )
 
         mapid = m.get('mapid')
         token = m.get('token')
@@ -273,14 +281,16 @@ def get_sea_surface_height_trend_image():
 
     return response
 
+
 def radians(image):
     """
-    Converts image from degrees to radians 
+    Converts image from degrees to radians
     """
-    
+
     return ee.Image(image).toFloat().multiply(3.1415927).divide(180)
 
-def hillshade(image_rgb, elevation):
+
+def hillshade(image_rgb, elevation, reproject):
     """
     Styles RGB image using hillshading, mixes RGB and hillshade using HSV<->RGB transform
     """
@@ -292,7 +302,10 @@ def hillshade(image_rgb, elevation):
 
     hsv = image_rgb.unitScale(0, 255).rgbToHsv()
 
-    z = elevation.reproject(ee.Projection('EPSG:3857').atScale(30)).multiply(ee.Image.constant(height_multiplier))
+    if reproject:
+        z = elevation.reproject(ee.Projection('EPSG:3857').atScale(30)).multiply(ee.Image.constant(height_multiplier))
+    else:
+        z = elevation.multiply(ee.Image.constant(height_multiplier))
 
     terrain = ee.Algorithms.Terrain(z)
     slope = radians(terrain.select(['slope']))
@@ -300,11 +313,13 @@ def hillshade(image_rgb, elevation):
     azimuth = radians(ee.Image.constant(azimuth))
     zenith = radians(ee.Image.constant(zenith))
 
-    hs = azimuth.subtract(aspect).cos().multiply(slope.sin()).multiply(zenith.sin()).add(zenith.cos().multiply(slope.cos())).resample('bicubic')
+    hs = azimuth.subtract(aspect).cos().multiply(slope.sin()).multiply(zenith.sin()).add(
+        zenith.cos().multiply(slope.cos())).resample('bicubic')
     intensity = hs.multiply(ee.Image.constant(weight)).multiply(hsv.select('value'))
     huesat = hsv.select('hue', 'saturation')
 
     return ee.Image.cat(huesat, intensity).hsvToRgb()
+
 
 @app.route('/get_bathymetry', methods=['GET', 'POST'])
 @flask_cors.cross_origin()
@@ -379,14 +394,16 @@ def api_get_bathymetry():
             'max': image_max,
             'palette': image_palette
         })
-        
+
         print(image_min, image_max)
 
         if 'hillshade' in r and r['hillshade']:
-            image_vis = hillshade(image_vis, image.subtract(image_min).divide(ee.Image.constant(image_max).subtract(image_min)))
+            image_vis = hillshade(image_vis,
+                                  image.subtract(image_min).divide(ee.Image.constant(image_max).subtract(image_min)),
+                                  True)
 
         m = image_vis.getMapId()
-        
+
         mapid = m.get('mapid')
         token = m.get('token')
 
@@ -410,7 +427,6 @@ def api_get_bathymetry():
 
     # add metadata
     info = generate_image_info(image)
-
 
     info['begin'] = r['begin_date']
     info['end'] = r['end_date']
@@ -481,15 +497,15 @@ def get_water_mask_raw():
 
     # filter Sentinel-2 images
     images = ee.ImageCollection('COPERNICUS/S2') \
-               .select(bands) \
-               .filterBounds(region) \
-               .filterDate(start, stop) \
-               .map(lambda i: i.resample('bilinear'))
+        .select(bands) \
+        .filterBounds(region) \
+        .filterDate(start, stop) \
+        .map(lambda i: i.resample('bilinear'))
 
     # remove noise (clouds, shadows) using percentile composite
     image = images \
         .reduce(ee.Reducer.percentile([percentile])) \
-        \
+ \
         # computer water mask using NDWI
     water_mask = image \
         .normalizedDifference() \
@@ -499,12 +515,12 @@ def get_water_mask_raw():
     water_mask_vector = water_mask \
         .mask(water_mask) \
         .reduceToVectors(**{
-            "geometry": region,
-            "scale": scale / 2
-        })
+        "geometry": region,
+        "scale": scale / 2
+    })
 
     water_mask_vector = water_mask_vector.toList(10000) \
-                                         .map(lambda o: ee.Feature(o).simplify(scale))
+        .map(lambda o: ee.Feature(o).simplify(scale))
 
     water_mask_vector = ee.FeatureCollection(water_mask_vector)
 
@@ -535,9 +551,9 @@ def get_water_mask_vector(region, scale, start, stop):
 
     # vectorize
     water_mask_vector = water_mask.mask(water_mask) \
-                                  .reduceToVectors(**{"geometry": region,
-                                                      "scale": scale / 2,
-                                                      "tileScale": 4})
+        .reduceToVectors(**{"geometry": region,
+                            "scale": scale / 2,
+                            "tileScale": 4})
 
     # take the largest
     water_mask_vector = water_mask_vector \
@@ -610,8 +626,8 @@ def generate_perimeter_points(geom, step):
         distances = ee.List.sequence(0, ring.length(error), step)
 
         return ee.Feature(ring) \
-                 .set({"distances": distances}) \
-                 .set({"distancesCount": distances.length()})
+            .set({"distances": distances}) \
+            .set({"distancesCount": distances.length()})
 
     rings = geom.coordinates().map(wrap_ring)
 
@@ -648,11 +664,11 @@ def generate_voronoi_polygons(points, scale, aoi):
     proj = ee.Projection('EPSG:4326').atScale(scale)
 
     distance = ee.Image(0).float().paint(points, 1) \
-                                  .fastDistanceTransform().sqrt().clip(aoi) \
-                                                                 .reproject(proj)
+        .fastDistanceTransform().sqrt().clip(aoi) \
+        .reproject(proj)
 
     concavity = distance.convolve(ee.Kernel.laplacian8()) \
-                        .reproject(proj)
+        .reproject(proj)
 
     concavity = concavity.multiply(distance)
 
@@ -662,18 +678,18 @@ def generate_voronoi_polygons(points, scale, aoi):
 
     # label connected components
     connected = edges.Not() \
-                     .connectedComponents(ee.Kernel.circle(1), 256) \
-                     .clip(aoi) \
-                     .focal_max(scale * 3, 'circle', 'meters') \
-                     .focal_min(scale * 3, 'circle', 'meters') \
-                     .focal_mode(scale * 5, 'circle', 'meters') \
-                     .reproject(proj)
+        .connectedComponents(ee.Kernel.circle(1), 256) \
+        .clip(aoi) \
+        .focal_max(scale * 3, 'circle', 'meters') \
+        .focal_min(scale * 3, 'circle', 'meters') \
+        .focal_mode(scale * 5, 'circle', 'meters') \
+        .reproject(proj)
 
     # fixing reduceToVectors() bug, remap to smaller int
     def fixOverflowError(i):
         hist = i.reduceRegion(ee.Reducer.frequencyHistogram(), aoi, scale)
         uniqueLabels = ee.Dictionary(ee.Dictionary(hist).get('labels')).keys() \
-                                                                       .map(lambda o: ee.Number.parse(o))
+            .map(lambda o: ee.Number.parse(o))
 
         labels = ee.List.sequence(0, uniqueLabels.size().subtract(1))
 
@@ -769,7 +785,7 @@ def generate_skeleton_from_voronoi(scale, water_vector):
                       ee.Filter.eq('intersectsWithMask', True))
     centerline = features.filter(f)
     centerline = centerline.geometry().dissolve(scale, proj) \
-                                      .simplify(scale * simplify_centerline_factor, proj)
+        .simplify(scale * simplify_centerline_factor, proj)
     centerline = centerline.geometries().map(
         lambda g: ee.Feature(ee.Geometry(g)))
     centerline = ee.FeatureCollection(centerline)
@@ -867,11 +883,11 @@ def get_water_network_properties():
             centroid = ee.Geometry.Point(s.coordinates().get(0))
 
             return ee.Feature(centroid) \
-                     .set("lineId", line.id()) \
-                     .set("offset", offset)
+                .set("lineId", line.id()) \
+                .set("offset", offset)
 
         segments = segments.geometries().zip(distances) \
-                                        .map(generate_line_middle_point)
+            .map(generate_line_middle_point)
 
         return ee.FeatureCollection(segments)
 
@@ -883,8 +899,8 @@ def get_water_network_properties():
         geom = ee.Geometry.Point(geom.coordinates().get(0), 'EPSG:4326')
 
         return ee.Feature(geom) \
-                 .set("lineId", line.id()) \
-                 .set("offset", 0)
+            .set("lineId", line.id()) \
+            .set("offset", 0)
 
     short_line_points = short_lines.map(process_short_line)
 
@@ -951,7 +967,7 @@ def api_get_catchments():
         # for every selection, get and merge upstream
         upstream_catchments = ee.FeatureCollection(
             selection.map(get_upstream_catchments(catchment_level))) \
-                                .flatten().distinct('HYBAS_ID')
+            .flatten().distinct('HYBAS_ID')
     else:
         print('Getting intersected catchments ..')
 
@@ -985,7 +1001,7 @@ def api_get_rivers():
         # for every selection, get and merge upstream catchments
         selected_catchments = ee.FeatureCollection(
             selected_catchments.map(get_upstream_catchments(catchment_level))) \
-                                .flatten().distinct('HYBAS_ID')
+            .flatten().distinct('HYBAS_ID')
 
     # get ids
     upstream_catchment_ids = ee.List(
@@ -1085,7 +1101,7 @@ def get_lake_water_area(lake_id, scale):
             # estimate scale from reservoir surface area, currently
             coords = ee.List(f.geometry().bounds().transform('EPSG:3857',
                                                              30).coordinates().get(
-                                                                 0))
+                0))
             ll = ee.List(coords.get(0))
             ur = ee.List(coords.get(2))
             width = ee.Number(ll.get(0)).subtract(ur.get(0)).abs()
@@ -1146,8 +1162,8 @@ def api_get_feature_collection():
     def clip_feature(feature):
         return feature.intersection(region_feature)
 
-    features = features.filterBounds(region)\
-                       .map(clip_feature)
+    features = features.filterBounds(region) \
+        .map(clip_feature)
 
     data = features.getInfo()
 
@@ -1171,7 +1187,7 @@ def api_get_raster():
         # for every selection, get and merge upstream
         region = ee.FeatureCollection(
             selection_basins.map(get_upstream_catchments(catchment_level))) \
-                   .flatten().distinct('HYBAS_ID').geometry()
+            .flatten().distinct('HYBAS_ID').geometry()
 
         region = region.bounds()
 
@@ -1264,7 +1280,7 @@ def get_liwo_scenarios():
     assert band in bands
     reducer = reducers[band]
 
-    styles  = {
+    styles = {
         'waterdepth': {
             'sld_style': '\
                 <RasterSymbolizer>\
@@ -1330,7 +1346,7 @@ def get_liwo_scenarios():
                         <ColorMapEntry color="#8f3333" opacity="1.0" quantity="10000" label="&gt; 3"/>\
                     </ColorMap>\
                 </RasterSymbolizer>'
-}
+        }
     }
 
     # Filter based on breach location
@@ -1355,11 +1371,10 @@ def get_liwo_scenarios():
     if n_selected != n_filtered:
         logging.warning('missing images, selected %s, filtered %s', n_selected, n_filtered)
 
-
     # Filter based on band name (characteristic to display)
     collection = collection.select(bands[band])
     n_images = collection.size().getInfo()
-    msg = 'No images available for breach locations: %s' % (liwo_ids, )
+    msg = 'No images available for breach locations: %s' % (liwo_ids,)
     logger.debug(msg)
 
     if not n_images:
@@ -1436,6 +1451,7 @@ def get_liwo_scenarios():
         mimetype='application/json'
     )
 
+
 @app.route('/get_glossis_data', methods=['POST'])
 @flask_cors.cross_origin()
 def get_glossis_data():
@@ -1445,61 +1461,15 @@ def get_glossis_data():
     or astronomical_tide is requested
     :return:
     """
-    r = request.get_json()
+    data_params = DATASETS_VIS['glossis']
 
+    r = request.get_json()
     dataset = r['dataset']
 
-    raster_assets = {
-        'currents': 'projects/dgds-gee/glossis/currents',
-        'waterlevel': 'projects/dgds-gee/glossis/waterlevel',
-        'wind': 'projects/dgds-gee/glossis/wind'
-    }
-    colorbar_min = {
-        'currents': 0.0,
-        'waterlevel':{
-            'water_level_surge': -1.0,
-            'water_level': -4.0,
-            'astronomical_tide': -4.0
-        },
-        'wind': 0.0
-    }
-
-    colorbar_max = {
-        'currents': 1.0,
-        'waterlevel':{
-            'water_level_surge': 1.0,
-            'water_level': 4.0,
-            'astronomical_tide': 4.0
-        },
-        'wind': 30.0
-    }
-
-    palettes = {
-        'currents': ['1d1b1a',  '621d62',  '7642a5', '7871d5', '76a4e5', 'e6f1f1'],
-        'waterlevel': ['#D1CBFF', '#006391', '#1D1B1A', '#902F14', '#FCB0B2'],
-        'wind': ['172313', '144b2a', '187328', '5f920c', 'aaac20', 'e1cd73', 'fffdcd']
-    }
-
-    bands = {
-        'currents': {
-            'currents_u': 'b1',
-            'currents_v': 'b2'
-        },
-        'waterlevel':{
-            'water_level_surge': 'b1',
-            'water_level': 'b2',
-            'astronomical_tide': 'b3'
-        },
-        'wind': {
-            'wind_u': 'b1',
-            'wind_v': 'b2'
-        }
-    }
-
-    assert (dataset in raster_assets), '{} not in assets. '.format(dataset)
-
+    assert (dataset in data_params), '{} not in assets. '.format(dataset)
+    data_params = data_params[dataset]
     # Get collection based on dataset requested
-    collection = ee.ImageCollection(raster_assets[dataset])
+    collection = ee.ImageCollection(data_params['source'])
 
     if 'date' in r:
         start = ee.Date(r['date'])
@@ -1512,43 +1482,61 @@ def get_glossis_data():
             raise error_handler.InvalidUsage(msg)
 
     image = ee.Image(collection.sort('system:time_start', False).first())
-    image_date = collection.sort('system:time_start', False).first().date().format().getInfo()
+    image_date = image.date().format().getInfo()
+    # image_id = image.id().getInfo()
 
     # Generate image on dataset requested (characteristic to display)
-    if dataset == 'waterlevel':
-        band = 'water_level'
-        if 'band' in r:
-            band = r['band']
-            assert band in bands[dataset]
+    band = r.get('band', list(data_params['bandNames'].keys())[0])
+    assert band in data_params['bandNames']
 
-        image_min = colorbar_min[dataset][band]
-        image_max = colorbar_max[dataset][band]
-        image_palette = palettes[dataset]
-        image = image.select(bands[dataset][band])
+
+    if dataset in ['wind', 'currents']:
+        function = r.get('function', 'magnitude')
+        assert function in data_params['function']
+        if function == 'magnitude':
+            image = image.pow(2).reduce(ee.Reducer.sum()).sqrt()
+            vis_params = {
+                'min': data_params['min'][function],
+                'max': data_params['max'][function],
+                'palette': data_params['palette'][function]
+            }
+        else:
+            image = image.unitScale(data_params['min'][function], data_params['max'][function]).unmask(-9999)
+            data_mask = image.eq(-9999).select(data_params['bandNames'][band])
+            image = image.clamp(0, 1).addBands(data_mask)
+            vis_params = {
+                'min': data_params['min'][function],
+                'max': data_params['max'][function]
+            }
     else:
-        image_min = colorbar_min[dataset]
-        image_max = colorbar_max[dataset]
-        image_palette = palettes[dataset]
-        image = image.pow(2).reduce(ee.Reducer.sum()).sqrt()
+        image = image.select(data_params['bandNames'][band])
+        vis_params = {
+            'min': data_params['min'][band],
+            'max': data_params['max'][band],
+            'palette': data_params['palette'][band]
+        }
 
     if 'min' in r:
-        image_min = r['min']
+        vis_params['min'] = r['min']
 
     if 'max' in r:
-        image_max = r['max']
+        vis_params['max'] = r['max']
 
     if 'palette' in r:
-        image_palette = r['palette']
+        vis_params['palette'] = r['palette']
 
-    info = generate_image_info(image, image_min, image_max, image_palette)
+    info = generate_image_info(image, vis_params)
     info['dataset'] = dataset
     info['date'] = image_date
+    # info['imageId'] = image_id
+    # info['imageSource'] = data_params['source']
 
     return Response(
         json.dumps(info),
         status=200,
         mimetype='application/json'
     )
+
 
 @app.route('/get_gloffis_data', methods=['POST'])
 @flask_cors.cross_origin()
@@ -1557,57 +1545,19 @@ def get_gloffis_data():
     Get GLOFFIS data. dataset must be provided.
     :return:
     """
-    raster_assets = {
-        'weather': 'projects/dgds-gee/gloffis/weather',
-        'hydro': 'projects/dgds-gee/gloffis/hydro'
-    }
-    colorbar_min = {
-        'weather':{
-            'daily_precipitation':0.0,
-            'mean_temperature':-50.0
-        },
-        'hydro': {
-            'discharge_routed_simulated': 0.0,
-            'soil_moisture': 0.0,
-            'runoff_simulated': 0.0,
-
-        }
-    }
-    colorbar_max = {
-        'weather': {
-            'daily_precipitation': 50.0,
-            'mean_temperature': 50.0
-        },
-        'hydro': {
-            'discharge_routed_simulated': 150000.0,
-            'soil_moisture': 10.0,
-            'runoff_simulated': 50.0,
-
-        }
-    }
-
-    palettes = {
-        'weather':{
-            'daily_precipitation': ['042333', '2c3395', '744992', 'b15f82', 'eb7958', 'fbb43d', 'e8fa5b'],
-            'mean_temperature': ['042333', '2c3395', '744992', 'b15f82', 'eb7958', 'fbb43d', 'e8fa5b']
-        },
-        'hydro': {
-            'discharge_routed_simulated': ['042333', '2c3395', '744992', 'b15f82', 'eb7958', 'fbb43d', 'e8fa5b'],
-            'soil_moisture': ['042333', '2c3395', '744992', 'b15f82', 'eb7958', 'fbb43d', 'e8fa5b'],
-            'runoff_simulated': ['042333', '2c3395', '744992', 'b15f82', 'eb7958', 'fbb43d', 'e8fa5b']
-        }
-    }
+    data_params = DATASETS_VIS['gloffis']
 
     r = request.get_json()
 
     dataset = r['dataset']
-    assert (dataset in raster_assets), '{} not in assets. '.format(dataset)
+    assert (dataset in data_params), '{} not in assets. '.format(dataset)
+    data_params = data_params[dataset]
 
     band = r['band']
-    assert band in colorbar_min[dataset].keys(), '{} not in bands. '.format(band)
+    assert band in data_params['bandNames'].keys(), '{} not in bands. '.format(band)
 
     # Get collection based on dataset requested
-    collection = ee.ImageCollection(raster_assets[dataset])
+    collection = ee.ImageCollection(data_params['source'])
 
     if 'date' in r:
         start = ee.Date(r['date'])
@@ -1622,22 +1572,26 @@ def get_gloffis_data():
     image = ee.Image(collection.sort('system:time_start', False).first())
     image_date = collection.sort('system:time_start', False).first().date().format().getInfo()
 
-    image_min = colorbar_min[dataset][band]
-    image_max = colorbar_max[dataset][band]
-    image_palette = palettes[dataset][band]
     image = image.select(band)
 
+    vis_params = {
+        'min': data_params['min'][band],
+        'max': data_params['max'][band],
+        'palette': data_params['palette'][band]
+    }
+
     if 'min' in r:
-        image_min = r['min']
+        vis_params['min'] = r['min']
 
     if 'max' in r:
-        image_max = r['max']
+        vis_params['max'] = r['max']
 
     if 'palette' in r:
-        image_palette = r['palette']
+        vis_params['palette'] = r['palette']
 
-    info = generate_image_info(image, image_min, image_max, image_palette)
+    info = generate_image_info(image, vis_params)
     info['dataset'] = dataset
+    info['band'] = band
     info['date'] = image_date
 
     return Response(
@@ -1646,16 +1600,118 @@ def get_gloffis_data():
         mimetype='application/json'
     )
 
-def generate_image_info(im, im_min, im_max, palette):
-    """generate url and tokens for image"""
+
+@app.route('/get_metocean_data', methods=['POST'])
+@flask_cors.cross_origin()
+def get_metocean_data():
+    """
+    Get metocean data. dataset must be provided.
+    :return:
+    """
+
+    data_params = DATASETS_VIS['metocean']
+
+    r = request.get_json()
+
+    dataset = r['dataset']
+    assert (dataset in data_params), '{} not in assets. '.format(dataset)
+    data_params = data_params[dataset]
+
+    band = list(data_params['bandNames'].keys())[0]
+    if 'band' in r:
+        band = r['band']
+        assert band in data_params['bandNames'], '{} not in bands. '.format(band)
+
+    # Get collection based on dataset requested
+    image = ee.Image(data_params['source'])
+
+    image = image.select(data_params['bandNames'][band])
+
+    vis_params = {
+        'min': data_params['min'][band],
+        'max': data_params['max'][band],
+        'palette': data_params['palette'][band]
+    }
+
+    if 'min' in r:
+        vis_params['min'] = r['min']
+
+    if 'max' in r:
+        vis_params['max'] = r['max']
+
+    if 'palette' in r:
+        vis_params['palette'] = r['palette']
+
+    info = generate_image_info(image, vis_params)
+    info['dataset'] = dataset
+    info['band'] = band
+
+    return Response(
+        json.dumps(info),
+        status=200,
+        mimetype='application/json'
+    )
+
+
+@app.route('/get_gebco_data', methods=['POST'])
+@flask_cors.cross_origin()
+def get_gebco_data():
+    r = request.get_json()
+
+    data_params = DATASETS_VIS['bathymetry']['gebco']
+    image = ee.Image(data_params['source'])
+    band = 'elevation'
+
+    with open(os.path.join(DATASET_DIR, data_params['sldStyle']), 'r') as file:
+        sld_style = file.read()
+
+    vis_params = {
+        'min': data_params['min'][band],
+        'max': data_params['max'][band],
+        'palette': data_params['palette'][band],
+        'sld_style': sld_style,
+        'hillshade': True
+    }
+    if 'min' in r:
+        vis_params['min'] = r['min']
+
+    if 'max' in r:
+        vis_params['max'] = r['max']
+
+    if 'palette' in r:
+        vis_params['palette'] = r['palette']
+
+    info = generate_image_info(image, vis_params)
+    info['dataset'] = 'gebco'
+    info['band'] = band
+
+    return Response(
+        json.dumps(info),
+        status=200,
+        mimetype='application/json'
+    )
+
+
+def generate_image_info(im, params):
+    """"generate url and tokens for image"""
     image = ee.Image(im)
 
-    m = image.visualize(**{
-        'min': im_min,
-        'max': im_max,
-        'palette': palette
-    }).getMapId()
+    if 'sld_style' in params:
+        m = image.sldStyle(params.get('sld_style'))
+        del params['sld_style']
+    elif 'palette' in params:
+        m = image.visualize(**{
+            'min': params.get('min'),
+            'max': params.get('max'),
+            'palette': params.get('palette')
+        })
+    else:
+        m = image
 
+    if 'hillshade' in params:
+        m = hillshade(m, image, False)
+
+    m = m.getMapId()
     mapid = m.get('mapid')
     token = m.get('token')
 
@@ -1664,12 +1720,25 @@ def generate_image_info(im, im_min, im_max, palette):
         token=token
     )
 
-    result = {
+    linear_gradient = []
+    if 'palette' in params:
+        n_colors = len(params.get('palette'))
+        palette = params.get('palette')
+        offsets = np.linspace(0, 100, num=n_colors)
+        for color, offset in zip(palette, offsets):
+            linear_gradient.append({
+                'offset': '{:.3f}%'.format(offset),
+                'opacity': 100,
+                'color': color
+            })
+
+    params.update({
         'mapid': mapid,
         'token': token,
-        'url': url
-    }
-    return result
+        'url': url,
+        'linearGradient': linear_gradient})
+    return params
+
 
 @app.route('/')
 def root():
