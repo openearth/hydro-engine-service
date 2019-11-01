@@ -103,7 +103,7 @@
                 "waveheight": 0.0
             },
             "max": {
-                "waveheight": 10.0
+                "waveheight": 8.0
             },
             "palette": {
                 "waveheight": ["#042333", "#3c0912", "#730e27", "#a62225", "#c0583b", "#d08b73", "#dfbcb0", "#f1edec"]
@@ -145,7 +145,7 @@
                 "runoff_simulated": 0.0
             },
             "max": {
-                "discharge_routed_simulated": 150000.0,
+                "discharge_routed_simulated": 15.0,
                 "soil_moisture": 10.0,
                 "runoff_simulated": 50.0
             },
@@ -169,7 +169,7 @@
                 "90th": 0
             },
             "max": {
-                "50th": 10.0,
+                "50th": 6.0,
                 "90th": 10.0
             },
             "palette": {

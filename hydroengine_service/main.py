@@ -1580,6 +1580,12 @@ def get_gloffis_data():
         'palette': data_params['palette'][band]
     }
 
+    if dataset == 'hydro':
+        image = image.mask(image.gte(0))
+
+    if band == 'discharge_routed_simulated':
+        image = image.log()
+
     if 'min' in r:
         vis_params['min'] = r['min']
 
@@ -1593,6 +1599,10 @@ def get_gloffis_data():
     info['dataset'] = dataset
     info['band'] = band
     info['date'] = image_date
+
+    if band == 'discharge_routed_simulated':
+        info['min'] = 10**vis_params['min']
+        info['max'] = 10**vis_params['max']
 
     return Response(
         json.dumps(info),
