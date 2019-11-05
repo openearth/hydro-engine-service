@@ -290,13 +290,13 @@ def radians(image):
     return ee.Image(image).toFloat().multiply(3.1415927).divide(180)
 
 
-def hillshade(image_rgb, elevation, reproject):
+def hillshade(image_rgb, elevation, reproject, height_multiplier=500,  weight=1.2):
     """
     Styles RGB image using hillshading, mixes RGB and hillshade using HSV<->RGB transform
     """
 
-    weight = 1.2
-    height_multiplier = 500
+    # height multiplier
+
     azimuth = 315
     zenith = 40
 
@@ -1670,30 +1670,113 @@ def get_gebco_data():
 
     data_params = DATASETS_VIS['bathymetry']['gebco']
     image = ee.Image(data_params['source'])
-    band = 'elevation'
+    band = data_params['bandNames']['elevation']
 
-    with open(os.path.join(DATASET_DIR, data_params['sldStyle']), 'r') as file:
-        sld_style = file.read()
+    gebco = image.select(band)
 
-    vis_params = {
-        'min': data_params['min'][band],
-        'max': data_params['max'][band],
-        'palette': data_params['palette'][band],
-        'sld_style': sld_style,
-        'hillshade': True
-    }
-    if 'min' in r:
-        vis_params['min'] = r['min']
+    # Angle for hillshade (keep at 315 for good perception)
+    azimuth = 315
+    # Lower is longer shadows
+    zenith = 30
 
-    if 'max' in r:
-        vis_params['max'] = r['max']
+    bathy_only = data_params.get('bathy_only', False)
 
-    if 'palette' in r:
-        vis_params['palette'] = r['palette']
+    height_multiplier = 30
+    # Weight between image and  hillshade (1=equal)
+    weight = 0.3
+    # make darker (<1), lighter (>1)
+    val_multiply = 0.9
+    # make  desaturated (<1) or more saturated (>1)
+    sat_multiply = 0.8
 
-    info = generate_image_info(image, vis_params)
+    # palettes
+    # visualization params
+    topo_rgb = gebco.mask(gebco.gt(0)).visualize(**data_params['topo_vis_params'])
+    bathy_rgb = gebco.mask(gebco.lte(0)).visualize(**data_params['bathy_vis_params'])
+    image_rgb = topo_rgb.blend(bathy_rgb)
+
+    if (bathy_only):
+        # overwrite with masked version
+        image_rgb = bathy_rgb.mask(gebco.multiply(ee.Image(-1)).unitScale(-1, 10).clamp(0, 1))
+
+
+    # TODO:  see how this still fits in the hillshade function
+    hsv = image_rgb.unitScale(0, 255).rgbToHsv()
+
+    z = gebco.multiply(ee.Image.constant(height_multiplier))
+
+    def radians(image):
+        return ee.Image(image).toFloat().multiply(3.1415927).divide(180)
+
+
+    # Compute terrain properties
+    terrain = ee.Algorithms.Terrain(z)
+    slope = radians(terrain.select(['slope']))
+    aspect = radians(terrain.select(['aspect'])).resample('bicubic')
+    azimuth = radians(ee.Image.constant(azimuth))
+    zenith = radians(ee.Image.constant(zenith))
+    # hillshade
+    hs = (
+        azimuth
+        .subtract(aspect)
+        .cos()
+        .multiply(slope.sin())
+        .multiply(zenith.sin())
+        .add(
+            zenith
+            .cos()
+            .multiply(
+                slope.cos()
+            )
+        )
+        .resample('bicubic')
+    )
+
+    # weighted average of hillshade and value
+    intensity = hs.multiply(hsv.select('value'))
+
+
+
+    hue = hsv.select('hue')
+
+    # desaturate a bit
+    sat = hsv.select('saturation').multiply(sat_multiply)
+    # make a bit darker
+    val = intensity.multiply(val_multiply)
+
+    hillshaded = ee.Image.cat(hue, sat, val).hsvToRgb()
+
+    info = {}
     info['dataset'] = 'gebco'
     info['band'] = band
+
+    m = hillshaded.getMapId()
+    mapid = m.get('mapid')
+    token = m.get('token')
+
+    url = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'.format(
+        mapid=mapid,
+        token=token
+    )
+
+    linear_gradient = []
+    palette = data_params['bathy_vis_params']['palette'] + data_params['topo_vis_params']['palette']
+    n_colors = len(palette)
+    offsets = np.linspace(0, 100, num=n_colors)
+    for color, offset in zip(palette, offsets):
+        linear_gradient.append({
+            'offset': '{:.3f}%'.format(offset),
+            'opacity': 100,
+            'color': color
+        })
+
+    info.update({
+        'mapid': mapid,
+        'token': token,
+        'url': url,
+        'linearGradient': linear_gradient
+    })
+
 
     return Response(
         json.dumps(info),
@@ -1719,7 +1802,9 @@ def generate_image_info(im, params):
         m = image
 
     if 'hillshade' in params:
-        m = hillshade(m, image, False)
+        # also pass along hillshade arguments
+        hillshade_args = params.get('hillshade_args',  {})
+        m = hillshade(m, image, False, **hillshade_args)
 
     m = m.getMapId()
     mapid = m.get('mapid')
