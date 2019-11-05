@@ -1669,7 +1669,7 @@ def get_gebco_data():
     # Lower is longer shadows
     zenith = 30
 
-    bathy_only = True
+    bathy_only = data_params.get('bathy_only', False)
 
     height_multiplier = 30
     # Weight between image and  hillshade (1=equal)
@@ -1681,19 +1681,19 @@ def get_gebco_data():
 
     # palettes
     # visualization params
-    topo_rgb = gebco.mask(gebco.gt(0)).visualize(data_params['topo_vis_params'])
-    bathy_rgb = gebco.mask(gebco.lte(0)).visualize(data_params['bathy_vis_params'])
+    topo_rgb = gebco.mask(gebco.gt(0)).visualize(**data_params['topo_vis_params'])
+    bathy_rgb = gebco.mask(gebco.lte(0)).visualize(**data_params['bathy_vis_params'])
     image_rgb = topo_rgb.blend(bathy_rgb)
 
-    if (bathy_only) {
-      # overwrite with masked version
-      image_rgb = bathy_rgb.mask(gebco.multiply(ee.Image(-1)).unitScale(-1, 10).clamp(0, 1))
-    }
+    if (bathy_only):
+        # overwrite with masked version
+        image_rgb = bathy_rgb.mask(gebco.multiply(ee.Image(-1)).unitScale(-1, 10).clamp(0, 1))
+
 
     # TODO:  see how this still fits in the hillshade function
     hsv = image_rgb.unitScale(0, 255).rgbToHsv()
 
-    z = elevation.multiply(ee.Image.constant(height_multiplier))
+    z = gebco.multiply(ee.Image.constant(height_multiplier))
 
     def radians(image):
         return ee.Image(image).toFloat().multiply(3.1415927).divide(180)
@@ -1721,8 +1721,12 @@ def get_gebco_data():
         )
         .resample('bicubic')
     )
+
     # weighted average of hillshade and value
     intensity = hs.multiply(hsv.select('value'))
+
+
+
     hue = hsv.select('hue')
 
     # desaturate a bit
@@ -1732,7 +1736,7 @@ def get_gebco_data():
 
     hillshaded = ee.Image.cat(hue, sat, val).hsvToRgb()
 
-    info = generate_image_info(image, vis_params)
+    info = {}
     info['dataset'] = 'gebco'
     info['band'] = band
 
@@ -1740,13 +1744,13 @@ def get_gebco_data():
     mapid = m.get('mapid')
     token = m.get('token')
 
-    url = 'https:#earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'.format(
+    url = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'.format(
         mapid=mapid,
         token=token
     )
 
     linear_gradient = []
-    palette = topo_palette + bathy_palette
+    palette = data_params['bathy_vis_params']['palette'] + data_params['topo_vis_params']['palette']
     n_colors = len(palette)
     offsets = np.linspace(0, 100, num=n_colors)
     for color, offset in zip(palette, offsets):
