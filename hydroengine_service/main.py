@@ -1740,7 +1740,12 @@ def get_windfarm_data():
         "reducer": ee.Reducer.mean(),
         "scale": 1000
     })
-    response = meanWindFarm.getInfo()
+    computed = meanWindFarm.getInfo()
+    response = Response(
+        json.dumps(computed),
+        status=200,
+        mimetype='application/json'
+    )
     return response
 
 
