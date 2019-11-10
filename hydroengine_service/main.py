@@ -1662,6 +1662,87 @@ def get_metocean_data():
         mimetype='application/json'
     )
 
+@app.route('/get_windfarm_data', methods=['POST'])
+@flask_cors.cross_origin()
+def get_windfarm_data():
+    r = request.get_json()
+
+    features = r['features']
+
+    collection = ee.FeatureCollection(features)
+    ports = ee.FeatureCollection("users/fbaart/osm/ne_50m_ports")
+    coast = ee.Image("users/gena/land_polygons_image")
+    gebco = ee.Image("projects/dgds-gee/gebco/2019")
+
+    data_params = DATASETS_VIS['era5']['wind']
+    era5 = ee.ImageCollection(data_params['source'])
+
+    scale = 1000
+    bands = [data_params['bandNames']['u'], data_params['bandNames']['v']]
+
+    months = era5.sort('system:time_start', False).toList(12)
+    # select u and v
+    def select_bands(image):
+        return image.select(bands)
+    months = ee.ImageCollection(months).map(select_bands)
+    # compute mean
+    annual = months.reduce(ee.Reducer.mean())
+
+    def magnitude(image):
+        # Take the magnitude and angle of the first 2 bands
+        squared = image.pow(ee.Image(2))
+        magnitude = (
+            squared
+            .select(0)
+            .add(
+                squared.select(1)
+            )
+            .pow(ee.Image(0.5))
+        )
+        magnitude = magnitude.rename('wind_magnitude_mean')
+
+        angle = image.select(1).atan2(image.select(0))
+        angle = angle.rename('wind_angle_mean')
+
+        result = image.addBands(magnitude)
+        result = result.addBands(angle)
+        return result
+
+    meanWind = magnitude(annual)
+
+    distanceToPort = (
+        ports
+        .distance(**{
+            'searchRadius': 200000,
+            'maxError': 1000
+        })
+        .rename('distance_to_port')
+    )
+
+    distanceToCoast = (
+        coast
+        .mask()
+        .resample('bicubic')
+        .fastDistanceTransform()
+        .sqrt()
+        .reproject(ee.Projection('EPSG:3857').atScale(scale))
+        .multiply(scale)
+        .rename('distance_to_coast')
+    )
+
+    dataset = meanWind.addBands(gebco.rename('bathymetry'))
+    dataset = dataset.addBands(distanceToPort)
+    dataset = dataset.addBands(distanceToCoast)
+
+
+    meanWindFarm = dataset.reduceRegions(**{
+        "collection": collection,
+        "reducer": ee.Reducer.mean(),
+        "scale": 1000
+    })
+    response = meanWindFarm.getInfo()
+    return response
+
 
 @app.route('/get_gebco_data', methods=['POST'])
 @flask_cors.cross_origin()

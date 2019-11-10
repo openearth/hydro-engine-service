@@ -163,6 +163,16 @@
             }
         }
     },
+    "era5": {
+        "wind": {
+            "source": "ECMWF/ERA5/MONTHLY",
+            "type": "ImageCollection",
+            "bandNames": {
+                "u": "u_component_of_wind_10m",
+                "v": "v_component_of_wind_10m"
+            }
+        }
+    },
     "metocean": {
         "percentiles": {
             "source": "projects/dgds-gee/metocean/percentiles",
