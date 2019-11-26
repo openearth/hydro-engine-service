@@ -1668,8 +1668,9 @@ def get_windfarm_data():
     r = request.get_json()
 
     features = r['features']
-
     collection = ee.FeatureCollection(features)
+
+
     ports = ee.FeatureCollection("users/fbaart/osm/ne_50m_ports")
     coast = ee.Image("users/gena/land_polygons_image")
     gebco = ee.Image("projects/dgds-gee/gebco/2019")
@@ -1716,12 +1717,15 @@ def get_windfarm_data():
     def create_turbine_grid(feature, spacing):
         """create an equidistant spaced grid (unrotated)"""
         feature = ee.Feature(feature)
+
         bounds = (
             feature
             .geometry()
             .bounds()
             .transform('EPSG:3857', 1)
         )
+        a = feature.geometry()
+
         outer = (
             bounds
             .coordinates()
@@ -1799,7 +1803,8 @@ def get_windfarm_data():
         # Betz law
         performance = 0.35
         # rotor swept area (A)= 0= 0meter^2
-        A = 345
+        rotor_radius = 110
+        A = np.pi * rotor_radius * rotor_radius
         # coefficient of performance (Cp)= 0= 0
         # wind velocity (V)= 0= 0meter/second
         height = 260
@@ -1837,6 +1842,7 @@ def get_windfarm_data():
         turbine_spacing = 1000
         turbine_grid = create_turbine_grid(feature, turbine_spacing)
         n_turbines = turbine_grid.get('n_turbines')
+
 
         feature = feature.set({
             "wind_magnitude_mean_height": magnitude,
@@ -1879,6 +1885,10 @@ def get_windfarm_data():
         "reducer": ee.Reducer.mean(),
         "scale": 1000
     })
+    feature = meanWindFarm.first()
+    grid = create_turbine_grid(feature, 1000)
+    # print('grid',  grid.getInfo())
+
 
     meanWindFarm = meanWindFarm.map(compute_feature)
 
