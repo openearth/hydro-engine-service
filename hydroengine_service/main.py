@@ -1584,7 +1584,7 @@ def get_gloffis_data():
         image = image.mask(image.gte(0))
 
     if band == 'discharge_routed_simulated':
-        image = image.log()
+        image = image.log10()
 
     if 'min' in r:
         vis_params['min'] = r['min']
