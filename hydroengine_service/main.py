@@ -1774,7 +1774,9 @@ def get_gebco_data():
         'mapid': mapid,
         'token': token,
         'url': url,
-        'linearGradient': linear_gradient
+        'linearGradient': linear_gradient,
+        'min': data_params['bathy_vis_params']['min'],
+        'max': data_params['topo_vis_params']['max']
     })
 
 
