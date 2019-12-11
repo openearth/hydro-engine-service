@@ -1483,7 +1483,7 @@ def get_glossis_data():
 
     image = ee.Image(collection.sort('system:time_start', False).first())
     image_date = image.date().format().getInfo()
-    # image_id = image.id().getInfo()
+    image_id = image.id().getInfo()
 
     # Generate image on dataset requested (characteristic to display)
     band = r.get('band', list(data_params['bandNames'].keys())[0])
@@ -1528,8 +1528,7 @@ def get_glossis_data():
     info = generate_image_info(image, vis_params)
     info['dataset'] = dataset
     info['date'] = image_date
-    # info['imageId'] = image_id
-    # info['imageSource'] = data_params['source']
+    info['imageId'] = data_params['source'] + '/' + image_id
 
     return Response(
         json.dumps(info),
@@ -1571,7 +1570,7 @@ def get_gloffis_data():
 
     image = ee.Image(collection.sort('system:time_start', False).first())
     image_date = collection.sort('system:time_start', False).first().date().format().getInfo()
-
+    image_id = image.id().getInfo()
     image = image.select(band)
 
     vis_params = {
@@ -1599,6 +1598,7 @@ def get_gloffis_data():
     info['dataset'] = dataset
     info['band'] = band
     info['date'] = image_date
+    info['imageId'] = data_params['source'] + '/' + image_id
 
     if band == 'discharge_routed_simulated':
         info['min'] = 10**vis_params['min']
@@ -1634,7 +1634,6 @@ def get_metocean_data():
 
     # Get collection based on dataset requested
     image = ee.Image(data_params['source'])
-
     image = image.select(data_params['bandNames'][band])
 
     vis_params = {
@@ -1655,6 +1654,7 @@ def get_metocean_data():
     info = generate_image_info(image, vis_params)
     info['dataset'] = dataset
     info['band'] = band
+    info['imageId'] = data_params['source']
 
     return Response(
         json.dumps(info),
@@ -1774,7 +1774,8 @@ def get_gebco_data():
         'mapid': mapid,
         'token': token,
         'url': url,
-        'linearGradient': linear_gradient
+        'linearGradient': linear_gradient,
+        'imageId': data_params['source']
     })
 
 
