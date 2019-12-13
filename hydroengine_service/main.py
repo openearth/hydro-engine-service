@@ -1499,14 +1499,16 @@ def get_glossis_data():
         vis_params = {
             'min': data_params['min'][function],
             'max': data_params['max'][function],
-            'palette': data_params['palette'][function]
+            'palette': data_params['palette'][function],
+            'function': function
         }
     else:
         image = image.select(data_params['bandNames'][band])
         vis_params = {
             'min': data_params['min'][band],
             'max': data_params['max'][band],
-            'palette': data_params['palette'][band]
+            'palette': data_params['palette'][band],
+            'function': function
         }
 
     if 'min' in r:
@@ -1577,6 +1579,7 @@ def get_gloffis_data():
 
     if band == 'discharge_routed_simulated':
         image = apply_image_operation(image, "log")
+        vis_params['function'] = data_params['function'][band]
 
     if 'min' in r:
         vis_params['min'] = r['min']
@@ -1814,6 +1817,11 @@ def generate_image_info(im, params):
         n_colors = len(params.get('palette'))
         palette = params.get('palette')
         offsets = np.linspace(0, 100, num=n_colors)
+        if 'function' in params:
+            if params['function'] == 'log':
+                # offsets
+                offsets = np.logspace(0.0, 2.0, num=n_colors, base=10.0)
+                offsets[0] = 0.0
         for color, offset in zip(palette, offsets):
             linear_gradient.append({
                 'offset': '{:.3f}%'.format(offset),
