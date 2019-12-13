@@ -1493,21 +1493,14 @@ def get_glossis_data():
     if dataset in ['wind', 'currents']:
         function = r.get('function', 'magnitude')
         assert function in data_params['function']
-        if function == 'magnitude':
-            image = image.pow(2).reduce(ee.Reducer.sum()).sqrt()
-            vis_params = {
-                'min': data_params['min'][function],
-                'max': data_params['max'][function],
-                'palette': data_params['palette'][function]
-            }
-        else:
-            image = image.unitScale(data_params['min'][function], data_params['max'][function]).unmask(-9999)
-            data_mask = image.eq(-9999).select(data_params['bandNames'][band])
-            image = image.clamp(0, 1).addBands(data_mask)
-            vis_params = {
-                'min': data_params['min'][function],
-                'max': data_params['max'][function]
-            }
+
+        image = apply_image_operation(image, function, data_params)
+
+        vis_params = {
+            'min': data_params['min'][function],
+            'max': data_params['max'][function],
+            'palette': data_params['palette'][function]
+        }
     else:
         image = image.select(data_params['bandNames'][band])
         vis_params = {
@@ -1583,7 +1576,7 @@ def get_gloffis_data():
         image = image.mask(image.gte(0))
 
     if band == 'discharge_routed_simulated':
-        image = image.log()
+        image = apply_image_operation(image, "log")
 
     if 'min' in r:
         vis_params['min'] = r['min']
@@ -1835,6 +1828,24 @@ def generate_image_info(im, params):
         'linearGradient': linear_gradient})
     return params
 
+def apply_image_operation(image, operation, data_params=None):
+    '''
+    Apply an operation to an image, based on specified operation and data parameters
+    :param image:
+    :param operation: String, type of operation
+    :param data_params: coming from data_visualization_parameters.json
+    :return:
+    '''
+    if operation == "log":
+        image = image.log10()
+    if operation == "magnitude":
+        image = image.pow(2).reduce(ee.Reducer.sum()).sqrt()
+    if operation == "flowmap":
+        image.unitScale(data_params['min'][operation], data_params['max'][operation]).unmask(-9999)
+        data_mask = image.eq(-9999).select(data_params['bandNames'][band])
+        image = image.clamp(0, 1).addBands(data_mask)
+
+    return image
 
 @app.route('/')
 def root():

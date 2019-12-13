@@ -146,6 +146,9 @@
                 "soil_moisture": "soil_moisture",
                 "runoff_simulated": "runoff_simulated"
             },
+            "operation": {
+                "discharge_routed_simulated": "log"
+            },
             "min": {
                 "discharge_routed_simulated": 0.0,
                 "soil_moisture": 0.0,
