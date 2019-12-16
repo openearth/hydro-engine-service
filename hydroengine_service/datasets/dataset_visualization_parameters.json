@@ -1,7 +1,7 @@
 {
     "bathymetry": {
         "gebco": {
-            "source": "projects/dgds-gee/gebco/2019",
+            "source": "projects/dgds-gee/bathymetry/gebco/2019",
             "type": "Image",
             "bandNames": {
                 "elevation": "b1"
@@ -146,13 +146,16 @@
                 "soil_moisture": "soil_moisture",
                 "runoff_simulated": "runoff_simulated"
             },
+            "function": {
+                "discharge_routed_simulated": "log"
+            },
             "min": {
                 "discharge_routed_simulated": 0.0,
                 "soil_moisture": 0.0,
                 "runoff_simulated": 0.0
             },
             "max": {
-                "discharge_routed_simulated": 15.0,
+                "discharge_routed_simulated": 6.0,
                 "soil_moisture": 10.0,
                 "runoff_simulated": 50.0
             },
