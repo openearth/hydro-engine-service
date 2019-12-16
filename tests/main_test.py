@@ -449,6 +449,7 @@ class TestClient(unittest.TestCase):
             data=json.dumps(request),
             content_type='application/json'
         )
+        print(resp)
         assert resp.status_code == 200
 
         result = json.loads(resp.data)
@@ -472,6 +473,7 @@ class TestClient(unittest.TestCase):
             data=json.dumps(request),
             content_type='application/json'
         )
+        print(resp)
         assert resp.status_code == 200
 
         result = json.loads(resp.data)
