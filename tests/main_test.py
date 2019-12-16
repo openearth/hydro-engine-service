@@ -468,14 +468,14 @@ class TestClient(unittest.TestCase):
             }
         }
         resp = self.client.post(
-            '/get_feature_info',
+            '/get_feature_info,
             data=json.dumps(request),
             content_type='application/json'
         )
         assert resp.status_code == 200
 
         result = json.loads(resp.data)
-        print(result)
+
         assert result['value'] == 3.0175781
 
 if __name__ == '__main__':

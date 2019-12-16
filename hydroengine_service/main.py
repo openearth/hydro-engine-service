@@ -1882,18 +1882,29 @@ def get_feature_info():
     image = apply_image_operation(image, function)
     image = image.rename('value')
 
-    value = image.sample(**{
-        'region': ee.Geometry(bbox),
-        'geometries': True
-    }).first().getInfo()
+    value = (
+        image.sample(**{
+            'region': ee.Geometry(bbox),
+            'geometries': True
+        })
+        .first()
+        .getInfo()
+    )
+
+    # if no data at point, value will be None.
+    if not value:
+        # return Feature with value None (standard return format from GEE)
+        value = {
+          "geometry": bbox,
+          "id": "0",
+          "properties": {
+            "value": None
+          },
+          "type": "Feature"
+        }
 
     if info_format == 'JSON':
-        if not value:
-            value = {
-                'value': None
-            }
-        else:
-            value = value['properties']
+        value = value['properties']
 
     return value
 
