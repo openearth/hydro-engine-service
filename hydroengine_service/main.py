@@ -1883,7 +1883,7 @@ def get_feature_info():
     image = image.rename('value')
 
     value = image.sample(**{
-        'region': bbox,
+        'region': ee.Geometry(bbox),
         'geometries': True
     }).first().getInfo()
 
