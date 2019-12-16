@@ -453,7 +453,7 @@ class TestClient(unittest.TestCase):
 
         result = json.loads(resp.data)
 
-        assert result['value'] == None
+        assert result['value'] is None
 
     def test_get_feature_info(self):
         request = {
@@ -468,7 +468,7 @@ class TestClient(unittest.TestCase):
             }
         }
         resp = self.client.post(
-            '/get_feature_info,
+            '/get_feature_info',
             data=json.dumps(request),
             content_type='application/json'
         )
