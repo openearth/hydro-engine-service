@@ -1507,8 +1507,7 @@ def get_glossis_data():
         vis_params = {
             'min': data_params['min'][band],
             'max': data_params['max'][band],
-            'palette': data_params['palette'][band],
-            'function': function
+            'palette': data_params['palette'][band]
         }
 
     if 'min' in r:
@@ -1614,7 +1613,6 @@ def get_metocean_data():
     Get metocean data. dataset must be provided.
     :return:
     """
-
     data_params = DATASETS_VIS['metocean']
 
     r = request.get_json()
@@ -1666,9 +1664,9 @@ def get_gebco_data():
 
     data_params = DATASETS_VIS['bathymetry']['gebco']
     image = ee.Image(data_params['source'])
-    band = data_params['bandNames']['elevation']
+    band = 'elevation'
 
-    gebco = image.select(band)
+    gebco = image.select(data_params['bandNames'][band])
 
     # Angle for hillshade (keep at 315 for good perception)
     azimuth = 315
@@ -1845,15 +1843,59 @@ def apply_image_operation(image, operation, data_params=None):
     :return:
     '''
     if operation == "log":
-        image = image.log10()
+        image = image.log10().rename('log')
     if operation == "magnitude":
-        image = image.pow(2).reduce(ee.Reducer.sum()).sqrt()
+        image = image.pow(2).reduce(ee.Reducer.sum()).sqrt().rename('magnitude')
     if operation == "flowmap":
         image.unitScale(data_params['min'][operation], data_params['max'][operation]).unmask(-9999)
         data_mask = image.eq(-9999).select(data_params['bandNames'][band])
-        image = image.clamp(0, 1).addBands(data_mask)
+        image = image.clamp(0, 1).addBands(data_mask).rename('flowmap')
 
     return image
+
+@app.route('/get_feature_info', methods=['POST'])
+@flask_cors.cross_origin()
+def get_feature_info():
+    '''
+    Get image value at point
+    :return:
+    '''
+    r = request.get_json()
+    image_id = r['imageId']
+    bbox = r['bbox']
+    band = r.get('band', None)
+    function = r.get('function', None)
+    info_format = r.get('info_format', 'JSON')
+
+    image = ee.Image(image_id)
+    if band:
+        image_location_parameters = image_id.split('/')
+        if len(image_location_parameters) == 5:
+            _gee_folder_type, _project, data_collection, dataset, imageName = image_location_parameters
+        # For metocean data, no image collections.
+        if len(image_location_parameters) == 4:
+            _gee_folder_type, _project, data_collection, dataset = image_location_parameters
+
+        band_name = DATASETS_VIS[data_collection][dataset]['bandNames'][band]
+        image = image.select(band_name)
+
+    image = apply_image_operation(image, function)
+    image = image.rename('value')
+
+    value = image.sample(**{
+        'region': bbox,
+        'geometries': True
+    }).first().getInfo()
+
+    if info_format == 'JSON':
+        if not value:
+            value = {
+                'value': None
+            }
+        else:
+            value = value['properties']
+
+    return value
 
 @app.route('/')
 def root():
