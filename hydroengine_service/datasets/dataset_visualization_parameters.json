@@ -1,7 +1,7 @@
 {
     "bathymetry": {
         "gebco": {
-            "source": "projects/dgds-gee/gebco/2019",
+            "source": "projects/dgds-gee/bathymetry/gebco/2019",
             "type": "Image",
             "bandNames": {
                 "elevation": "b1"
