@@ -1817,7 +1817,7 @@ def generate_image_info(im, params):
         offsets = np.linspace(0, 100, num=n_colors)
         if 'function' in params:
             if params['function'] == 'log':
-                # offsets
+                # if log scaling applied, apply log scale to linear gradient palette offsets
                 offsets = np.logspace(0.0, 2.0, num=n_colors, base=10.0)
                 offsets[0] = 0.0
         for color, offset in zip(palette, offsets):
@@ -1835,13 +1835,13 @@ def generate_image_info(im, params):
     return params
 
 def apply_image_operation(image, operation, data_params=None):
-    '''
+    """
     Apply an operation to an image, based on specified operation and data parameters
     :param image:
     :param operation: String, type of operation
     :param data_params: coming from data_visualization_parameters.json
     :return:
-    '''
+    """
     if operation == "log":
         image = image.log10().rename('log')
     if operation == "magnitude":
@@ -1856,10 +1856,10 @@ def apply_image_operation(image, operation, data_params=None):
 @app.route('/get_feature_info', methods=['POST'])
 @flask_cors.cross_origin()
 def get_feature_info():
-    '''
+    """
     Get image value at point
     :return:
-    '''
+    """
     r = request.get_json()
     image_id = r['imageId']
     bbox = r['bbox']
@@ -1906,7 +1906,11 @@ def get_feature_info():
     if info_format == 'JSON':
         value = value['properties']
 
-    return value
+    return Response(
+        json.dumps(value),
+        status=200,
+        mimetype='application/json'
+    )
 
 @app.route('/')
 def root():
