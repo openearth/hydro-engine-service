@@ -1494,7 +1494,7 @@ def get_glossis_data():
         function = r.get('function', 'magnitude')
         assert function in data_params['function']
 
-        image = apply_image_operation(image, function, data_params)
+        image = apply_image_operation(image, function, data_params, band)
 
         vis_params = {
             'min': data_params['min'][function],
@@ -1834,7 +1834,7 @@ def generate_image_info(im, params):
         'linearGradient': linear_gradient})
     return params
 
-def apply_image_operation(image, operation, data_params=None):
+def apply_image_operation(image, operation, data_params=None, band=None):
     """
     Apply an operation to an image, based on specified operation and data parameters
     :param image:
@@ -1849,7 +1849,7 @@ def apply_image_operation(image, operation, data_params=None):
     if operation == "flowmap":
         image.unitScale(data_params['min'][operation], data_params['max'][operation]).unmask(-9999)
         data_mask = image.eq(-9999).select(data_params['bandNames'][band])
-        image = image.clamp(0, 1).addBands(data_mask).rename('flowmap')
+        image = image.clamp(0, 1).addBands(data_mask)
 
     return image
 
@@ -1911,6 +1911,42 @@ def get_feature_info():
         status=200,
         mimetype='application/json'
     )
+
+@app.route('/get_collection_dates', methods=['POST'])
+@flask_cors.cross_origin()
+def get_collection_dates():
+    """
+    Get image value at point
+    :return:
+    """
+    r = request.get_json()
+    source = r['source']
+    start_date = r.get('startDate', None)
+    end_date = r.get('endDate', None)
+    collection = ee.ImageCollection(source)
+    if start_date and end_date:
+        start_date = ee.Date(start_date)
+        end_date = ee.Date(end_date)
+        collection = collection.filterDate(start_date, end_date)
+
+    dates = ee.List(collection.aggregate_array('system:time_start'))
+    date_list = dates.map(lambda i: ee.Date(i).format()).getInfo()
+
+    ids = ee.List(collection.aggregate_array('system:id')).getInfo()
+    response = []
+    for date, id in zip(date_list, ids):
+        object = {
+            'imageId': id,
+            'date': date
+        }
+        response.append(object)
+
+    return Response(
+        json.dumps(response),
+        status=200,
+        mimetype='application/json'
+    )
+
 
 @app.route('/')
 def root():
