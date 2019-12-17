@@ -1494,7 +1494,7 @@ def get_glossis_data():
         function = r.get('function', 'magnitude')
         assert function in data_params['function']
 
-        image = apply_image_operation(image, function, data_params)
+        image = apply_image_operation(image, function, data_params, band)
 
         vis_params = {
             'min': data_params['min'][function],
@@ -1834,7 +1834,7 @@ def generate_image_info(im, params):
         'linearGradient': linear_gradient})
     return params
 
-def apply_image_operation(image, operation, data_params=None):
+def apply_image_operation(image, operation, data_params=None, band=None):
     """
     Apply an operation to an image, based on specified operation and data parameters
     :param image:
@@ -1849,7 +1849,7 @@ def apply_image_operation(image, operation, data_params=None):
     if operation == "flowmap":
         image.unitScale(data_params['min'][operation], data_params['max'][operation]).unmask(-9999)
         data_mask = image.eq(-9999).select(data_params['bandNames'][band])
-        image = image.clamp(0, 1).addBands(data_mask).rename('flowmap')
+        image = image.clamp(0, 1).addBands(data_mask)
 
     return image
 
