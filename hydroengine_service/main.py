@@ -1847,7 +1847,7 @@ def apply_image_operation(image, operation, data_params=None, band=None):
     if operation == "magnitude":
         image = image.pow(2).reduce(ee.Reducer.sum()).sqrt().rename('magnitude')
     if operation == "flowmap":
-        image.unitScale(data_params['min'][operation], data_params['max'][operation]).unmask(-9999)
+        image = image.unitScale(data_params['min'][operation], data_params['max'][operation]).unmask(-9999)
         data_mask = image.eq(-9999).select(data_params['bandNames'][band])
         image = image.clamp(0, 1).addBands(data_mask)
 
