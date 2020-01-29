@@ -1926,6 +1926,7 @@ def server_error(e):
     See logs for full stacktrace.
     """.format(e), 500
 
+# Note, this should be here. Don't move this above.
 app.register_blueprint(v1, url_prefix="/v1")
 app.register_blueprint(v2, url_prefix="/v2")
 # use version 1
