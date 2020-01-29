@@ -37,6 +37,8 @@ app.register_blueprint(error_handler.error_handler)
 v1 = Blueprint("version1", "version1")
 v2 = Blueprint('version2', "version2")
 
+
+
 # if 'privatekey.json' is defined in environmental variable - write it to file
 if 'key' in os.environ:
     print('Writing privatekey.json from environmental variable ...')
@@ -1924,13 +1926,14 @@ def server_error(e):
     See logs for full stacktrace.
     """.format(e), 500
 
+app.register_blueprint(v1, url_prefix="/v1")
+app.register_blueprint(v2, url_prefix="/v2")
+# use version 1
+app.register_blueprint(v1, url_prefix="/")
+
 
 if __name__ == '__main__':
     # This is used when running locally. Gunicorn is used to run the
     # application on Google App Engine. See entrypoint in app.yaml.
-    app.register_blueprint(v1, url_prefix="/v1")
-    app.register_blueprint(v2, url_prefix="/v2")
-    # use version 1
-    app.register_blueprint(v1, url_prefix="/")
     app.run(host='127.0.0.1', port=8080, debug=True)
     # [END app]
