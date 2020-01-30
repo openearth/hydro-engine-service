@@ -1461,71 +1461,20 @@ def get_glossis_data():
     or astronomical_tide is requested
     :return:
     """
-    data_params = DATASETS_VIS['glossis']
-
+    # TODO: add start and stop date input options
     r = request.get_json()
     dataset = r['dataset']
+    band = r.get('band', None)
+    source = 'projects/dgds-gee/glossis/'+dataset
+    assert (source in DATASETS_VIS), f'{source} not in assets.'
 
-    assert (dataset in data_params), '{} not in assets. '.format(dataset)
-    data_params = data_params[dataset]
-    # Get collection based on dataset requested
-    collection = ee.ImageCollection(data_params['source'])
-
-    if 'date' in r:
-        start = ee.Date(r['date'])
-        collection = collection.filterDate(start)
-        # check that at least one image returned. If not, return error
-        n_images = collection.size().getInfo()
-        if not n_images:
-            msg = 'No images available for time: %s' % (r['date'])
-            logger.debug(msg)
-            raise error_handler.InvalidUsage(msg)
-
-    image = ee.Image(collection.sort('system:time_start', False).first())
-    image_date = image.date().format().getInfo()
-    image_id = image.id().getInfo()
-
-    # Generate image on dataset requested (characteristic to display)
-    band = r.get('band', list(data_params['bandNames'].keys())[0])
-    assert band in data_params['bandNames']
-
-
-    if dataset in ['wind', 'currents']:
-        function = r.get('function', 'magnitude')
-        assert function in data_params['function']
-
-        image = apply_image_operation(image, function, data_params, band)
-
-        vis_params = {
-            'min': data_params['min'][function],
-            'max': data_params['max'][function],
-            'palette': data_params['palette'][function],
-            'function': function
-        }
-    else:
-        image = image.select(data_params['bandNames'][band])
-        vis_params = {
-            'min': data_params['min'][band],
-            'max': data_params['max'][band],
-            'palette': data_params['palette'][band]
-        }
-
-    if 'min' in r:
-        vis_params['min'] = r['min']
-
-    if 'max' in r:
-        vis_params['max'] = r['max']
-
-    if 'palette' in r:
-        vis_params['palette'] = r['palette']
-
-    info = generate_image_info(image, vis_params)
-    info['dataset'] = dataset
-    info['date'] = image_date
-    info['imageId'] = data_params['source'] + '/' + image_id
+    info = _get_image_collection_info(source, image_num_limit=10)
+    most_recent_id = info[-1]["imageId"]
+    image_info = _get_wms_url(most_recent_id, band=band)
+    image_info['imageTimeseries'] = info
 
     return Response(
-        json.dumps(info),
+        json.dumps(image_info),
         status=200,
         mimetype='application/json'
     )
@@ -1538,69 +1487,20 @@ def get_gloffis_data():
     Get GLOFFIS data. dataset must be provided.
     :return:
     """
-    data_params = DATASETS_VIS['gloffis']
-
+    # TODO: add start, stop date, im limit input options
     r = request.get_json()
-
     dataset = r['dataset']
-    assert (dataset in data_params), '{} not in assets. '.format(dataset)
-    data_params = data_params[dataset]
-
     band = r['band']
-    assert band in data_params['bandNames'].keys(), '{} not in bands. '.format(band)
+    source = 'projects/dgds-gee/gloffis/' + dataset
+    assert (source in DATASETS_VIS), f'{source} not in assets.'
 
-    # Get collection based on dataset requested
-    collection = ee.ImageCollection(data_params['source'])
-
-    if 'date' in r:
-        start = ee.Date(r['date'])
-        collection = collection.filterDate(start)
-        # check that at least one image returned. If not, return error
-        n_images = collection.size().getInfo()
-        if not n_images:
-            msg = 'No images available for time: %s' % (r['date'])
-            logger.debug(msg)
-            raise error_handler.InvalidUsage(msg)
-
-    image = ee.Image(collection.sort('system:time_start', False).first())
-    image_date = collection.sort('system:time_start', False).first().date().format().getInfo()
-    image_id = image.id().getInfo()
-    image = image.select(band)
-
-    vis_params = {
-        'min': data_params['min'][band],
-        'max': data_params['max'][band],
-        'palette': data_params['palette'][band]
-    }
-
-    if dataset == 'hydro':
-        image = image.mask(image.gte(0))
-
-    if band == 'discharge_routed_simulated':
-        image = apply_image_operation(image, "log")
-        vis_params['function'] = data_params['function'][band]
-
-    if 'min' in r:
-        vis_params['min'] = r['min']
-
-    if 'max' in r:
-        vis_params['max'] = r['max']
-
-    if 'palette' in r:
-        vis_params['palette'] = r['palette']
-
-    info = generate_image_info(image, vis_params)
-    info['dataset'] = dataset
-    info['band'] = band
-    info['date'] = image_date
-    info['imageId'] = data_params['source'] + '/' + image_id
-
-    if band == 'discharge_routed_simulated':
-        info['min'] = 10**vis_params['min']
-        info['max'] = 10**vis_params['max']
+    info = _get_image_collection_info(source, image_num_limit=10)
+    most_recent_id = info[-1]["imageId"]
+    image_info = _get_wms_url(most_recent_id, band=band)
+    image_info['imageTimeseries'] = info
 
     return Response(
-        json.dumps(info),
+        json.dumps(image_info),
         status=200,
         mimetype='application/json'
     )
@@ -1613,45 +1513,20 @@ def get_metocean_data():
     Get metocean data. dataset must be provided.
     :return:
     """
-    data_params = DATASETS_VIS['metocean']
-
+    # TODO: add start, stop date, im limit input options
     r = request.get_json()
-
     dataset = r['dataset']
-    assert (dataset in data_params), '{} not in assets. '.format(dataset)
-    data_params = data_params[dataset]
+    band = r['band']
+    source = 'projects/dgds-gee/metocean/' + dataset
+    assert (source in DATASETS_VIS), f'{source} not in assets.'
 
-    band = list(data_params['bandNames'].keys())[0]
-    if 'band' in r:
-        band = r['band']
-        assert band in data_params['bandNames'], '{} not in bands. '.format(band)
-
-    # Get collection based on dataset requested
-    image = ee.Image(data_params['source'])
-    image = image.select(data_params['bandNames'][band])
-
-    vis_params = {
-        'min': data_params['min'][band],
-        'max': data_params['max'][band],
-        'palette': data_params['palette'][band]
-    }
-
-    if 'min' in r:
-        vis_params['min'] = r['min']
-
-    if 'max' in r:
-        vis_params['max'] = r['max']
-
-    if 'palette' in r:
-        vis_params['palette'] = r['palette']
-
-    info = generate_image_info(image, vis_params)
-    info['dataset'] = dataset
-    info['band'] = band
-    info['imageId'] = data_params['source']
+    info = _get_image_collection_info(source, image_num_limit=10)
+    most_recent_id = info[-1]["imageId"]
+    image_info = _get_wms_url(most_recent_id, band=band)
+    image_info['imageTimeseries'] = info
 
     return Response(
-        json.dumps(info),
+        json.dumps(image_info),
         status=200,
         mimetype='application/json'
     )
@@ -1661,13 +1536,27 @@ def get_metocean_data():
 @flask_cors.cross_origin()
 def get_gebco_data():
     r = request.get_json()
+    dataset = r['dataset']
+    band = r.get('band', 'elevation')
+    source = 'projects/dgds-gee/bathymetry/' + dataset + '/2019'
+    assert (source in DATASETS_VIS), f'{source} not in assets.'
 
-    data_params = DATASETS_VIS['bathymetry']['gebco']
-    image = ee.Image(data_params['source'])
-    band = 'elevation'
+    info = _get_image_collection_info(source, image_num_limit=10)
+    most_recent_id = info[-1]["imageId"]
+    image_info = _get_wms_url(most_recent_id, band=band)
+    image_info['imageTimeseries'] = info
+
+    return Response(
+        json.dumps(image_info),
+        status=200,
+        mimetype='application/json'
+    )
+
+def _visualize_gebco(source, band):
+    data_params = DATASETS_VIS[source]
+    image = ee.Image(source)
 
     gebco = image.select(data_params['bandNames'][band])
-
     # Angle for hillshade (keep at 315 for good perception)
     azimuth = 315
     # Lower is longer shadows
@@ -1693,7 +1582,6 @@ def get_gebco_data():
         # overwrite with masked version
         image_rgb = bathy_rgb.mask(gebco.multiply(ee.Image(-1)).unitScale(-1, 10).clamp(0, 1))
 
-
     # TODO:  see how this still fits in the hillshade function
     hsv = image_rgb.unitScale(0, 255).rgbToHsv()
 
@@ -1701,7 +1589,6 @@ def get_gebco_data():
 
     def radians(image):
         return ee.Image(image).toFloat().multiply(3.1415927).divide(180)
-
 
     # Compute terrain properties
     terrain = ee.Algorithms.Terrain(z)
@@ -1712,24 +1599,22 @@ def get_gebco_data():
     # hillshade
     hs = (
         azimuth
-        .subtract(aspect)
-        .cos()
-        .multiply(slope.sin())
-        .multiply(zenith.sin())
-        .add(
-            zenith
+            .subtract(aspect)
             .cos()
-            .multiply(
+            .multiply(slope.sin())
+            .multiply(zenith.sin())
+            .add(
+            zenith
+                .cos()
+                .multiply(
                 slope.cos()
             )
         )
-        .resample('bicubic')
+            .resample('bicubic')
     )
 
     # weighted average of hillshade and value
     intensity = hs.multiply(hsv.select('value'))
-
-
 
     hue = hsv.select('hue')
 
@@ -1765,20 +1650,11 @@ def get_gebco_data():
         })
 
     info.update({
-        'mapid': mapid,
-        'token': token,
         'url': url,
         'linearGradient': linear_gradient,
-        'imageId': data_params['source']
+        'imageId': source
     })
-
-
-    return Response(
-        json.dumps(info),
-        status=200,
-        mimetype='application/json'
-    )
-
+    return info
 
 def generate_image_info(im, params):
     """"generate url and tokens for image"""
@@ -1868,16 +1744,16 @@ def get_feature_info():
     info_format = r.get('info_format', 'JSON')
 
     image = ee.Image(image_id)
-    if band:
-        image_location_parameters = image_id.split('/')
-        if len(image_location_parameters) == 5:
-            _gee_folder_type, _project, data_collection, dataset, imageName = image_location_parameters
-        # For metocean data, no image collections.
-        if len(image_location_parameters) == 4:
-            _gee_folder_type, _project, data_collection, dataset = image_location_parameters
+    image_location_parameters = image_id.split('/')
+    source = ('/').join(image_location_parameters[:-1])
+    assert (source in DATASETS_VIS), f'{source} not in assets. Using default parameters.'
+    data_params = DATASETS_VIS.get(source)
 
-        band_name = DATASETS_VIS[data_collection][dataset]['bandNames'][band]
+    if band:
+        band_name = data_params['bandNames'][band]
         image = image.select(band_name)
+    if function:
+        assert (function in data_params['function']), f'{function} not an option.'
 
     image = apply_image_operation(image, function)
     image = image.rename('value')
@@ -1916,19 +1792,38 @@ def get_feature_info():
 @flask_cors.cross_origin()
 def get_collection_dates():
     """
-    Get image value at point
+    get list of imageIds and dates for first
     :return:
     """
     r = request.get_json()
     source = r['source']
     start_date = r.get('startDate', None)
     end_date = r.get('endDate', None)
-    collection = ee.ImageCollection(source)
-    if start_date and end_date:
-        start_date = ee.Date(start_date)
-        end_date = ee.Date(end_date)
-        collection = collection.filterDate(start_date, end_date)
+    image_num_limit = r.get('limit', None)  # image_num_limit, limit_images, image_limit
 
+    data_params = DATASETS_VIS[source]
+    assert (source in data_params), '{} not in assets. '.format(dataset)
+    data_type = data_params[dataset]['type']
+
+
+    if data_type == 'ImageCollection':
+        collection = ee.ImageCollection(source)
+    else:
+        collection = ee.ImageCollection.fromImages([source])
+
+    if start_date:
+        start_date = ee.Date(start_date)
+        collection = collection.filterDate(start_date)
+        if end_date:
+            end_date = ee.Date(end_date)
+            collection = collection.filterDate(start_date, end_date)
+
+    if image_num_limit:
+        # get a limited number of latest images
+        collection = collection.limit(image_num_limit, 'system:time_start', False)
+
+    # Sort ascending
+    collection = collection.sort('system:time_start', True)
     dates = ee.List(collection.aggregate_array('system:time_start'))
     date_list = dates.map(lambda i: ee.Date(i).format()).getInfo()
 
@@ -1947,6 +1842,181 @@ def get_collection_dates():
         mimetype='application/json'
     )
 
+@app.route('/get_image_collection_info', methods=['POST'])
+@flask_cors.cross_origin()
+def get_image_collection_info():
+    """
+    Get GLOFFIS data. dataset must be provided.
+    :return:
+    """
+    r = request.get_json()
+    source = r['source']
+    type = r.get('type', None)
+    start_date = r.get('startDate', None)
+    end_date = r.get('endDate', None)
+    image_num_limit = r.get('limit', None)
+    info = _get_image_collection_info(source, type, start_date, end_date, image_num_limit)
+
+    return Response(
+        json.dumps(info),
+        status=200,
+        mimetype='application/json'
+    )
+
+def _get_image_collection_info(source, type=None, start_date=None, end_date=None, image_num_limit=None):
+
+    assert (source in DATASETS_VIS), f'{source} not in assets. Using default parameters.'
+    data_params = DATASETS_VIS.get(source, None)
+
+    if data_params:
+        type = data_params['type']
+
+    if type == 'ImageCollection':
+        # Get collection based on dataset requested
+        collection = ee.ImageCollection(source)
+    elif type == 'Image':
+        collection = ee.ImageCollection.fromImages([ee.Image(source)])
+    else:
+        msg = f'Object of type {type} not supported.'
+        logger.debug(msg)
+        raise error_handler.InvalidUsage(msg)
+
+    if end_date and not start_date:
+        msg = f'If endDate provided, must also include startDate'
+        logger.debug(msg)
+        raise error_handler.InvalidUsage(msg)
+
+    if start_date:
+        start = ee.Date(start_date)
+        collection = collection.filterDate(start)
+    # check that at least one image returned. If not, return error
+    if end_date:
+        end_date = ee.Date(end_date)
+        collection = collection.filterDate(start_date, end_date)
+
+    n_images = collection.size().getInfo()
+    if not n_images:
+        msg = f'No images available between startDate={start_date} and endDate={end_date}'
+        logger.debug(msg)
+        raise error_handler.InvalidUsage(msg)
+
+    if image_num_limit:
+        # get a limited number of latest images
+        collection = collection.limit(image_num_limit, 'system:time_start', False)
+
+    # Sort ascending
+    collection = collection.sort('system:time_start', True)
+
+    ids = ee.List(collection.aggregate_array('system:id')).getInfo()
+
+    dates = ee.List(collection.aggregate_array('system:time_start'))
+    if dates.length().getInfo() == 0:
+        date_list = [None] * len(ids)
+    else:
+        date_list = dates.map(lambda i: ee.Date(i).format()).getInfo()
+
+    response = []
+    for id, date in zip(ids, date_list):
+        object = {
+            'imageId': id,
+            'date': date
+        }
+        response.append(object)
+
+    return response
+
+@app.route('/get_wms_url', methods=['POST'])
+@flask_cors.cross_origin()
+def get_wms_url():
+    # TODO: check how many bands, if band is not specified return warning.
+    r = request.get_json()
+    image_id = r['imageId']
+    band = r.get('band', None)
+    function = r.get('function', None)
+    min = r.get('min', None)
+    max = r.get('max', None)
+    palette = r.get('palette', None)
+
+    info = _get_wms_url(image_id, band, function, min, max, palette)
+
+    return Response(
+        json.dumps(info),
+        status=200,
+        mimetype='application/json'
+    )
+
+
+def _get_wms_url(image_id, band=None, function=None, min=None, max=None, palette=None):
+
+    if 'gebco'in image_id:
+        info = _visualize_gebco(image_id, band)
+        return info
+
+    image = ee.Image(image_id)
+
+    image_location_parameters = image_id.split('/')
+    source = ('/').join(image_location_parameters[:-1])
+
+    # see if we have default values stored
+    source_params = DATASETS_VIS.get(source, None)
+
+    band_name = None
+    vis_params = {
+        'min': 0,
+        'max': 1,
+        'palette': ['#000000', '#FFFFFF']
+    }
+    if source_params:
+        if band:
+            band_name = source_params['bandNames'][band]
+            image = image.select(band_name)
+        if function:
+            assert function in source_params['function']
+            band = function
+
+        vis_params['min'] = source_params['min'][band]
+        vis_params['max'] = source_params['max'][band]
+        vis_params['palette'] = source_params['palette'][band]
+
+    else:
+        try:
+            image = image.select(band)
+        except Exception as e:
+            msg = f'Error selecting band {band}, {e}'
+            logger.debug(msg)
+            raise error_handler.InvalidUsage(msg)
+
+    if min:
+        vis_params['min'] = min
+
+    if max:
+        vis_params['max'] = max
+
+    if palette:
+        vis_params['palette'] = palette
+
+    image = apply_image_operation(image, function)
+
+    if source == 'projects/dgds-gee/gloffis/hydro':
+        image = image.mask(image.gte(0))
+
+    vis_params['function'] = function
+
+    image_date = image.date().format().getInfo()
+    # image_id = image.id().getInfo()
+
+    info = generate_image_info(image, vis_params)
+    info['source'] = source
+    info['band'] = band
+    info['function'] = function
+    info['date'] = image_date
+    info['imageId'] = image_id
+
+    if function == 'log':
+        info['min'] = 10 ** vis_params['min']
+        info['max'] = 10 ** vis_params['max']
+
+    return info
 
 @app.route('/')
 def root():
