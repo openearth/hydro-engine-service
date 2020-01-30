@@ -1463,14 +1463,26 @@ def get_glossis_data():
     """
     # TODO: add start and stop date input options
     r = request.get_json()
-    dataset = r['dataset']
-    band = r.get('band', None)
-    source = 'projects/dgds-gee/glossis/'+dataset
+    dataset = r.get('dataset', None)
+    band = r['band']
+    image_id = r.get('imageId', None)
+    if not (dataset or image_id):
+        msg = f'dataset and band or imageId and band required.'
+        logger.debug(msg)
+        raise error_handler.InvalidUsage(msg)
+    if dataset:
+        source = 'projects/dgds-gee/glossis/'+dataset
+    if image_id:
+        image_location_parameters = image_id.split('/')
+        source = ('/').join(image_location_parameters[:-1])
     assert (source in DATASETS_VIS), f'{source} not in assets.'
 
-    info = _get_image_collection_info(source, image_num_limit=10)
-    most_recent_id = info[-1]["imageId"]
-    image_info = _get_wms_url(most_recent_id, band=band)
+    info = _get_image_collection_info(source)
+    # get most recent to return url
+    returned_url_id = info[-1]["imageId"]
+    if image_id:
+        returned_url_id = image_id
+    image_info = _get_wms_url(returned_url_id, band=band)
     image_info['imageTimeseries'] = info
 
     return Response(
@@ -1489,14 +1501,26 @@ def get_gloffis_data():
     """
     # TODO: add start, stop date, im limit input options
     r = request.get_json()
-    dataset = r['dataset']
+    dataset = r.get('dataset', None)
     band = r['band']
-    source = 'projects/dgds-gee/gloffis/' + dataset
+    image_id = r.get('imageId', None)
+    if not (dataset or image_id):
+        msg = f'dataset and band or imageId required.'
+        logger.debug(msg)
+        raise error_handler.InvalidUsage(msg)
+    if dataset:
+        source = 'projects/dgds-gee/gloffis/' + dataset
+    if image_id:
+        image_location_parameters = image_id.split('/')
+        source = ('/').join(image_location_parameters[:-1])
     assert (source in DATASETS_VIS), f'{source} not in assets.'
 
-    info = _get_image_collection_info(source, image_num_limit=10)
-    most_recent_id = info[-1]["imageId"]
-    image_info = _get_wms_url(most_recent_id, band=band)
+    info = _get_image_collection_info(source)
+    # get most recent to return url
+    returned_url_id = info[-1]["imageId"]
+    if image_id:
+        returned_url_id = image_id
+    image_info = _get_wms_url(returned_url_id, band=band)
     image_info['imageTimeseries'] = info
 
     return Response(
@@ -1515,14 +1539,26 @@ def get_metocean_data():
     """
     # TODO: add start, stop date, im limit input options
     r = request.get_json()
-    dataset = r['dataset']
+    dataset = r.get('dataset', None)
     band = r['band']
-    source = 'projects/dgds-gee/metocean/' + dataset
+    image_id = r.get('imageId', None)
+    if not (dataset or image_id):
+        msg = f'dataset and band or imageId required.'
+        logger.debug(msg)
+        raise error_handler.InvalidUsage(msg)
+    if dataset:
+        source = 'projects/dgds-gee/metocean/' + dataset
+    if image_id:
+        image_location_parameters = image_id.split('/')
+        source = ('/').join(image_location_parameters[:-1])
     assert (source in DATASETS_VIS), f'{source} not in assets.'
 
-    info = _get_image_collection_info(source, image_num_limit=10)
-    most_recent_id = info[-1]["imageId"]
-    image_info = _get_wms_url(most_recent_id, band=band)
+    info = _get_image_collection_info(source)
+    # get most recent to return url
+    returned_url_id = info[-1]["imageId"]
+    if image_id:
+        returned_url_id = image_id
+    image_info = _get_wms_url(returned_url_id, band=band)
     image_info['imageTimeseries'] = info
 
     return Response(
@@ -1536,14 +1572,26 @@ def get_metocean_data():
 @flask_cors.cross_origin()
 def get_gebco_data():
     r = request.get_json()
-    dataset = r['dataset']
+    dataset = r.get('dataset', None)
     band = r.get('band', 'elevation')
-    source = 'projects/dgds-gee/bathymetry/' + dataset + '/2019'
+    image_id = r.get('imageId', None)
+    if not (dataset or image_id):
+        msg = f'dataset and band or imageId required.'
+        logger.debug(msg)
+        raise error_handler.InvalidUsage(msg)
+    if dataset:
+        source = 'projects/dgds-gee/bathymetry/' + dataset + '/2019'
+    if image_id:
+        image_location_parameters = image_id.split('/')
+        source = ('/').join(image_location_parameters[:-1])
     assert (source in DATASETS_VIS), f'{source} not in assets.'
 
-    info = _get_image_collection_info(source, image_num_limit=10)
-    most_recent_id = info[-1]["imageId"]
-    image_info = _get_wms_url(most_recent_id, band=band)
+    info = _get_image_collection_info(source)
+    # get most recent to return url
+    returned_url_id = info[-1]["imageId"]
+    if image_id:
+        returned_url_id = image_id
+    image_info = _get_wms_url(returned_url_id, band=band)
     image_info['imageTimeseries'] = info
 
     return Response(
@@ -1784,60 +1832,6 @@ def get_feature_info():
 
     return Response(
         json.dumps(value),
-        status=200,
-        mimetype='application/json'
-    )
-
-@app.route('/get_collection_dates', methods=['POST'])
-@flask_cors.cross_origin()
-def get_collection_dates():
-    """
-    get list of imageIds and dates for first
-    :return:
-    """
-    r = request.get_json()
-    source = r['source']
-    start_date = r.get('startDate', None)
-    end_date = r.get('endDate', None)
-    image_num_limit = r.get('limit', None)  # image_num_limit, limit_images, image_limit
-
-    data_params = DATASETS_VIS[source]
-    assert (source in data_params), '{} not in assets. '.format(dataset)
-    data_type = data_params[dataset]['type']
-
-
-    if data_type == 'ImageCollection':
-        collection = ee.ImageCollection(source)
-    else:
-        collection = ee.ImageCollection.fromImages([source])
-
-    if start_date:
-        start_date = ee.Date(start_date)
-        collection = collection.filterDate(start_date)
-        if end_date:
-            end_date = ee.Date(end_date)
-            collection = collection.filterDate(start_date, end_date)
-
-    if image_num_limit:
-        # get a limited number of latest images
-        collection = collection.limit(image_num_limit, 'system:time_start', False)
-
-    # Sort ascending
-    collection = collection.sort('system:time_start', True)
-    dates = ee.List(collection.aggregate_array('system:time_start'))
-    date_list = dates.map(lambda i: ee.Date(i).format()).getInfo()
-
-    ids = ee.List(collection.aggregate_array('system:id')).getInfo()
-    response = []
-    for date, id in zip(date_list, ids):
-        object = {
-            'imageId': id,
-            'date': date
-        }
-        response.append(object)
-
-    return Response(
-        json.dumps(response),
         status=200,
         mimetype='application/json'
     )
