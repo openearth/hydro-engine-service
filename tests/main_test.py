@@ -431,5 +431,54 @@ class TestClient(unittest.TestCase):
 
         assert 'mapid' in result
 
+    def test_get_feature_info_null(self):
+        request = {
+            "imageId": "projects/dgds-gee/gloffis/hydro/gloffis_hydro_20190829000000",
+            "band": "discharge_routed_simulated",
+            "function": "log",
+            "bbox": {
+                "type": "Point",
+                "coordinates": [
+                    -28.23,
+                    49.05
+                ]
+            }
+        }
+        resp = self.client.post(
+            '/get_feature_info',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        print(resp)
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+
+        assert result['value'] is None
+
+    def test_get_feature_info(self):
+        request = {
+            "imageId": "projects/dgds-gee/metocean/percentiles",
+            "band": "50th",
+            "bbox": {
+                "type": "Point",
+                "coordinates": [
+                    -28.23,
+                    49.05
+                ]
+            }
+        }
+        resp = self.client.post(
+            '/get_feature_info',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        print(resp)
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+
+        assert result['value'] == 3.0175781
+
 if __name__ == '__main__':
     unittest.main()

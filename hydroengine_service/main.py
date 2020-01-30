@@ -1483,7 +1483,7 @@ def get_glossis_data():
 
     image = ee.Image(collection.sort('system:time_start', False).first())
     image_date = image.date().format().getInfo()
-    # image_id = image.id().getInfo()
+    image_id = image.id().getInfo()
 
     # Generate image on dataset requested (characteristic to display)
     band = r.get('band', list(data_params['bandNames'].keys())[0])
@@ -1493,21 +1493,15 @@ def get_glossis_data():
     if dataset in ['wind', 'currents']:
         function = r.get('function', 'magnitude')
         assert function in data_params['function']
-        if function == 'magnitude':
-            image = image.pow(2).reduce(ee.Reducer.sum()).sqrt()
-            vis_params = {
-                'min': data_params['min'][function],
-                'max': data_params['max'][function],
-                'palette': data_params['palette'][function]
-            }
-        else:
-            image = image.unitScale(data_params['min'][function], data_params['max'][function]).unmask(-9999)
-            data_mask = image.eq(-9999).select(data_params['bandNames'][band])
-            image = image.clamp(0, 1).addBands(data_mask)
-            vis_params = {
-                'min': data_params['min'][function],
-                'max': data_params['max'][function]
-            }
+
+        image = apply_image_operation(image, function, data_params, band)
+
+        vis_params = {
+            'min': data_params['min'][function],
+            'max': data_params['max'][function],
+            'palette': data_params['palette'][function],
+            'function': function
+        }
     else:
         image = image.select(data_params['bandNames'][band])
         vis_params = {
@@ -1528,8 +1522,7 @@ def get_glossis_data():
     info = generate_image_info(image, vis_params)
     info['dataset'] = dataset
     info['date'] = image_date
-    # info['imageId'] = image_id
-    # info['imageSource'] = data_params['source']
+    info['imageId'] = data_params['source'] + '/' + image_id
 
     return Response(
         json.dumps(info),
@@ -1571,7 +1564,7 @@ def get_gloffis_data():
 
     image = ee.Image(collection.sort('system:time_start', False).first())
     image_date = collection.sort('system:time_start', False).first().date().format().getInfo()
-
+    image_id = image.id().getInfo()
     image = image.select(band)
 
     vis_params = {
@@ -1584,7 +1577,8 @@ def get_gloffis_data():
         image = image.mask(image.gte(0))
 
     if band == 'discharge_routed_simulated':
-        image = image.log10()
+        image = apply_image_operation(image, "log")
+        vis_params['function'] = data_params['function'][band]
 
     if 'min' in r:
         vis_params['min'] = r['min']
@@ -1599,6 +1593,7 @@ def get_gloffis_data():
     info['dataset'] = dataset
     info['band'] = band
     info['date'] = image_date
+    info['imageId'] = data_params['source'] + '/' + image_id
 
     if band == 'discharge_routed_simulated':
         info['min'] = 10**vis_params['min']
@@ -1618,7 +1613,6 @@ def get_metocean_data():
     Get metocean data. dataset must be provided.
     :return:
     """
-
     data_params = DATASETS_VIS['metocean']
 
     r = request.get_json()
@@ -1634,7 +1628,6 @@ def get_metocean_data():
 
     # Get collection based on dataset requested
     image = ee.Image(data_params['source'])
-
     image = image.select(data_params['bandNames'][band])
 
     vis_params = {
@@ -1655,6 +1648,7 @@ def get_metocean_data():
     info = generate_image_info(image, vis_params)
     info['dataset'] = dataset
     info['band'] = band
+    info['imageId'] = data_params['source']
 
     return Response(
         json.dumps(info),
@@ -1670,9 +1664,9 @@ def get_gebco_data():
 
     data_params = DATASETS_VIS['bathymetry']['gebco']
     image = ee.Image(data_params['source'])
-    band = data_params['bandNames']['elevation']
+    band = 'elevation'
 
-    gebco = image.select(band)
+    gebco = image.select(data_params['bandNames'][band])
 
     # Angle for hillshade (keep at 315 for good perception)
     azimuth = 315
@@ -1776,7 +1770,8 @@ def get_gebco_data():
         'url': url,
         'linearGradient': linear_gradient,
         'min': data_params['bathy_vis_params']['min'],
-        'max': data_params['topo_vis_params']['max']
+        'max': data_params['topo_vis_params']['max'],
+        'imageId': data_params['source']
     })
 
 
@@ -1822,6 +1817,11 @@ def generate_image_info(im, params):
         n_colors = len(params.get('palette'))
         palette = params.get('palette')
         offsets = np.linspace(0, 100, num=n_colors)
+        if 'function' in params:
+            if params['function'] == 'log':
+                # if log scaling applied, apply log scale to linear gradient palette offsets
+                offsets = np.logspace(0.0, 2.0, num=n_colors, base=10.0)
+                offsets[0] = 0.0
         for color, offset in zip(palette, offsets):
             linear_gradient.append({
                 'offset': '{:.3f}%'.format(offset),
@@ -1836,6 +1836,83 @@ def generate_image_info(im, params):
         'linearGradient': linear_gradient})
     return params
 
+def apply_image_operation(image, operation, data_params=None, band=None):
+    """
+    Apply an operation to an image, based on specified operation and data parameters
+    :param image:
+    :param operation: String, type of operation
+    :param data_params: coming from data_visualization_parameters.json
+    :return:
+    """
+    if operation == "log":
+        image = image.log10().rename('log')
+    if operation == "magnitude":
+        image = image.pow(2).reduce(ee.Reducer.sum()).sqrt().rename('magnitude')
+    if operation == "flowmap":
+        image = image.unitScale(data_params['min'][operation], data_params['max'][operation]).unmask(-9999)
+        data_mask = image.eq(-9999).select(data_params['bandNames'][band])
+        image = image.clamp(0, 1).addBands(data_mask)
+
+    return image
+
+@app.route('/get_feature_info', methods=['POST'])
+@flask_cors.cross_origin()
+def get_feature_info():
+    """
+    Get image value at point
+    :return:
+    """
+    r = request.get_json()
+    image_id = r['imageId']
+    bbox = r['bbox']
+    band = r.get('band', None)
+    function = r.get('function', None)
+    info_format = r.get('info_format', 'JSON')
+
+    image = ee.Image(image_id)
+    if band:
+        image_location_parameters = image_id.split('/')
+        if len(image_location_parameters) == 5:
+            _gee_folder_type, _project, data_collection, dataset, imageName = image_location_parameters
+        # For metocean data, no image collections.
+        if len(image_location_parameters) == 4:
+            _gee_folder_type, _project, data_collection, dataset = image_location_parameters
+
+        band_name = DATASETS_VIS[data_collection][dataset]['bandNames'][band]
+        image = image.select(band_name)
+
+    image = apply_image_operation(image, function)
+    image = image.rename('value')
+
+    value = (
+        image.sample(**{
+            'region': ee.Geometry(bbox),
+            'geometries': True
+        })
+        .first()
+        .getInfo()
+    )
+
+    # if no data at point, value will be None.
+    if not value:
+        # return Feature with value None (standard return format from GEE)
+        value = {
+          "geometry": bbox,
+          "id": "0",
+          "properties": {
+            "value": None
+          },
+          "type": "Feature"
+        }
+
+    if info_format == 'JSON':
+        value = value['properties']
+
+    return Response(
+        json.dumps(value),
+        status=200,
+        mimetype='application/json'
+    )
 
 @app.route('/')
 def root():
