@@ -1464,8 +1464,12 @@ def get_glossis_data():
     # TODO: add start and stop date input options
     r = request.get_json()
     dataset = r.get('dataset', None)
-    band = r['band']
+    band = r.get('band', None)
     image_id = r.get('imageId', None)
+    function = r.get('function', None)
+    start_date = r.get('startDate', None)
+    end_date = r.get('endDate', None)
+    image_num_limit = r.get('limit', None)
     if not (dataset or image_id):
         msg = f'dataset and band or imageId and band required.'
         logger.debug(msg)
@@ -1476,13 +1480,18 @@ def get_glossis_data():
         image_location_parameters = image_id.split('/')
         source = ('/').join(image_location_parameters[:-1])
     assert (source in DATASETS_VIS), f'{source} not in assets.'
+    type = DATASETS_VIS[source]['type']
+    if DATASETS_VIS[source].get('function', None) and not function:
+        function = DATASETS_VIS[source]['function'][0]
 
-    info = _get_image_collection_info(source)
+    info = _get_image_collection_info(source, start_date, end_date, image_num_limit)
     # get most recent to return url
     returned_url_id = info[-1]["imageId"]
     if image_id:
         returned_url_id = image_id
-    image_info = _get_wms_url(returned_url_id, band=band)
+    image_info = _get_wms_url(returned_url_id, band=band, function=function)
+    image_info['dataset'] = dataset
+    image_info['band'] = band
     image_info['imageTimeseries'] = info
 
     return Response(
@@ -1504,6 +1513,10 @@ def get_gloffis_data():
     dataset = r.get('dataset', None)
     band = r['band']
     image_id = r.get('imageId', None)
+
+    start_date = r.get('startDate', None)
+    end_date = r.get('endDate', None)
+    image_num_limit = r.get('limit', None)
     if not (dataset or image_id):
         msg = f'dataset and band or imageId required.'
         logger.debug(msg)
@@ -1515,12 +1528,14 @@ def get_gloffis_data():
         source = ('/').join(image_location_parameters[:-1])
     assert (source in DATASETS_VIS), f'{source} not in assets.'
 
-    info = _get_image_collection_info(source)
+    info = _get_image_collection_info(source, start_date, end_date, image_num_limit)
     # get most recent to return url
     returned_url_id = info[-1]["imageId"]
     if image_id:
         returned_url_id = image_id
     image_info = _get_wms_url(returned_url_id, band=band)
+    image_info['dataset'] = dataset
+    image_info['band'] = band
     image_info['imageTimeseries'] = info
 
     return Response(
@@ -1542,23 +1557,30 @@ def get_metocean_data():
     dataset = r.get('dataset', None)
     band = r['band']
     image_id = r.get('imageId', None)
+
+    start_date = r.get('startDate', None)
+    end_date = r.get('endDate', None)
+    image_num_limit = r.get('limit', None)
     if not (dataset or image_id):
         msg = f'dataset and band or imageId required.'
         logger.debug(msg)
         raise error_handler.InvalidUsage(msg)
     if dataset:
-        source = 'projects/dgds-gee/metocean/' + dataset
+        source = 'projects/dgds-gee/metocean/waves/'+ dataset
     if image_id:
-        image_location_parameters = image_id.split('/')
-        source = ('/').join(image_location_parameters[:-1])
+        # image_location_parameters = image_id.split('/')
+        # source = ('/').join(image_location_parameters[:-1])
+        source = image_id
     assert (source in DATASETS_VIS), f'{source} not in assets.'
 
-    info = _get_image_collection_info(source)
+    info = _get_image_collection_info(source, start_date, end_date, image_num_limit)
     # get most recent to return url
     returned_url_id = info[-1]["imageId"]
     if image_id:
         returned_url_id = image_id
-    image_info = _get_wms_url(returned_url_id, band=band)
+    image_info = _get_wms_url(returned_url_id, type='Image', band=band)
+    image_info['dataset'] = dataset
+    image_info['band'] = band
     image_info['imageTimeseries'] = info
 
     return Response(
@@ -1575,6 +1597,11 @@ def get_gebco_data():
     dataset = r.get('dataset', None)
     band = r.get('band', 'elevation')
     image_id = r.get('imageId', None)
+
+    start_date = r.get('startDate', None)
+    end_date = r.get('endDate', None)
+    image_num_limit = r.get('limit', None)
+
     if not (dataset or image_id):
         msg = f'dataset and band or imageId required.'
         logger.debug(msg)
@@ -1582,23 +1609,36 @@ def get_gebco_data():
     if dataset:
         source = 'projects/dgds-gee/bathymetry/' + dataset + '/2019'
     if image_id:
-        image_location_parameters = image_id.split('/')
-        source = ('/').join(image_location_parameters[:-1])
-    assert (source in DATASETS_VIS), f'{source} not in assets.'
+        source = image_id
 
-    info = _get_image_collection_info(source)
-    # get most recent to return url
-    returned_url_id = info[-1]["imageId"]
-    if image_id:
-        returned_url_id = image_id
-    image_info = _get_wms_url(returned_url_id, band=band)
-    image_info['imageTimeseries'] = info
+    image_info = _get_dgds_data(dataset, image_id, source, band, start_date, end_date, image_num_limit)
 
     return Response(
         json.dumps(image_info),
         status=200,
         mimetype='application/json'
     )
+
+def _get_dgds_data(dataset, image_id, source, band, start_date, end_date, image_num_limit):
+
+    # image_location_parameters = image_id.split('/')
+    # source = ('/').join(image_location_parameters[:-1])
+
+    data_params = DATASETS_VIS.get(source, None)
+    if not data_params:
+        data_params = DATASETS_VIS.get(image_id, None)
+    assert data_params, f'{image_id} not in assets. Using default parameters.'
+
+    info = _get_image_collection_info(source, start_date, end_date, image_num_limit)
+    # get most recent to return url
+    returned_url_id = info[-1]["imageId"]
+    if image_id:
+        returned_url_id = image_id
+    image_info = _get_wms_url(returned_url_id, type='Image', band=band)
+    image_info['dataset'] = dataset
+    image_info['imageTimeseries'] = info
+
+    return image_info
 
 def _visualize_gebco(source, band):
     data_params = DATASETS_VIS[source]
@@ -1752,8 +1792,6 @@ def generate_image_info(im, params):
             })
 
     params.update({
-        'mapid': mapid,
-        'token': token,
         'url': url,
         'linearGradient': linear_gradient})
     return params
@@ -1794,16 +1832,22 @@ def get_feature_info():
     image = ee.Image(image_id)
     image_location_parameters = image_id.split('/')
     source = ('/').join(image_location_parameters[:-1])
-    assert (source in DATASETS_VIS), f'{source} not in assets. Using default parameters.'
-    data_params = DATASETS_VIS.get(source)
+    # try:
+    data_params = DATASETS_VIS.get(source, None)
+    if not data_params:
+        data_params = DATASETS_VIS.get(image_id, None)
+
+    assert data_params, f'{image_id} not in assets. Using default parameters.'
 
     if band:
         band_name = data_params['bandNames'][band]
         image = image.select(band_name)
     if function:
-        assert (function in data_params['function']), f'{function} not an option.'
+        assert (function in data_params.get('function', None)) or \
+               (function == data_params['function'].get(band, None)), \
+            f'{function} not an option.'
 
-    image = apply_image_operation(image, function)
+    image = apply_image_operation(image, function, data_params, band)
     image = image.rename('value')
 
     value = (
@@ -1845,11 +1889,10 @@ def get_image_collection_info():
     """
     r = request.get_json()
     source = r['source']
-    type = r.get('type', None)
     start_date = r.get('startDate', None)
     end_date = r.get('endDate', None)
     image_num_limit = r.get('limit', None)
-    info = _get_image_collection_info(source, type, start_date, end_date, image_num_limit)
+    info = _get_image_collection_info(source, start_date, end_date, image_num_limit)
 
     return Response(
         json.dumps(info),
@@ -1857,13 +1900,17 @@ def get_image_collection_info():
         mimetype='application/json'
     )
 
-def _get_image_collection_info(source, type=None, start_date=None, end_date=None, image_num_limit=None):
-
+def _get_image_collection_info(source, start_date=None, end_date=None, image_num_limit=None):
+    # image_location_parameters = image_id.split('/')
+    # source = ('/').join(image_location_parameters[:-1])
+    # # try:
+    # data_params = DATASETS_VIS.get(source, None)
+    # if not data_params:
+    #     data_params = DATASETS_VIS.get(image_id, None)
+    # assert data_params, f'{image_id} not in assets. Using default parameters.'
     assert (source in DATASETS_VIS), f'{source} not in assets. Using default parameters.'
     data_params = DATASETS_VIS.get(source, None)
-
-    if data_params:
-        type = data_params['type']
+    type = data_params.get('type', 'ImageCollection')
 
     if type == 'ImageCollection':
         # Get collection based on dataset requested
@@ -1883,10 +1930,9 @@ def _get_image_collection_info(source, type=None, start_date=None, end_date=None
     if start_date:
         start = ee.Date(start_date)
         collection = collection.filterDate(start)
-    # check that at least one image returned. If not, return error
     if end_date:
-        end_date = ee.Date(end_date)
-        collection = collection.filterDate(start_date, end_date)
+        end = ee.Date(end_date)
+        collection = collection.filterDate(start, end)
 
     n_images = collection.size().getInfo()
     if not n_images:
@@ -1940,16 +1986,25 @@ def get_wms_url():
     )
 
 
-def _get_wms_url(image_id, band=None, function=None, min=None, max=None, palette=None):
+def _get_wms_url(image_id, type='ImageCollection', band=None, function=None, min=None, max=None, palette=None):
 
     if 'gebco'in image_id:
         info = _visualize_gebco(image_id, band)
         return info
 
     image = ee.Image(image_id)
+    try:
+        image_date = image.date().format().getInfo()
+    except Exception as e:
+        msg = f'Image {image_id} does not have an assigned date.'
+        logger.debug(msg)
+        image_date = None
 
     image_location_parameters = image_id.split('/')
-    source = ('/').join(image_location_parameters[:-1])
+    if type == 'ImageCollection':
+        source = ('/').join(image_location_parameters[:-1])
+    elif type == 'Image':
+        source = image_id
 
     # see if we have default values stored
     source_params = DATASETS_VIS.get(source, None)
@@ -1963,10 +2018,14 @@ def _get_wms_url(image_id, band=None, function=None, min=None, max=None, palette
     if source_params:
         if band:
             band_name = source_params['bandNames'][band]
+            vis_params['band'] = band
             image = image.select(band_name)
+
         if function:
             assert function in source_params['function']
+            vis_params['function'] = function
             band = function
+            image = apply_image_operation(image, function)
 
         vis_params['min'] = source_params['min'][band]
         vis_params['max'] = source_params['max'][band]
@@ -1982,27 +2041,16 @@ def _get_wms_url(image_id, band=None, function=None, min=None, max=None, palette
 
     if min:
         vis_params['min'] = min
-
     if max:
         vis_params['max'] = max
-
     if palette:
         vis_params['palette'] = palette
-
-    image = apply_image_operation(image, function)
 
     if source == 'projects/dgds-gee/gloffis/hydro':
         image = image.mask(image.gte(0))
 
-    vis_params['function'] = function
-
-    image_date = image.date().format().getInfo()
-    # image_id = image.id().getInfo()
-
     info = generate_image_info(image, vis_params)
     info['source'] = source
-    info['band'] = band
-    info['function'] = function
     info['date'] = image_date
     info['imageId'] = image_id
 

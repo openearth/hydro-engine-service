@@ -2,6 +2,7 @@ import os
 import json
 import unittest
 import logging
+import pytest
 
 from . import auth
 
@@ -287,7 +288,6 @@ class TestClient(unittest.TestCase):
 
         assert 'mapid' in result
 
-
     def test_get_liwo_scenarios_max_regional_and_primary(self):
         """test get liwo scenarios max"""
         request = {
@@ -324,7 +324,7 @@ class TestClient(unittest.TestCase):
 
         result = json.loads(resp.data)
 
-        assert 'mapid' in result
+        assert 'band' in result
         assert result['dataset'] == "waterlevel"
 
     def test_get_glossis_data_with_current(self):
@@ -342,15 +342,15 @@ class TestClient(unittest.TestCase):
 
         result = json.loads(resp.data)
 
-        assert 'mapid' in result
+        assert 'function' in result
+        assert result['band'] == None
         assert result['dataset'] == "currents"
 
-    def test_get_glossis_data_with_date(self):
+    def test_get_glossis_data_by_id(self):
         """test get glossis current data"""
 
         request = {
-            "dataset": "wind",
-            "date": "2019-08-08T00:00:00"
+            "imageId": "projects/dgds-gee/glossis/wind/glossis_wind_20190808000000"
         }
         resp = self.client.post(
             '/get_glossis_data',
@@ -361,7 +361,8 @@ class TestClient(unittest.TestCase):
 
         result = json.loads(resp.data)
 
-        assert 'mapid' in result
+        assert 'function' in result
+        assert result['band'] == None
         assert result['date'] == "2019-08-08T00:00:00"
 
     def test_get_glossis_data_with_wrong_date(self):
@@ -369,7 +370,8 @@ class TestClient(unittest.TestCase):
 
         request = {
             "dataset": "waterlevel",
-            "date": "2018-06-18T22:00:00"
+            "band": "water_level",
+            "startDate": "2018-06-18T22:00:00"
         }
         resp = self.client.post(
             '/get_glossis_data',
@@ -394,7 +396,7 @@ class TestClient(unittest.TestCase):
 
         result = json.loads(resp.data)
 
-        assert 'mapid' in result
+        assert 'url' in result
 
     def test_get_metocean_data(self):
         """test get metocean percentile data"""
@@ -412,7 +414,7 @@ class TestClient(unittest.TestCase):
 
         result = json.loads(resp.data)
 
-        assert 'mapid' in result
+        assert result['imageId'] == 'projects/dgds-gee/metocean/waves/percentiles'
 
     def test_get_gebco_data(self):
         """test get gebco data"""
@@ -429,7 +431,7 @@ class TestClient(unittest.TestCase):
 
         result = json.loads(resp.data)
 
-        assert 'mapid' in result
+        assert result['band'] == 'elevation'
 
     def test_get_feature_info_null(self):
         request = {
@@ -458,7 +460,7 @@ class TestClient(unittest.TestCase):
 
     def test_get_feature_info(self):
         request = {
-            "imageId": "projects/dgds-gee/metocean/percentiles",
+            "imageId": "projects/dgds-gee/metocean/waves/percentiles",
             "band": "50th",
             "bbox": {
                 "type": "Point",
@@ -479,6 +481,28 @@ class TestClient(unittest.TestCase):
         result = json.loads(resp.data)
 
         assert result['value'] == 3.0175781
+
+class TestMainFunctions:
+
+    @pytest.mark.parametrize('source, start_date, end_date, limit',
+                             [
+                                 ('projects/dgds-gee/bathymetry/gebco/2019', None, None, 10),
+                                 ('projects/dgds-gee/glossis/currents', None, None, None),
+                                 ('projects/dgds-gee/glossis/waterlevel', '2019-12-01', None, None),
+                                 ('projects/dgds-gee/glossis/wind', '2019-08-01', '2019-09-01', None),
+                                 ('projects/dgds-gee/glossis/waveheight', None, None, None),
+                                 ('projects/dgds-gee/gloffis/weather', None, None, 5),
+                                 ('projects/dgds-gee/gloffis/hydro', None, None, 5),
+                                 ('projects/dgds-gee/metocean/waves/percentiles', None, None, 5)])
+    def test_get_image_collection_info(self, source, start_date, end_date, limit):
+        image_date_list = main._get_image_collection_info(source, start_date, end_date, limit)
+
+        assert len(image_date_list) >= 1
+
+        assert "imageId" in image_date_list[0]
+
+        assert "date" in image_date_list[0]
+
 
 if __name__ == '__main__':
     unittest.main()
