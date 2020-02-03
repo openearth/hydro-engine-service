@@ -1769,6 +1769,8 @@ def get_gebco_data():
         'token': token,
         'url': url,
         'linearGradient': linear_gradient,
+        'min': data_params['bathy_vis_params']['min'],
+        'max': data_params['topo_vis_params']['max'],
         'imageId': data_params['source']
     })
 
