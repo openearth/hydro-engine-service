@@ -1461,15 +1461,16 @@ def get_glossis_data():
     or astronomical_tide is requested
     :return:
     """
-    # TODO: add start and stop date input options
     r = request.get_json()
     dataset = r.get('dataset', None)
     band = r.get('band', None)
     image_id = r.get('imageId', None)
+
     function = r.get('function', None)
     start_date = r.get('startDate', None)
     end_date = r.get('endDate', None)
     image_num_limit = r.get('limit', None)
+
     if not (dataset or image_id):
         msg = f'dataset and band or imageId and band required.'
         logger.debug(msg)
@@ -1508,7 +1509,6 @@ def get_gloffis_data():
     Get GLOFFIS data. dataset must be provided.
     :return:
     """
-    # TODO: add start, stop date, im limit input options
     r = request.get_json()
     dataset = r.get('dataset', None)
     band = r['band']
@@ -1517,6 +1517,8 @@ def get_gloffis_data():
     start_date = r.get('startDate', None)
     end_date = r.get('endDate', None)
     image_num_limit = r.get('limit', None)
+
+    source = None
     if not (dataset or image_id):
         msg = f'dataset and band or imageId required.'
         logger.debug(msg)
@@ -1526,17 +1528,8 @@ def get_gloffis_data():
     if image_id:
         image_location_parameters = image_id.split('/')
         source = ('/').join(image_location_parameters[:-1])
-    assert (source in DATASETS_VIS), f'{source} not in assets.'
 
-    info = _get_image_collection_info(source, start_date, end_date, image_num_limit)
-    # get most recent to return url
-    returned_url_id = info[-1]["imageId"]
-    if image_id:
-        returned_url_id = image_id
-    image_info = _get_wms_url(returned_url_id, band=band)
-    image_info['dataset'] = dataset
-    image_info['band'] = band
-    image_info['imageTimeseries'] = info
+    image_info = _get_dgds_data(dataset, image_id, source, band, start_date, end_date, image_num_limit)
 
     return Response(
         json.dumps(image_info),
@@ -1552,7 +1545,6 @@ def get_metocean_data():
     Get metocean data. dataset must be provided.
     :return:
     """
-    # TODO: add start, stop date, im limit input options
     r = request.get_json()
     dataset = r.get('dataset', None)
     band = r['band']
@@ -1561,15 +1553,14 @@ def get_metocean_data():
     start_date = r.get('startDate', None)
     end_date = r.get('endDate', None)
     image_num_limit = r.get('limit', None)
+
     if not (dataset or image_id):
         msg = f'dataset and band or imageId required.'
         logger.debug(msg)
         raise error_handler.InvalidUsage(msg)
     if dataset:
-        source = 'projects/dgds-gee/metocean/waves/'+ dataset
+        source = 'projects/dgds-gee/metocean/waves/' + dataset
     if image_id:
-        # image_location_parameters = image_id.split('/')
-        # source = ('/').join(image_location_parameters[:-1])
         source = image_id
     assert (source in DATASETS_VIS), f'{source} not in assets.'
 
@@ -1590,11 +1581,11 @@ def get_metocean_data():
     )
 
 
-@app.route('/get_gebco_data', methods=['POST'])
+@app.route('/get_gebco_data', methods=['GET', 'POST'])
 @flask_cors.cross_origin()
 def get_gebco_data():
     r = request.get_json()
-    dataset = r.get('dataset', None)
+    dataset = r.get('dataset', 'gebco')
     band = r.get('band', 'elevation')
     image_id = r.get('imageId', None)
 
@@ -1602,10 +1593,6 @@ def get_gebco_data():
     end_date = r.get('endDate', None)
     image_num_limit = r.get('limit', None)
 
-    if not (dataset or image_id):
-        msg = f'dataset and band or imageId required.'
-        logger.debug(msg)
-        raise error_handler.InvalidUsage(msg)
     if dataset:
         source = 'projects/dgds-gee/bathymetry/' + dataset + '/2019'
     if image_id:
@@ -1621,9 +1608,6 @@ def get_gebco_data():
 
 def _get_dgds_data(dataset, image_id, source, band, start_date, end_date, image_num_limit):
 
-    # image_location_parameters = image_id.split('/')
-    # source = ('/').join(image_location_parameters[:-1])
-
     data_params = DATASETS_VIS.get(source, None)
     if not data_params:
         data_params = DATASETS_VIS.get(image_id, None)
@@ -1634,8 +1618,9 @@ def _get_dgds_data(dataset, image_id, source, band, start_date, end_date, image_
     returned_url_id = info[-1]["imageId"]
     if image_id:
         returned_url_id = image_id
-    image_info = _get_wms_url(returned_url_id, type='Image', band=band)
+    image_info = _get_wms_url(returned_url_id, type=data_params['type'], band=band)
     image_info['dataset'] = dataset
+    image_info['band'] = band
     image_info['imageTimeseries'] = info
 
     return image_info
@@ -1883,10 +1868,6 @@ def get_feature_info():
 @app.route('/get_image_collection_info', methods=['POST'])
 @flask_cors.cross_origin()
 def get_image_collection_info():
-    """
-    Get GLOFFIS data. dataset must be provided.
-    :return:
-    """
     r = request.get_json()
     source = r['source']
     start_date = r.get('startDate', None)
@@ -1977,7 +1958,7 @@ def get_wms_url():
     max = r.get('max', None)
     palette = r.get('palette', None)
 
-    info = _get_wms_url(image_id, band, function, min, max, palette)
+    info = _get_wms_url(image_id, 'Image', band, function, min, max, palette)
 
     return Response(
         json.dumps(info),
@@ -1987,7 +1968,6 @@ def get_wms_url():
 
 
 def _get_wms_url(image_id, type='ImageCollection', band=None, function=None, min=None, max=None, palette=None):
-
     if 'gebco'in image_id:
         info = _visualize_gebco(image_id, band)
         return info
@@ -2020,16 +2000,26 @@ def _get_wms_url(image_id, type='ImageCollection', band=None, function=None, min
             band_name = source_params['bandNames'][band]
             vis_params['band'] = band
             image = image.select(band_name)
-
+            vis_params['min'] = source_params['min'][band]
+            vis_params['max'] = source_params['max'][band]
+            vis_params['palette'] = source_params['palette'][band]
         if function:
             assert function in source_params['function']
             vis_params['function'] = function
-            band = function
+            # band = function
             image = apply_image_operation(image, function)
-
-        vis_params['min'] = source_params['min'][band]
-        vis_params['max'] = source_params['max'][band]
-        vis_params['palette'] = source_params['palette'][band]
+            vis_params['min'] = source_params['min'][function]
+            vis_params['max'] = source_params['max'][function]
+            vis_params['palette'] = source_params['palette'][function]
+        try:
+            function = source_params.get('function', None).get(band, None)
+            # if band_function and not function:
+            #     function = source_params['function'][band]
+                # vis_params['function'] = source_params['function'][band]
+            vis_params['function'] = function
+            image = apply_image_operation(image, function)
+        except:
+            msg = 'No funtion applied for dataset'
 
     else:
         try:

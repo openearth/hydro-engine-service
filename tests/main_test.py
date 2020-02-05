@@ -342,15 +342,16 @@ class TestClient(unittest.TestCase):
 
         result = json.loads(resp.data)
 
-        assert 'function' in result
+        assert result['function'] == 'magnitude'
         assert result['band'] == None
         assert result['dataset'] == "currents"
 
     def test_get_glossis_data_by_id(self):
         """test get glossis current data"""
 
+        image_id = "projects/dgds-gee/glossis/wind/glossis_wind_20190808000000"
         request = {
-            "imageId": "projects/dgds-gee/glossis/wind/glossis_wind_20190808000000"
+            "imageId": image_id
         }
         resp = self.client.post(
             '/get_glossis_data',
@@ -363,6 +364,7 @@ class TestClient(unittest.TestCase):
 
         assert 'function' in result
         assert result['band'] == None
+        assert result['imageId'] == image_id
         assert result['date'] == "2019-08-08T00:00:00"
 
     def test_get_glossis_data_with_wrong_date(self):
@@ -397,6 +399,33 @@ class TestClient(unittest.TestCase):
         result = json.loads(resp.data)
 
         assert 'url' in result
+        assert 'band' in result
+        assert 'imageId' in result
+        assert result['min'] == -50
+        assert result['max'] == 50
+
+    def test_get_gloffis_data_log(self):
+        """test get gloffis hydro data"""
+
+        request = {
+            "dataset": "hydro",
+            "band": "discharge_routed_simulated"
+        }
+        resp = self.client.post(
+            '/get_gloffis_data',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+
+        assert 'url' in result
+        assert 'band' in result
+        assert 'function' in result
+        assert 'imageId' in result
+        assert result['min'] == 1.0
+        assert result['max'] == 1000000.0
 
     def test_get_metocean_data(self):
         """test get metocean percentile data"""
@@ -414,7 +443,9 @@ class TestClient(unittest.TestCase):
 
         result = json.loads(resp.data)
 
+        assert 'url' in result
         assert result['imageId'] == 'projects/dgds-gee/metocean/waves/percentiles'
+        assert 'function' not in result
 
     def test_get_gebco_data(self):
         """test get gebco data"""
@@ -432,6 +463,7 @@ class TestClient(unittest.TestCase):
         result = json.loads(resp.data)
 
         assert result['band'] == 'elevation'
+        assert 'function' not in result
 
     def test_get_feature_info_null(self):
         request = {
@@ -489,7 +521,7 @@ class TestMainFunctions:
                                  ('projects/dgds-gee/bathymetry/gebco/2019', None, None, 10),
                                  ('projects/dgds-gee/glossis/currents', None, None, None),
                                  ('projects/dgds-gee/glossis/waterlevel', '2019-12-01', None, None),
-                                 ('projects/dgds-gee/glossis/wind', '2019-08-01', '2019-09-01', None),
+                                 ('projects/dgds-gee/glossis/wind', '2019-08-01', '2019-09-01', 10),
                                  ('projects/dgds-gee/glossis/waveheight', None, None, None),
                                  ('projects/dgds-gee/gloffis/weather', None, None, 5),
                                  ('projects/dgds-gee/gloffis/hydro', None, None, 5),
@@ -503,6 +535,9 @@ class TestMainFunctions:
 
         assert "date" in image_date_list[0]
 
+    # @pytest.mark.parametrize('image_id, type, band, function, min, max, palette')
+    # def test_get_wms_url(self):
+    #     _get_wms_url(image_id, type='ImageCollection', band=None, function=None, min=None, max=None, palette=None):
 
 if __name__ == '__main__':
     unittest.main()
