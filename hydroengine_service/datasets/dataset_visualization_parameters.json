@@ -1,191 +1,175 @@
 {
-    "bathymetry": {
-        "gebco": {
-            "source": "projects/dgds-gee/bathymetry/gebco/2019",
-            "type": "Image",
-            "bandNames": {
-                "elevation": "b1"
-            },
-            "min":{
-                "elevation": -7000
-            },
-            "max": {
-                "elevation": 7000
-            },
-            "topo_vis_params": {
-                "min": 0,
-                "max": 4500,
-                "palette": ["#006147", "#268437", "#549748", "#82ab58", "#b0bf69", "#e8d77d", "#dec36c", "#d5ae5b", "#cb9a4a", "#bf8235", "#b56d24", "#ac5913", "#a24502", "#a03700", "#a02800", "#9f1b00", "#9f0e00", "#9e0100", "#990b0b", "#951414", "#911e1e", "#8d2727", "#893131", "#843d3d", "#7f4646", "#7b5050", "#775959", "#726565", "#6f6f6f", "#7a7a7a", "#868686", "#919191", "#9f9f9f", "#ababab", "#b7b7b7", "#c2c2c2", "#d0d0d0", "#dcdcdc", "#e7e7e7", "#f3f3f3", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff"]
-            },
-            "bathy_vis_params": {
-                "min": -9000,
-                "max": 0,
-                "palette": ["#000000", "#000104", "#000208", "#00020c", "#000310", "#000414", "#000518", "#00061c", "#000620", "#000725", "#000829", "#00092d", "#000a31", "#00113a", "#001e48", "#002954", "#00345f", "#003f6b", "#004c79", "#005785", "#006291", "#006d9c", "#0078a8", "#0086b6", "#0091c2"]
-            },
-            "bathy_only": false,
-            "hillshade": true,
-            "hillshade_args": {}
-        }
-    },
-    "glossis": {
-        "currents": {
-            "source": "projects/dgds-gee/glossis/currents",
-            "type": "ImageCollection",
-            "function": [
-                "magnitude",
-                "flowmap"
-            ],
-            "bandNames": {
-                "currents_u": "b1",
-                "currents_v": "b2"
-            },
-            "min": {
-                "magnitude": 0.0,
-                "flowmap": -0.5
-            },
-            "max": {
-                "magnitude": 1.0,
-                "flowmap": 0.5
-            },
-            "palette": {
-                "magnitude": ["#1d1b1a",  "#621d62",  "#7642a5", "#7871d5", "#76a4e5", "#e6f1f1"],
-                "flowmap": []
-            }
-        },
-        "waterlevel": {
-            "source": "projects/dgds-gee/glossis/waterlevel",
-            "type": "ImageCollection",
-            "bandNames": {
-                "water_level_surge": "b1",
-                "water_level": "b2",
-                "astronomical_tide": "b3"
-            },
-            "min": {
-                "water_level_surge": -1.0,
-                "water_level": -4.0,
-                "astronomical_tide": -4.0
-            },
-            "max": {
-                "water_level_surge": 1.0,
-                "water_level": 4.0,
-                "astronomical_tide": 4.0
-            },
-            "palette": {
-                "water_level_surge": ["#D1CBFF", "#006391", "#1D1B1A", "#902F14", "#FCB0B2"],
-                "water_level": ["#D1CBFF", "#006391", "#1D1B1A", "#902F14", "#FCB0B2"],
-                "astronomical_tide": ["#D1CBFF", "#006391", "#1D1B1A", "#902F14", "#FCB0B2"]
-            }
-        },
-        "wind": {
-            "source": "projects/dgds-gee/glossis/wind",
-            "type": "ImageCollection",
-            "function": [
-                "magnitude",
-                "flowmap"
-            ],
-            "bandNames": {
-                "wind_u": "b1",
-                "wind_v": "b2"
-            },
-            "min": {
-                "magnitude": 0.0,
-                "flowmap": -50.0
-            },
-            "max": {
-                "magnitude": 50.0,
-                "flowmap": 50.0
-            },
-            "palette": {
-                "magnitude": ["#172313", "#144b2a", "#187328", "#5f920c", "#aaac20", "#e1cd73", "#fffdcd"],
-                "flowmap": []
-            }
-        },
-        "waveheight": {
-            "source": "projects/dgds-gee/glossis/waveheight",
-            "type": "ImageCollection",
-            "bandNames": {
-                "waveheight": "b1"
-            },
-            "min": {
-                "waveheight": 0.0
-            },
-            "max": {
-                "waveheight": 8.0
-            },
-            "palette": {
-                "waveheight": ["#042333", "#3c0912", "#730e27", "#a62225", "#c0583b", "#d08b73", "#dfbcb0", "#f1edec"]
-            }
-        }
-    },
-    "gloffis": {
-        "weather": {
-            "source": "projects/dgds-gee/gloffis/weather",
-            "type": "ImageCollection",
-            "bandNames": {
-                "daily_precipitation": "daily_precipitation",
-                "mean_temperature": "mean_temperature"
-            },
-            "min": {
-                "daily_precipitation": 0.0,
-                "mean_temperature": -50.0
-            },
-            "max": {
-                "daily_precipitation": 50.0,
-                "mean_temperature": 50.0
-            },
-            "palette": {
-                "daily_precipitation": ["#042333", "#2c3395", "#744992", "#b15f82", "#eb7958", "#fbb43d", "#e8fa5b"],
-                "mean_temperature": ["#042333", "#2c3395", "#744992", "#b15f82", "#eb7958", "#fbb43d", "#e8fa5b"]
-            }
-        },
-        "hydro": {
-            "source": "projects/dgds-gee/gloffis/hydro",
-            "type": "ImageCollection",
-            "bandNames": {
-                "discharge_routed_simulated": "discharge_routed_simulated",
-                "soil_moisture": "soil_moisture",
-                "runoff_simulated": "runoff_simulated"
-            },
-            "function": {
-                "discharge_routed_simulated": "log"
-            },
-            "min": {
-                "discharge_routed_simulated": 0.0,
-                "soil_moisture": 0.0,
-                "runoff_simulated": 0.0
-            },
-            "max": {
-                "discharge_routed_simulated": 6.0,
-                "soil_moisture": 10.0,
-                "runoff_simulated": 50.0
-            },
-            "palette": {
-                "discharge_routed_simulated": ["#042333", "#2c3395", "#744992", "#b15f82", "#eb7958", "#fbb43d", "#e8fa5b"],
-                "soil_moisture": ["#042333", "#2c3395", "#744992", "#b15f82", "#eb7958", "#fbb43d", "#e8fa5b"],
-                "runoff_simulated": ["#042333", "#2c3395", "#744992", "#b15f82", "#eb7958", "#fbb43d", "#e8fa5b"]
-            }
-        }
-    },
-    "metocean": {
-        "percentiles": {
-            "source": "projects/dgds-gee/metocean/percentiles",
-            "type": "ImageCollection",
-            "bandNames": {
-                "50th": "b1",
-                "90th": "b2"
-            },
-            "min": {
-                "50th": 0,
-                "90th": 0
-            },
-            "max": {
-                "50th": 6.0,
-                "90th": 10.0
-            },
-            "palette": {
-                "50th": ["#042333", "#3c0912", "#730e27", "#a62225", "#c0583b", "#d08b73", "#dfbcb0", "#f1edec"],
-                "90th": ["#042333", "#3c0912", "#730e27", "#a62225", "#c0583b", "#d08b73", "#dfbcb0", "#f1edec"]
-            }
-        }
-    }
+	"projects/dgds-gee/bathymetry/gebco/2019": {
+		"type": "Image",
+		"bandNames": {
+			"elevation": "b1"
+		},
+		"min": {
+			"elevation": -7000
+		},
+		"max": {
+			"elevation": 7000
+		},
+		"topo_vis_params": {
+			"min": 0,
+			"max": 4500,
+			"palette": ["#006147", "#268437", "#549748", "#82ab58", "#b0bf69", "#e8d77d", "#dec36c", "#d5ae5b", "#cb9a4a", "#bf8235", "#b56d24", "#ac5913", "#a24502", "#a03700", "#a02800", "#9f1b00", "#9f0e00", "#9e0100", "#990b0b", "#951414", "#911e1e", "#8d2727", "#893131", "#843d3d", "#7f4646", "#7b5050", "#775959", "#726565", "#6f6f6f", "#7a7a7a", "#868686", "#919191", "#9f9f9f", "#ababab", "#b7b7b7", "#c2c2c2", "#d0d0d0", "#dcdcdc", "#e7e7e7", "#f3f3f3", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff"]
+		},
+		"bathy_vis_params": {
+			"min": -9000,
+			"max": 0,
+			"palette": ["#000000", "#000104", "#000208", "#00020c", "#000310", "#000414", "#000518", "#00061c", "#000620", "#000725", "#000829", "#00092d", "#000a31", "#00113a", "#001e48", "#002954", "#00345f", "#003f6b", "#004c79", "#005785", "#006291", "#006d9c", "#0078a8", "#0086b6", "#0091c2"]
+		},
+		"bathy_only": false,
+		"hillshade": true,
+		"hillshade_args": {}
+	},
+	"projects/dgds-gee/glossis/currents": {
+		"type": "ImageCollection",
+		"function": [
+			"magnitude",
+			"flowmap"
+		],
+		"bandNames": {
+			"currents_u": "b1",
+			"currents_v": "b2"
+		},
+		"min": {
+			"magnitude": 0.0,
+			"flowmap": -0.5
+		},
+		"max": {
+			"magnitude": 1.0,
+			"flowmap": 0.5
+		},
+		"palette": {
+			"magnitude": ["#1d1b1a", "#621d62", "#7642a5", "#7871d5", "#76a4e5", "#e6f1f1"],
+			"flowmap": []
+		}
+	},
+	"projects/dgds-gee/glossis/waterlevel": {
+		"type": "ImageCollection",
+		"bandNames": {
+			"water_level_surge": "b1",
+			"water_level": "b2",
+			"astronomical_tide": "b3"
+		},
+		"min": {
+			"water_level_surge": -1.0,
+			"water_level": -4.0,
+			"astronomical_tide": -4.0
+		},
+		"max": {
+			"water_level_surge": 1.0,
+			"water_level": 4.0,
+			"astronomical_tide": 4.0
+		},
+		"palette": {
+			"water_level_surge": ["#D1CBFF", "#006391", "#1D1B1A", "#902F14", "#FCB0B2"],
+			"water_level": ["#D1CBFF", "#006391", "#1D1B1A", "#902F14", "#FCB0B2"],
+			"astronomical_tide": ["#D1CBFF", "#006391", "#1D1B1A", "#902F14", "#FCB0B2"]
+		}
+	},
+	"projects/dgds-gee/glossis/wind": {
+		"type": "ImageCollection",
+		"function": [
+			"magnitude",
+			"flowmap"
+		],
+		"bandNames": {
+			"wind_u": "b1",
+			"wind_v": "b2"
+		},
+		"min": {
+			"magnitude": 0.0,
+			"flowmap": -50.0
+		},
+		"max": {
+			"magnitude": 50.0,
+			"flowmap": 50.0
+		},
+		"palette": {
+			"magnitude": ["#172313", "#144b2a", "#187328", "#5f920c", "#aaac20", "#e1cd73", "#fffdcd"],
+			"flowmap": []
+		}
+	},
+	"projects/dgds-gee/glossis/waveheight": {
+		"type": "ImageCollection",
+		"bandNames": {
+			"waveheight": "b1"
+		},
+		"min": {
+			"waveheight": 0.0
+		},
+		"max": {
+			"waveheight": 8.0
+		},
+		"palette": {
+			"waveheight": ["#042333", "#3c0912", "#730e27", "#a62225", "#c0583b", "#d08b73", "#dfbcb0", "#f1edec"]
+		}
+	},
+	"projects/dgds-gee/gloffis/weather": {
+		"type": "ImageCollection",
+		"bandNames": {
+			"daily_precipitation": "daily_precipitation",
+			"mean_temperature": "mean_temperature"
+		},
+		"min": {
+			"daily_precipitation": 0.0,
+			"mean_temperature": -50.0
+		},
+		"max": {
+			"daily_precipitation": 50.0,
+			"mean_temperature": 50.0
+		},
+		"palette": {
+			"daily_precipitation": ["#042333", "#2c3395", "#744992", "#b15f82", "#eb7958", "#fbb43d", "#e8fa5b"],
+			"mean_temperature": ["#042333", "#2c3395", "#744992", "#b15f82", "#eb7958", "#fbb43d", "#e8fa5b"]
+		}
+	},
+	"projects/dgds-gee/gloffis/hydro": {
+		"type": "ImageCollection",
+		"bandNames": {
+			"discharge_routed_simulated": "discharge_routed_simulated",
+			"soil_moisture": "soil_moisture",
+			"runoff_simulated": "runoff_simulated"
+		},
+		"function": {
+			"discharge_routed_simulated": "log"
+		},
+		"min": {
+			"discharge_routed_simulated": 0.0,
+			"soil_moisture": 0.0,
+			"runoff_simulated": 0.0
+		},
+		"max": {
+			"discharge_routed_simulated": 6.0,
+			"soil_moisture": 10.0,
+			"runoff_simulated": 50.0
+		},
+		"palette": {
+			"discharge_routed_simulated": ["#042333", "#2c3395", "#744992", "#b15f82", "#eb7958", "#fbb43d", "#e8fa5b"],
+			"soil_moisture": ["#042333", "#2c3395", "#744992", "#b15f82", "#eb7958", "#fbb43d", "#e8fa5b"],
+			"runoff_simulated": ["#042333", "#2c3395", "#744992", "#b15f82", "#eb7958", "#fbb43d", "#e8fa5b"]
+		}
+	},
+	"projects/dgds-gee/metocean/waves/percentiles": {
+		"type": "Image",
+		"bandNames": {
+			"50th": "b1",
+			"90th": "b2"
+		},
+		"min": {
+			"50th": 0,
+			"90th": 0
+		},
+		"max": {
+			"50th": 6.0,
+			"90th": 10.0
+		},
+		"palette": {
+			"50th": ["#042333", "#3c0912", "#730e27", "#a62225", "#c0583b", "#d08b73", "#dfbcb0", "#f1edec"],
+			"90th": ["#042333", "#3c0912", "#730e27", "#a62225", "#c0583b", "#d08b73", "#dfbcb0", "#f1edec"]
+		}
+	}
 }
