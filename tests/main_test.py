@@ -1,6 +1,5 @@
 import os
 import json
-import unittest
 import logging
 import pytest
 
@@ -13,7 +12,8 @@ from hydroengine_service import main
 logger = logging.getLogger(__name__)
 
 
-class TestClient(unittest.TestCase):
+class TestClient:
+    @pytest.fixture(autouse=True)
     def setUp(self):
         main.app.testing = True
         self.client = main.app.test_client()
@@ -513,7 +513,3 @@ class TestClient(unittest.TestCase):
         result = json.loads(resp.data)
 
         assert result['value'] == 3.0175781
-
-
-if __name__ == '__main__':
-    unittest.main()

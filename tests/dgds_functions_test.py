@@ -29,8 +29,3 @@ class TestDGDSFunctions:
         assert "imageId" in image_date_list[0]
 
         assert "date" in image_date_list[0]
-
-    # @pytest.mark.parametrize('image_id, type, band, function, min, max, palette',
-    #                          [])
-    # def test_get_wms_url(self):
-    #     dgds_functions.get_wms_url(image_id, type='ImageCollection', band=None, function=None, min=None, max=None, palette=None):

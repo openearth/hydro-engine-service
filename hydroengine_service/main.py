@@ -1458,8 +1458,8 @@ def get_glossis_data():
     """
     r = request.get_json()
     dataset = r.get('dataset', None)
-    band = r.get('band', None)
     image_id = r.get('imageId', None)
+    band = r.get('band', None)
 
     function = r.get('function', None)
     start_date = r.get('startDate', None)
@@ -1467,8 +1467,8 @@ def get_glossis_data():
     image_num_limit = r.get('limit', None)
 
     if not (dataset or image_id):
-        msg = f'dataset and band or imageId and band required.'
-        logger.debug(msg)
+        msg = f'dataset or imageId required.'
+        logger.error(msg)
         raise error_handler.InvalidUsage(msg)
     if dataset:
         source = 'projects/dgds-gee/glossis/'+dataset
@@ -1507,8 +1507,8 @@ def get_gloffis_data():
 
     source = None
     if not (dataset or image_id):
-        msg = f'dataset and band or imageId required.'
-        logger.debug(msg)
+        msg = f'dataset or imageId required.'
+        logger.error(msg)
         raise error_handler.InvalidUsage(msg)
     if dataset:
         source = 'projects/dgds-gee/gloffis/' + dataset
@@ -1545,8 +1545,8 @@ def get_metocean_data():
     image_num_limit = r.get('limit', None)
 
     if not (dataset or image_id):
-        msg = f'dataset and band or imageId required.'
-        logger.debug(msg)
+        msg = f'dataset or imageId required.'
+        logger.error(msg)
         raise error_handler.InvalidUsage(msg)
     if dataset:
         source = 'projects/dgds-gee/metocean/waves/' + dataset

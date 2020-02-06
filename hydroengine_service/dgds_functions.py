@@ -79,6 +79,10 @@ def get_dgds_data(source,
 
     return image_info
 
+def degree_to_radians_image(image):
+    return ee.Image(image).toFloat().multiply(3.1415927).divide(180)
+
+
 def visualize_gebco(source, band):
     """
     Specialized function to visualize GEBCO data
@@ -120,15 +124,12 @@ def visualize_gebco(source, band):
 
     z = gebco.multiply(ee.Image.constant(height_multiplier))
 
-    def radians(image):
-        return ee.Image(image).toFloat().multiply(3.1415927).divide(180)
-
     # Compute terrain properties
     terrain = ee.Algorithms.Terrain(z)
-    slope = radians(terrain.select(['slope']))
-    aspect = radians(terrain.select(['aspect'])).resample('bicubic')
-    azimuth = radians(ee.Image.constant(azimuth))
-    zenith = radians(ee.Image.constant(zenith))
+    slope = degree_to_radians_image(terrain.select(['slope']))
+    aspect = degree_to_radians_image(terrain.select(['aspect'])).resample('bicubic')
+    azimuth = degree_to_radians_image(ee.Image.constant(azimuth))
+    zenith = degree_to_radians_image(ee.Image.constant(zenith))
     # hillshade
     hs = (
         azimuth
@@ -161,6 +162,10 @@ def visualize_gebco(source, band):
     info = {}
     info['dataset'] = 'gebco'
     info['band'] = band
+    linear_gradient = []
+    palette = data_params['bathy_vis_params']['palette'] + data_params['topo_vis_params']['palette']
+
+    # TODO: call to _generate_image_info
 
     m = hillshaded.getMapId()
     mapid = m.get('mapid')
@@ -171,8 +176,6 @@ def visualize_gebco(source, band):
         token=token
     )
 
-    linear_gradient = []
-    palette = data_params['bathy_vis_params']['palette'] + data_params['topo_vis_params']['palette']
     n_colors = len(palette)
     offsets = np.linspace(0, 100, num=n_colors)
     for color, offset in zip(palette, offsets):
@@ -339,7 +342,7 @@ def _get_wms_url(image_id, type='ImageCollection', band=None, function=None, min
     :param palette: List, palette applied to image visualization, given as list of hex codes.
     :return: Dictionary, json object with image and wms info
     """
-    # Specialized styling for GEBCO
+    # TODO: improve generalizing specialized styling for GEBCO
     if 'gebco'in image_id:
         info = visualize_gebco(image_id, band)
         return info
