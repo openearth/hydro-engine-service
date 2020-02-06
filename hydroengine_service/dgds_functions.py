@@ -18,9 +18,15 @@ DATASET_DIR = os.path.join(APP_DIR, 'datasets')
 with open(DATASET_DIR + '/dataset_visualization_parameters.json') as json_file:
     DATASETS_VIS = json.load(json_file)
 
-# logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 def get_dgds_source_vis_params(source, image_id=None):
+    """
+    Check source and/or image_id has default visualization parameters defined
+    :param source: String, source/location of Earth Engine Object
+    :param image_id: String, Earth Engine Image id
+    :return:
+    """
     data_params = DATASETS_VIS.get(source, None)
     if image_id and not data_params:
         data_params = DATASETS_VIS.get(image_id, None)
@@ -36,9 +42,23 @@ def get_dgds_data(source,
                   start_date=None,
                   end_date=None,
                   image_num_limit=None):
+    """
+
+    :param source: String, source/location of Earth Engine Object
+    :param dataset: String, name of Earth Engine Object dataset
+    :param image_id: String, Earth Engine Image id
+    :param band: String, band name to select from image
+    :param function: String, function to apply to image
+    :param start_date: String, start date to filter collection on
+    :param end_date: String, end date to filter collection on
+    :param image_num_limit: String, limit of objects to return
+    :return: Dictionary
+    """
     # Get list of objects with imageId and date for collection
     data_params = get_dgds_source_vis_params(source, image_id)
     info = get_image_collection_info(source, start_date, end_date, image_num_limit)
+    if not info:
+        return
 
     # get most recent to return url
     returned_url_id = info[-1]["imageId"]
@@ -60,6 +80,12 @@ def get_dgds_data(source,
     return image_info
 
 def visualize_gebco(source, band):
+    """
+    Specialized function to visualize GEBCO data
+    :param source: String, Google Earth Engine image id
+    :param band: String, band of image to visualize
+    :return: Dictionary
+    """
     data_params = DATASETS_VIS[source]
     image = ee.Image(source)
 
@@ -159,7 +185,9 @@ def visualize_gebco(source, band):
     info.update({
         'url': url,
         'linearGradient': linear_gradient,
-        'imageId': source
+        'min': data_params['bathy_vis_params']['min'],
+        'max': data_params['topo_vis_params']['max'],
+        'imageId': data_params['source']
     })
     return info
 
@@ -218,10 +246,10 @@ def _generate_image_info(im, params):
 def apply_image_operation(image, operation, data_params=None, band=None):
     """
     Apply an operation to an image, based on specified operation and data parameters
-    :param image:
+    :param image: Google Earth Engine ee.Image() object
     :param operation: String, type of operation
     :param data_params: coming from data_visualization_parameters.json
-    :return:
+    :return: Google Earth Engine ee.Image() object
     """
     if operation == "log":
         image = image.log10().rename('log')
@@ -241,38 +269,29 @@ def get_image_collection_info(source, start_date=None, end_date=None, image_num_
     :param start_date: String, start date to filter collection on
     :param end_date: String, end date to filter collection on
     :param image_num_limit: limit of objects to return
-    :return: List of objects
+    :return: List of dictionaries
     """
-    # image_location_parameters = image_id.split('/')
-    # source = ('/').join(image_location_parameters[:-1])
-    # # try:
-    # data_params = DATASETS_VIS.get(source, None)
-    # if not data_params:
-    #     data_params = DATASETS_VIS.get(image_id, None)
-    # assert data_params, f'{image_id} not in assets. Using default parameters.'
-    # assert (source in DATASETS_VIS), f'{source} not in assets. Using default parameters.'
-    # data_params = DATASETS_VIS.get(source, None)
     data_params = get_dgds_source_vis_params(source)
     type = data_params.get('type', 'ImageCollection')
 
+    # Get images based on source requested
     if type == 'ImageCollection':
-        # Get collection based on dataset requested
         collection = ee.ImageCollection(source)
     elif type == 'Image':
         collection = ee.ImageCollection.fromImages([ee.Image(source)])
     else:
         msg = f'Object of type {type} not supported.'
         logger.debug(msg)
-        raise error_handler.InvalidUsage(msg)
+        return
 
     if end_date and not start_date:
         msg = f'If endDate provided, must also include startDate'
         logger.debug(msg)
-        raise error_handler.InvalidUsage(msg)
+        return
 
     if start_date:
         start = ee.Date(start_date)
-        end = start.advance(1, 'year')
+        end = start.advance(1, 'day')
         if end_date:
             end = ee.Date(end_date)
         collection = collection.filterDate(start, end)
@@ -281,7 +300,7 @@ def get_image_collection_info(source, start_date=None, end_date=None, image_num_
     if not n_images:
         msg = f'No images available between startDate={start_date} and endDate={end_date}'
         logger.debug(msg)
-        raise error_handler.InvalidUsage(msg)
+        return
 
     if image_num_limit:
         # get a limited number of latest images
@@ -311,20 +330,22 @@ def get_image_collection_info(source, start_date=None, end_date=None, image_num_
 def _get_wms_url(image_id, type='ImageCollection', band=None, function=None, min=None, max=None, palette=None):
     """
     Get WMS url from image_id
-    :param image_id:
-    :param type:
-    :param band:
-    :param function:
-    :param min:
-    :param max:
-    :param palette:
-    :return:
+    :param image_id: String, Google Earth Engine image id
+    :param type: String, type of source, either Image or ImageCollection
+    :param band: String, name of band in the image
+    :param function: String, function applied to the image
+    :param min: Float, minimum value of visualization
+    :param max: Float, maximum value of visualization
+    :param palette: List, palette applied to image visualization, given as list of hex codes.
+    :return: Dictionary, json object with image and wms info
     """
+    # Specialized styling for GEBCO
     if 'gebco'in image_id:
         info = visualize_gebco(image_id, band)
         return info
 
     image = ee.Image(image_id)
+    # Get image date
     try:
         image_date = image.date().format().getInfo()
     except Exception as e:
@@ -338,15 +359,17 @@ def _get_wms_url(image_id, type='ImageCollection', band=None, function=None, min
     elif type == 'Image':
         source = image_id
 
-    # see if we have default values stored
-    source_params = DATASETS_VIS.get(source, None)
-
+    # Default visualization parameters
     band_name = None
     vis_params = {
         'min': 0,
         'max': 1,
         'palette': ['#000000', '#FFFFFF']
     }
+
+    # see if we have default visualization parameters stored for this source
+    source_params = DATASETS_VIS.get(source, None)
+
     if source_params:
         if band:
             band_name = source_params['bandNames'][band]
@@ -378,8 +401,9 @@ def _get_wms_url(image_id, type='ImageCollection', band=None, function=None, min
         except Exception as e:
             msg = f'Error selecting band {band}, {e}'
             logger.debug(msg)
-            raise error_handler.InvalidUsage(msg)
+            return
 
+    # Overwrite vis params if provided in request
     if min:
         vis_params['min'] = min
     if max:
@@ -395,6 +419,7 @@ def _get_wms_url(image_id, type='ImageCollection', band=None, function=None, min
     info['date'] = image_date
     info['imageId'] = image_id
 
+    # Scale min and max if log function applied
     if function == 'log':
         info['min'] = 10 ** vis_params['min']
         info['max'] = 10 ** vis_params['max']

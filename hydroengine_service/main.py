@@ -1478,6 +1478,8 @@ def get_glossis_data():
 
 
     image_info = dgds_functions.get_dgds_data(source, dataset, image_id, band, function, start_date, end_date, image_num_limit)
+    if not image_info:
+        raise error_handler.InvalidUsage('No images returned.')
 
     return Response(
         json.dumps(image_info),
@@ -1515,6 +1517,8 @@ def get_gloffis_data():
         source = ('/').join(image_location_parameters[:-1])
 
     image_info = dgds_functions.get_dgds_data(source, dataset, image_id, band, function, start_date, end_date, image_num_limit)
+    if not image_info:
+        raise error_handler.InvalidUsage('No images returned.')
 
     return Response(
         json.dumps(image_info),
@@ -1550,6 +1554,8 @@ def get_metocean_data():
         source = image_id
 
     image_info = dgds_functions.get_dgds_data(source, dataset, image_id, band, function, start_date, end_date, image_num_limit)
+    if not image_info:
+        raise error_handler.InvalidUsage('No images returned.')
 
     return Response(
         json.dumps(image_info),
@@ -1576,6 +1582,8 @@ def get_gebco_data():
         source = image_id
 
     image_info = dgds_functions.get_dgds_data(source, dataset, image_id, band, start_date, end_date, image_num_limit)
+    if not image_info:
+        raise error_handler.InvalidUsage('No images returned.')
 
     return Response(
         json.dumps(image_info),
@@ -1655,6 +1663,8 @@ def get_image_collection_info():
     image_num_limit = r.get('limit', None)
 
     info = dgds_functions.get_image_collection_info(source, start_date, end_date, image_num_limit)
+    if not info:
+        raise error_handler.InvalidUsage('No images returned.')
 
     return Response(
         json.dumps(info),
