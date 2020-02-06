@@ -16,6 +16,7 @@ from flask import request
 
 from hydroengine_service import config
 from hydroengine_service import error_handler
+from hydroengine_service import dgds_functions
 
 logger = logging.getLogger(__name__)
 
@@ -56,12 +57,6 @@ EE_CREDENTIALS = ee.ServiceAccountCredentials(config.EE_ACCOUNT,
                                               config.EE_PRIVATE_KEY_FILE)
 
 ee.Initialize(EE_CREDENTIALS)
-
-# visualization parameters for datasets
-APP_DIR = os.path.dirname(os.path.realpath(__file__))
-DATASET_DIR = os.path.join(APP_DIR, 'datasets')
-with open(DATASET_DIR + '/dataset_visualization_parameters.json') as json_file:
-    DATASETS_VIS = json.load(json_file)
 
 # HydroBASINS level 5
 basins = {
@@ -1480,20 +1475,9 @@ def get_glossis_data():
     if image_id:
         image_location_parameters = image_id.split('/')
         source = ('/').join(image_location_parameters[:-1])
-    assert (source in DATASETS_VIS), f'{source} not in assets.'
-    type = DATASETS_VIS[source]['type']
-    if DATASETS_VIS[source].get('function', None) and not function:
-        function = DATASETS_VIS[source]['function'][0]
 
-    info = _get_image_collection_info(source, start_date, end_date, image_num_limit)
-    # get most recent to return url
-    returned_url_id = info[-1]["imageId"]
-    if image_id:
-        returned_url_id = image_id
-    image_info = _get_wms_url(returned_url_id, band=band, function=function)
-    image_info['dataset'] = dataset
-    image_info['band'] = band
-    image_info['imageTimeseries'] = info
+
+    image_info = dgds_functions.get_dgds_data(source, dataset, image_id, band, function, start_date, end_date, image_num_limit)
 
     return Response(
         json.dumps(image_info),
@@ -1514,6 +1498,7 @@ def get_gloffis_data():
     band = r['band']
     image_id = r.get('imageId', None)
 
+    function = r.get('function', None)
     start_date = r.get('startDate', None)
     end_date = r.get('endDate', None)
     image_num_limit = r.get('limit', None)
@@ -1529,7 +1514,7 @@ def get_gloffis_data():
         image_location_parameters = image_id.split('/')
         source = ('/').join(image_location_parameters[:-1])
 
-    image_info = _get_dgds_data(dataset, image_id, source, band, start_date, end_date, image_num_limit)
+    image_info = dgds_functions.get_dgds_data(source, dataset, image_id, band, function, start_date, end_date, image_num_limit)
 
     return Response(
         json.dumps(image_info),
@@ -1550,6 +1535,7 @@ def get_metocean_data():
     band = r['band']
     image_id = r.get('imageId', None)
 
+    function = r.get('function', None)
     start_date = r.get('startDate', None)
     end_date = r.get('endDate', None)
     image_num_limit = r.get('limit', None)
@@ -1562,17 +1548,8 @@ def get_metocean_data():
         source = 'projects/dgds-gee/metocean/waves/' + dataset
     if image_id:
         source = image_id
-    assert (source in DATASETS_VIS), f'{source} not in assets.'
 
-    info = _get_image_collection_info(source, start_date, end_date, image_num_limit)
-    # get most recent to return url
-    returned_url_id = info[-1]["imageId"]
-    if image_id:
-        returned_url_id = image_id
-    image_info = _get_wms_url(returned_url_id, type='Image', band=band)
-    image_info['dataset'] = dataset
-    image_info['band'] = band
-    image_info['imageTimeseries'] = info
+    image_info = dgds_functions.get_dgds_data(source, dataset, image_id, band, function, start_date, end_date, image_num_limit)
 
     return Response(
         json.dumps(image_info),
@@ -1598,7 +1575,7 @@ def get_gebco_data():
     if image_id:
         source = image_id
 
-    image_info = _get_dgds_data(dataset, image_id, source, band, start_date, end_date, image_num_limit)
+    image_info = dgds_functions.get_dgds_data(source, dataset, image_id, band, start_date, end_date, image_num_limit)
 
     return Response(
         json.dumps(image_info),
@@ -1606,199 +1583,6 @@ def get_gebco_data():
         mimetype='application/json'
     )
 
-def _get_dgds_data(dataset, image_id, source, band, start_date, end_date, image_num_limit):
-
-    data_params = DATASETS_VIS.get(source, None)
-    if not data_params:
-        data_params = DATASETS_VIS.get(image_id, None)
-    assert data_params, f'{image_id} not in assets. Using default parameters.'
-
-    info = _get_image_collection_info(source, start_date, end_date, image_num_limit)
-    # get most recent to return url
-    returned_url_id = info[-1]["imageId"]
-    if image_id:
-        returned_url_id = image_id
-    image_info = _get_wms_url(returned_url_id, type=data_params['type'], band=band)
-    image_info['dataset'] = dataset
-    image_info['band'] = band
-    image_info['imageTimeseries'] = info
-
-    return image_info
-
-def _visualize_gebco(source, band):
-    data_params = DATASETS_VIS[source]
-    image = ee.Image(source)
-
-    gebco = image.select(data_params['bandNames'][band])
-    # Angle for hillshade (keep at 315 for good perception)
-    azimuth = 315
-    # Lower is longer shadows
-    zenith = 30
-
-    bathy_only = data_params.get('bathy_only', False)
-
-    height_multiplier = 30
-    # Weight between image and  hillshade (1=equal)
-    weight = 0.3
-    # make darker (<1), lighter (>1)
-    val_multiply = 0.9
-    # make  desaturated (<1) or more saturated (>1)
-    sat_multiply = 0.8
-
-    # palettes
-    # visualization params
-    topo_rgb = gebco.mask(gebco.gt(0)).visualize(**data_params['topo_vis_params'])
-    bathy_rgb = gebco.mask(gebco.lte(0)).visualize(**data_params['bathy_vis_params'])
-    image_rgb = topo_rgb.blend(bathy_rgb)
-
-    if (bathy_only):
-        # overwrite with masked version
-        image_rgb = bathy_rgb.mask(gebco.multiply(ee.Image(-1)).unitScale(-1, 10).clamp(0, 1))
-
-    # TODO:  see how this still fits in the hillshade function
-    hsv = image_rgb.unitScale(0, 255).rgbToHsv()
-
-    z = gebco.multiply(ee.Image.constant(height_multiplier))
-
-    def radians(image):
-        return ee.Image(image).toFloat().multiply(3.1415927).divide(180)
-
-    # Compute terrain properties
-    terrain = ee.Algorithms.Terrain(z)
-    slope = radians(terrain.select(['slope']))
-    aspect = radians(terrain.select(['aspect'])).resample('bicubic')
-    azimuth = radians(ee.Image.constant(azimuth))
-    zenith = radians(ee.Image.constant(zenith))
-    # hillshade
-    hs = (
-        azimuth
-            .subtract(aspect)
-            .cos()
-            .multiply(slope.sin())
-            .multiply(zenith.sin())
-            .add(
-            zenith
-                .cos()
-                .multiply(
-                slope.cos()
-            )
-        )
-            .resample('bicubic')
-    )
-
-    # weighted average of hillshade and value
-    intensity = hs.multiply(hsv.select('value'))
-
-    hue = hsv.select('hue')
-
-    # desaturate a bit
-    sat = hsv.select('saturation').multiply(sat_multiply)
-    # make a bit darker
-    val = intensity.multiply(val_multiply)
-
-    hillshaded = ee.Image.cat(hue, sat, val).hsvToRgb()
-
-    info = {}
-    info['dataset'] = 'gebco'
-    info['band'] = band
-
-    m = hillshaded.getMapId()
-    mapid = m.get('mapid')
-    token = m.get('token')
-
-    url = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'.format(
-        mapid=mapid,
-        token=token
-    )
-
-    linear_gradient = []
-    palette = data_params['bathy_vis_params']['palette'] + data_params['topo_vis_params']['palette']
-    n_colors = len(palette)
-    offsets = np.linspace(0, 100, num=n_colors)
-    for color, offset in zip(palette, offsets):
-        linear_gradient.append({
-            'offset': '{:.3f}%'.format(offset),
-            'opacity': 100,
-            'color': color
-        })
-
-    info.update({
-        'url': url,
-        'linearGradient': linear_gradient,
-        'imageId': source
-    })
-    return info
-
-def generate_image_info(im, params):
-    """"generate url and tokens for image"""
-    image = ee.Image(im)
-
-    if 'sld_style' in params:
-        m = image.sldStyle(params.get('sld_style'))
-        del params['sld_style']
-    elif 'palette' in params:
-        m = image.visualize(**{
-            'min': params.get('min'),
-            'max': params.get('max'),
-            'palette': params.get('palette')
-        })
-    else:
-        m = image
-
-    if 'hillshade' in params:
-        # also pass along hillshade arguments
-        hillshade_args = params.get('hillshade_args',  {})
-        m = hillshade(m, image, False, **hillshade_args)
-
-    m = m.getMapId()
-    mapid = m.get('mapid')
-    token = m.get('token')
-
-    url = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'.format(
-        mapid=mapid,
-        token=token
-    )
-
-    linear_gradient = []
-    if 'palette' in params:
-        n_colors = len(params.get('palette'))
-        palette = params.get('palette')
-        offsets = np.linspace(0, 100, num=n_colors)
-        if 'function' in params:
-            if params['function'] == 'log':
-                # if log scaling applied, apply log scale to linear gradient palette offsets
-                offsets = np.logspace(0.0, 2.0, num=n_colors, base=10.0)
-                offsets[0] = 0.0
-        for color, offset in zip(palette, offsets):
-            linear_gradient.append({
-                'offset': '{:.3f}%'.format(offset),
-                'opacity': 100,
-                'color': color
-            })
-
-    params.update({
-        'url': url,
-        'linearGradient': linear_gradient})
-    return params
-
-def apply_image_operation(image, operation, data_params=None, band=None):
-    """
-    Apply an operation to an image, based on specified operation and data parameters
-    :param image:
-    :param operation: String, type of operation
-    :param data_params: coming from data_visualization_parameters.json
-    :return:
-    """
-    if operation == "log":
-        image = image.log10().rename('log')
-    if operation == "magnitude":
-        image = image.pow(2).reduce(ee.Reducer.sum()).sqrt().rename('magnitude')
-    if operation == "flowmap":
-        image.unitScale(data_params['min'][operation], data_params['max'][operation]).unmask(-9999)
-        data_mask = image.eq(-9999).select(data_params['bandNames'][band])
-        image = image.clamp(0, 1).addBands(data_mask)
-
-    return image
 
 @app.route('/get_feature_info', methods=['POST'])
 @flask_cors.cross_origin()
@@ -1817,12 +1601,8 @@ def get_feature_info():
     image = ee.Image(image_id)
     image_location_parameters = image_id.split('/')
     source = ('/').join(image_location_parameters[:-1])
-    # try:
-    data_params = DATASETS_VIS.get(source, None)
-    if not data_params:
-        data_params = DATASETS_VIS.get(image_id, None)
 
-    assert data_params, f'{image_id} not in assets. Using default parameters.'
+    data_params = dgds_functions.get_dgds_source_vis_params(source, image_id)
 
     if band:
         band_name = data_params['bandNames'][band]
@@ -1832,7 +1612,7 @@ def get_feature_info():
                (function == data_params['function'].get(band, None)), \
             f'{function} not an option.'
 
-    image = apply_image_operation(image, function, data_params, band)
+    image = dgds_functions.apply_image_operation(image, function, data_params, band)
     image = image.rename('value')
 
     value = (
@@ -1873,7 +1653,8 @@ def get_image_collection_info():
     start_date = r.get('startDate', None)
     end_date = r.get('endDate', None)
     image_num_limit = r.get('limit', None)
-    info = _get_image_collection_info(source, start_date, end_date, image_num_limit)
+
+    info = dgds_functions.get_image_collection_info(source, start_date, end_date, image_num_limit)
 
     return Response(
         json.dumps(info),
@@ -1881,70 +1662,6 @@ def get_image_collection_info():
         mimetype='application/json'
     )
 
-def _get_image_collection_info(source, start_date=None, end_date=None, image_num_limit=None):
-    # image_location_parameters = image_id.split('/')
-    # source = ('/').join(image_location_parameters[:-1])
-    # # try:
-    # data_params = DATASETS_VIS.get(source, None)
-    # if not data_params:
-    #     data_params = DATASETS_VIS.get(image_id, None)
-    # assert data_params, f'{image_id} not in assets. Using default parameters.'
-    assert (source in DATASETS_VIS), f'{source} not in assets. Using default parameters.'
-    data_params = DATASETS_VIS.get(source, None)
-    type = data_params.get('type', 'ImageCollection')
-
-    if type == 'ImageCollection':
-        # Get collection based on dataset requested
-        collection = ee.ImageCollection(source)
-    elif type == 'Image':
-        collection = ee.ImageCollection.fromImages([ee.Image(source)])
-    else:
-        msg = f'Object of type {type} not supported.'
-        logger.debug(msg)
-        raise error_handler.InvalidUsage(msg)
-
-    if end_date and not start_date:
-        msg = f'If endDate provided, must also include startDate'
-        logger.debug(msg)
-        raise error_handler.InvalidUsage(msg)
-
-    if start_date:
-        start = ee.Date(start_date)
-        collection = collection.filterDate(start)
-    if end_date:
-        end = ee.Date(end_date)
-        collection = collection.filterDate(start, end)
-
-    n_images = collection.size().getInfo()
-    if not n_images:
-        msg = f'No images available between startDate={start_date} and endDate={end_date}'
-        logger.debug(msg)
-        raise error_handler.InvalidUsage(msg)
-
-    if image_num_limit:
-        # get a limited number of latest images
-        collection = collection.limit(image_num_limit, 'system:time_start', False)
-
-    # Sort ascending
-    collection = collection.sort('system:time_start', True)
-
-    ids = ee.List(collection.aggregate_array('system:id')).getInfo()
-
-    dates = ee.List(collection.aggregate_array('system:time_start'))
-    if dates.length().getInfo() == 0:
-        date_list = [None] * len(ids)
-    else:
-        date_list = dates.map(lambda i: ee.Date(i).format()).getInfo()
-
-    response = []
-    for id, date in zip(ids, date_list):
-        object = {
-            'imageId': id,
-            'date': date
-        }
-        response.append(object)
-
-    return response
 
 @app.route('/get_wms_url', methods=['POST'])
 @flask_cors.cross_origin()
@@ -1958,7 +1675,7 @@ def get_wms_url():
     max = r.get('max', None)
     palette = r.get('palette', None)
 
-    info = _get_wms_url(image_id, 'Image', band, function, min, max, palette)
+    info = dgds_functions.get_wms_url(image_id, 'Image', band, function, min, max, palette)
 
     return Response(
         json.dumps(info),
@@ -1966,89 +1683,6 @@ def get_wms_url():
         mimetype='application/json'
     )
 
-
-def _get_wms_url(image_id, type='ImageCollection', band=None, function=None, min=None, max=None, palette=None):
-    if 'gebco'in image_id:
-        info = _visualize_gebco(image_id, band)
-        return info
-
-    image = ee.Image(image_id)
-    try:
-        image_date = image.date().format().getInfo()
-    except Exception as e:
-        msg = f'Image {image_id} does not have an assigned date.'
-        logger.debug(msg)
-        image_date = None
-
-    image_location_parameters = image_id.split('/')
-    if type == 'ImageCollection':
-        source = ('/').join(image_location_parameters[:-1])
-    elif type == 'Image':
-        source = image_id
-
-    # see if we have default values stored
-    source_params = DATASETS_VIS.get(source, None)
-
-    band_name = None
-    vis_params = {
-        'min': 0,
-        'max': 1,
-        'palette': ['#000000', '#FFFFFF']
-    }
-    if source_params:
-        if band:
-            band_name = source_params['bandNames'][band]
-            vis_params['band'] = band
-            image = image.select(band_name)
-            vis_params['min'] = source_params['min'][band]
-            vis_params['max'] = source_params['max'][band]
-            vis_params['palette'] = source_params['palette'][band]
-        if function:
-            assert function in source_params['function']
-            vis_params['function'] = function
-            # band = function
-            image = apply_image_operation(image, function)
-            vis_params['min'] = source_params['min'][function]
-            vis_params['max'] = source_params['max'][function]
-            vis_params['palette'] = source_params['palette'][function]
-        try:
-            function = source_params.get('function', None).get(band, None)
-            # if band_function and not function:
-            #     function = source_params['function'][band]
-                # vis_params['function'] = source_params['function'][band]
-            vis_params['function'] = function
-            image = apply_image_operation(image, function)
-        except:
-            msg = 'No funtion applied for dataset'
-
-    else:
-        try:
-            image = image.select(band)
-        except Exception as e:
-            msg = f'Error selecting band {band}, {e}'
-            logger.debug(msg)
-            raise error_handler.InvalidUsage(msg)
-
-    if min:
-        vis_params['min'] = min
-    if max:
-        vis_params['max'] = max
-    if palette:
-        vis_params['palette'] = palette
-
-    if source == 'projects/dgds-gee/gloffis/hydro':
-        image = image.mask(image.gte(0))
-
-    info = generate_image_info(image, vis_params)
-    info['source'] = source
-    info['date'] = image_date
-    info['imageId'] = image_id
-
-    if function == 'log':
-        info['min'] = 10 ** vis_params['min']
-        info['max'] = 10 ** vis_params['max']
-
-    return info
 
 @app.route('/')
 def root():
