@@ -187,7 +187,7 @@ def visualize_gebco(source, band):
         'linearGradient': linear_gradient,
         'min': data_params['bathy_vis_params']['min'],
         'max': data_params['topo_vis_params']['max'],
-        'imageId': data_params['source']
+        'imageId': source
     })
     return info
 
