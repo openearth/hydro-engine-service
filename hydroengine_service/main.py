@@ -1247,7 +1247,7 @@ def get_liwo_scenarios():
     # band name as string
     band = r['band']
 
-    collection = 'users/rogersckw9/liwo/liwo-scenarios-03-2019'
+    collection = 'projects/deltares-rws/liwo/production'
     id_key = 'Scenario_ID'
     reducers = {
         "waterdiepte": "max",
@@ -1258,11 +1258,11 @@ def get_liwo_scenarios():
         "getroffenen": "max",
         "aankomsttijd": "min"
     }
-
+    # TODO: do we also map old band names for new collection?
     assert band in reducers
     reducer = reducers[band]
 
-    image = liwo_functions.filter_liwo_collection_v2(collection, liwo_ids, band, reducer, id_key)
+    image = liwo_functions.filter_liwo_collection(collection, id_key, liwo_ids, band, reducer)
     styling_band = liwo_functions.band_names_v2_to_v1(band)
     params = liwo_functions.get_liwo_styling(styling_band)
     info = liwo_functions.generate_image_info(image, params)
@@ -1318,9 +1318,8 @@ def get_liwo_scenarios():
     assert band in reducers
     band_name = bands[band]
     reducer = reducers[band]
-    image = liwo_functions.filter_liwo_collection_v1(collection, id_key, liwo_ids, band_name, reducer)
+    image = liwo_functions.filter_liwo_collection(collection, id_key, liwo_ids, band_name, reducer)
 
-    # TODO: generate visualization params for map ids
     params = liwo_functions.get_liwo_styling(band)
 
     info = liwo_functions.generate_image_info(image, params)

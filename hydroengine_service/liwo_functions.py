@@ -7,19 +7,12 @@ import os
 from hydroengine_service import config
 from hydroengine_service import error_handler
 from hydroengine_service import dgds_functions
-from hydroengine_service.datasets.liwo_styling_v1 import style
 
 EE_CREDENTIALS = ee.ServiceAccountCredentials(config.EE_ACCOUNT,
                                               config.EE_PRIVATE_KEY_FILE)
 
 ee.Initialize(EE_CREDENTIALS)
 
-# visualization parameters for datasets
-APP_DIR = os.path.dirname(os.path.realpath(__file__))
-DATASET_DIR = os.path.join(APP_DIR, 'datasets')
-# with open(DATASET_DIR + '/dataset_visualization_parameters.json') as json_file:
-#     DATASETS_VIS = json.load(json_file)
-#
 logger = logging.getLogger(__name__)
 
 def get_liwo_styling(band):
@@ -101,8 +94,8 @@ def band_names_v2_to_v1(band):
         "stijgsnelheid": "riserate",
         "schade": "damage",
         "slachtoffers": "fatalities",
-        "getroffenen": "fatalities",
-        "aankomsttijd": "riserate"
+        "getroffenen": "",
+        "aankomsttijd": ""
     }
     assert band in band_names
     return band_names[band]
@@ -146,17 +139,17 @@ def filter_liwo_collection_v1(collection_path, id_key, liwo_ids, band, reducer):
     image = image.mask(image.gt(0))
     return image
 
-def filter_liwo_collection_v2(collection_path, id_key, scenario_ids, band, reducer):
+
+def filter_liwo_collection(collection_path, id_key, scenario_ids, band, reducer):
     # Filter based on breach location
     scenarios = ee.ImageCollection(collection_path)
-
     scenarios = scenarios.filter(ee.Filter.inList(id_key, scenario_ids))
     scenarios = scenarios.filter(ee.Filter.listContains("system:band_names", band))
     scenarios = scenarios.select(band)
     n_selected = scenarios.size().getInfo()
 
     if n_selected == 0:
-        msg = 'No images available for breach locations: %s' % (liwo_ids,)
+        msg = 'No images available for breach locations: %s' % (scenario_ids,)
         logger.debug(msg)
         raise error_handler.InvalidUsage(msg)
         # raise ValueError("No images with band {} in scenario_ids {}".format(band, scenario_ids))
