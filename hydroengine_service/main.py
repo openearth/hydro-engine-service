@@ -13,6 +13,7 @@ import flask_cors
 from flask import Flask
 from flask import Response
 from flask import request
+from flask import Blueprint
 
 from hydroengine_service import config
 from hydroengine_service import error_handler
@@ -30,14 +31,14 @@ consoleHandler.setFormatter(logFormatter)
 
 logger.addHandler(consoleHandler)
 
-# if __name__ == '__main__':
-#    import config
-# else:
-#    from . import config
-
 app = Flask(__name__)
 
 app.register_blueprint(error_handler.error_handler)
+
+v1 = Blueprint("version1", "version1")
+v2 = Blueprint('version2', "version2")
+
+
 
 # if 'privatekey.json' is defined in environmental variable - write it to file
 if 'key' in os.environ:
@@ -137,7 +138,7 @@ def reduceImageProfile(image, line, reducer, scale):
     return image.reduceRegions(lines, reducer.setOutputs(band_names), scale)
 
 
-@app.route('/get_image_urls', methods=['GET', 'POST'])
+@v1.route('/get_image_urls', methods=['GET', 'POST'])
 @flask_cors.cross_origin()
 def api_get_image_urls():
     logger.warning(
@@ -223,7 +224,7 @@ def api_get_image_urls():
     return resp
 
 
-@app.route('/get_sea_surface_height_time_series', methods=['POST'])
+@v1.route('/get_sea_surface_height_time_series', methods=['POST'])
 @flask_cors.cross_origin()
 def get_sea_surface_height_time_series():
     """generate bathymetry image for a certain timespan (begin_date, end_date) and a dataset {jetski | vaklodingen | kustlidar}"""
@@ -250,7 +251,7 @@ def get_sea_surface_height_time_series():
     return Response(json.dumps(ssh_rows.getInfo()), status=200, mimetype='application/json')
 
 
-@app.route('/get_sea_surface_height_trend_image', methods=['GET', 'POST'])
+@v1.route('/get_sea_surface_height_trend_image', methods=['GET', 'POST'])
 @flask_cors.cross_origin()
 def get_sea_surface_height_trend_image():
     """generate bathymetry image for a certain timespan (begin_date, end_date) and a dataset {jetski | vaklodingen | kustlidar}"""
@@ -316,7 +317,7 @@ def hillshade(image_rgb, elevation, reproject, height_multiplier=500,  weight=1.
     return ee.Image.cat(huesat, intensity).hsvToRgb()
 
 
-@app.route('/get_bathymetry', methods=['GET', 'POST'])
+@v1.route('/get_bathymetry', methods=['GET', 'POST'])
 @flask_cors.cross_origin()
 def api_get_bathymetry():
     """generate bathymetry image for a certain timespan (begin_date, end_date) and a dataset {jetski | vaklodingen | kustlidar}"""
@@ -434,7 +435,7 @@ def api_get_bathymetry():
     return resp
 
 
-@app.route('/get_raster_profile', methods=['GET', 'POST'])
+@v1.route('/get_raster_profile', methods=['GET', 'POST'])
 @flask_cors.cross_origin()
 def api_get_raster_profile():
     r = request.get_json()
@@ -469,7 +470,7 @@ def api_get_raster_profile():
     return resp
 
 
-@app.route('/get_water_mask_raw', methods=['POST'])
+@v1.route('/get_water_mask_raw', methods=['POST'])
 def get_water_mask_raw():
     """
     Extracts water mask from raw satellite data.
@@ -571,7 +572,7 @@ def transform_feature(crs, scale):
                                  ee.Number(scale).divide(100))
 
 
-@app.route('/get_water_mask', methods=['POST', 'GET'])
+@v1.route('/get_water_mask', methods=['POST', 'GET'])
 def get_water_mask():
     """
     Code Editor URL: https://code.earthengine.google.com/81a463e6f4c9afc607086ece6de8d163
@@ -792,7 +793,7 @@ def generate_skeleton_from_voronoi(scale, water_vector):
     return {"centerline": centerline, "distance": distance}
 
 
-@app.route('/get_water_network', methods=['POST'])
+@v1.route('/get_water_network', methods=['POST'])
 def get_water_network():
     """
     Skeletonize water mask given boundary, converts it into a network
@@ -826,7 +827,7 @@ def get_water_network():
     return Response(json.dumps(data), status=200, mimetype='application/json')
 
 
-@app.route('/get_water_network_properties', methods=['POST'])
+@v1.route('/get_water_network_properties', methods=['POST'])
 def get_water_network_properties():
     """
     Generates variables along water skeleton network polylines.
@@ -943,7 +944,7 @@ def get_water_network_properties():
     return Response(json.dumps(data), status=200, mimetype='application/json')
 
 
-@app.route('/get_catchments', methods=['GET', 'POST'])
+@v1.route('/get_catchments', methods=['GET', 'POST'])
 def api_get_catchments():
     region = ee.Geometry(request.json['region'])
     region_filter = request.json['region_filter']
@@ -981,7 +982,7 @@ def api_get_catchments():
     return resp
 
 
-@app.route('/get_rivers', methods=['GET', 'POST'])
+@v1.route('/get_rivers', methods=['GET', 'POST'])
 def api_get_rivers():
     region = ee.Geometry(request.json['region'])
     region_filter = request.json['region_filter']
@@ -1049,7 +1050,7 @@ def api_get_rivers():
     # return resp
 
 
-@app.route('/get_lakes', methods=['GET', 'POST'])
+@v1.route('/get_lakes', methods=['GET', 'POST'])
 def api_get_lakes():
     region = ee.Geometry(request.json['region'])
     id_only = bool(request.json['id_only'])
@@ -1073,7 +1074,7 @@ def api_get_lakes():
     return Response(json.dumps(data), status=200, mimetype='application/json')
 
 
-@app.route('/get_lake_by_id', methods=['GET', 'POST'])
+@v1.route('/get_lake_by_id', methods=['GET', 'POST'])
 def get_lake_by_id():
     lake_id = int(request.json['lake_id'])
 
@@ -1124,7 +1125,7 @@ def get_lake_water_area(lake_id, scale):
     return {'time': area_times.getInfo(), 'water_area': area_values.getInfo()}
 
 
-@app.route('/get_lake_time_series', methods=['GET', 'POST'])
+@v1.route('/get_lake_time_series', methods=['GET', 'POST'])
 def api_get_lake_time_series():
     lake_id = int(request.json['lake_id'])
     variable = str(request.json['variable'])
@@ -1143,7 +1144,7 @@ def api_get_lake_time_series():
                     mimetype='application/json')
 
 
-@app.route('/get_feature_collection', methods=['GET', 'POST'])
+@v1.route('/get_feature_collection', methods=['GET', 'POST'])
 def api_get_feature_collection():
     region = ee.Geometry(request.json['region'])
 
@@ -1167,7 +1168,7 @@ def api_get_feature_collection():
     return Response(str, status=200, mimetype='application/json')
 
 
-@app.route('/get_raster', methods=['GET', 'POST'])
+@v1.route('/get_raster', methods=['GET', 'POST'])
 def api_get_raster():
     variable = request.json['variable']
     region = ee.Geometry(request.json['region'])
@@ -1240,7 +1241,7 @@ def api_get_raster():
     return Response(json.dumps(data), status=200, mimetype='application/json')
 
 
-@app.route('/get_liwo_scenarios', methods=['GET', 'POST'])
+@v1.route('/get_liwo_scenarios', methods=['GET', 'POST'])
 @flask_cors.cross_origin()
 def get_liwo_scenarios():
     r = request.get_json()
@@ -1447,7 +1448,7 @@ def get_liwo_scenarios():
     )
 
 
-@app.route('/get_glossis_data', methods=['POST'])
+@v1.route('/get_glossis_data', methods=['POST'])
 @flask_cors.cross_origin()
 def get_glossis_data():
     """
@@ -1488,7 +1489,7 @@ def get_glossis_data():
     )
 
 
-@app.route('/get_gloffis_data', methods=['POST'])
+@v1.route('/get_gloffis_data', methods=['POST'])
 @flask_cors.cross_origin()
 def get_gloffis_data():
     """
@@ -1527,7 +1528,7 @@ def get_gloffis_data():
     )
 
 
-@app.route('/get_metocean_data', methods=['POST'])
+@v1.route('/get_metocean_data', methods=['POST'])
 @flask_cors.cross_origin()
 def get_metocean_data():
     """
@@ -1564,7 +1565,7 @@ def get_metocean_data():
     )
 
 
-@app.route('/get_gebco_data', methods=['GET', 'POST'])
+@v1.route('/get_gebco_data', methods=['GET', 'POST'])
 @flask_cors.cross_origin()
 def get_gebco_data():
     r = request.get_json()
@@ -1591,8 +1592,7 @@ def get_gebco_data():
         mimetype='application/json'
     )
 
-
-@app.route('/get_feature_info', methods=['POST'])
+@v1.route('/get_feature_info', methods=['POST'])
 @flask_cors.cross_origin()
 def get_feature_info():
     """
@@ -1653,7 +1653,8 @@ def get_feature_info():
         mimetype='application/json'
     )
 
-@app.route('/get_image_collection_info', methods=['POST'])
+
+@v1.route('/get_image_collection_info', methods=['POST'])
 @flask_cors.cross_origin()
 def get_image_collection_info():
     r = request.get_json()
@@ -1673,7 +1674,7 @@ def get_image_collection_info():
     )
 
 
-@app.route('/get_wms_url', methods=['POST'])
+@v1.route('/get_wms_url', methods=['POST'])
 @flask_cors.cross_origin()
 def get_wms_url():
     # TODO: check how many bands, if band is not specified return warning.
@@ -1694,7 +1695,7 @@ def get_wms_url():
     )
 
 
-@app.route('/')
+@v1.route('/')
 def root():
     return 'Welcome to Hydro Earth Engine. Currently, only RESTful API is supported. Visit <a href="http://github.com/deltares/hydro-engine">http://github.com/deltares/hydro-engine</a> for more information ...'
 
@@ -1706,6 +1707,12 @@ def server_error(e):
     An internal error occurred: <pre>{}</pre>
     See logs for full stacktrace.
     """.format(e), 500
+
+# Note, this should be here. Don't move this above.
+app.register_blueprint(v1, url_prefix="/v1")
+app.register_blueprint(v2, url_prefix="/v2")
+# use version 1
+app.register_blueprint(v1, url_prefix="/")
 
 
 if __name__ == '__main__':
