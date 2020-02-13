@@ -1249,22 +1249,31 @@ def get_liwo_scenarios():
 
     collection = 'projects/deltares-rws/liwo/production'
     id_key = 'Scenario_ID'
+    bands = {
+        'waterdepth': 'waterdiepte',
+        'velocity': 'stroomsnelheid',
+        'riserate': 'stijgsnelheid',
+        'damage': 'schade',
+        'fatalities': 'slachtoffers',
+        'affected': 'getroffenen',
+        'arrivaltime': 'aankomsttijd'
+    }
     reducers = {
-        "waterdiepte": "max",
-        "stroomsnelheid": "max",
-        "stijgsnelheid": "max",
-        "schade": "max",
-        "slachtoffers": "max",
-        "getroffenen": "max",
-        "aankomsttijd": "min"
+        "waterdepth": "max",
+        "velocity": "max",
+        "riserate": "max",
+        "damage": "max",
+        "fatalities": "max",
+        "affected": "max",
+        "arrivaltime": "min"
     }
     # TODO: do we also map old band names for new collection?
-    assert band in reducers
+    assert band in bands
+    band_name = bands[band]
     reducer = reducers[band]
 
-    image = liwo_functions.filter_liwo_collection(collection, id_key, liwo_ids, band, reducer)
-    styling_band = liwo_functions.band_names_v2_to_v1(band)
-    params = liwo_functions.get_liwo_styling(styling_band)
+    image = liwo_functions.filter_liwo_collection_v2(collection, id_key, liwo_ids, band_name, reducer)
+    params = liwo_functions.get_liwo_styling(band)
     info = liwo_functions.generate_image_info(image, params)
     info['liwo_ids'] = liwo_ids
     info['band'] = band
@@ -1318,7 +1327,7 @@ def get_liwo_scenarios():
     assert band in reducers
     band_name = bands[band]
     reducer = reducers[band]
-    image = liwo_functions.filter_liwo_collection(collection, id_key, liwo_ids, band_name, reducer)
+    image = liwo_functions.filter_liwo_collection_v1(collection, id_key, liwo_ids, band_name, reducer)
 
     params = liwo_functions.get_liwo_styling(band)
 
