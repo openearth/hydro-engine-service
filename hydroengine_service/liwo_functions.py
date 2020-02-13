@@ -82,23 +82,38 @@ def get_liwo_styling(band):
                         <ColorMapEntry color="#8f3333" opacity="1.0" quantity="10000" label="&gt; 3"/>\
                     </ColorMap>\
                 </RasterSymbolizer>'
+        },
+        'affected': {
+            'sld_style': '\
+                <RasterSymbolizer>\
+                    <ColorMap type="intervals">\
+                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01999"/>\
+                        <ColorMapEntry color="#CEFEFE" opacity="1.0" quantity="0.5" label="&lt; 0.5"/>\
+                        <ColorMapEntry color="#94bff7" opacity="1.0" quantity="1" label="0.5 - 1.0"/>\
+                        <ColorMapEntry color="#278ef4" opacity="1.0" quantity="1.5" label="1.0 - 1.5"/>\
+                        <ColorMapEntry color="#0000cc" opacity="1.0" quantity="2.0" label="1.5 - 2.0"/>\
+                        <ColorMapEntry color="#4A0177" opacity="1.0" quantity="5" label="2.0 - 5.0"/>\
+                        <ColorMapEntry color="#73004c" opacity="1.0" quantity="9999" label="&gt; 5.0"/>\
+                    </ColorMap>\
+                </RasterSymbolizer>'
+        },
+        'arrivaltime': {
+            'sld_style': '\
+                <RasterSymbolizer>\
+                    <ColorMap type="intervals">\
+                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01999"/>\
+                        <ColorMapEntry color="#CEFEFE" opacity="1.0" quantity="0.5" label="&lt; 0.5"/>\
+                        <ColorMapEntry color="#94bff7" opacity="1.0" quantity="1" label="0.5 - 1.0"/>\
+                        <ColorMapEntry color="#278ef4" opacity="1.0" quantity="1.5" label="1.0 - 1.5"/>\
+                        <ColorMapEntry color="#0000cc" opacity="1.0" quantity="2.0" label="1.5 - 2.0"/>\
+                        <ColorMapEntry color="#4A0177" opacity="1.0" quantity="5" label="2.0 - 5.0"/>\
+                        <ColorMapEntry color="#73004c" opacity="1.0" quantity="9999" label="&gt; 5.0"/>\
+                    </ColorMap>\
+                </RasterSymbolizer>'
         }
     }
     assert band in style
     return style[band]
-
-def band_names_v2_to_v1(band):
-    band_names = {
-        "waterdiepte": "waterdepth",
-        "stroomsnelheid": "velocity",
-        "stijgsnelheid": "riserate",
-        "schade": "damage",
-        "slachtoffers": "fatalities",
-        "getroffenen": "",
-        "aankomsttijd": ""
-    }
-    assert band in band_names
-    return band_names[band]
 
 def filter_liwo_collection_v1(collection_path, id_key, liwo_ids, band, reducer):
     # Filter based on breach location
@@ -140,7 +155,7 @@ def filter_liwo_collection_v1(collection_path, id_key, liwo_ids, band, reducer):
     return image
 
 
-def filter_liwo_collection(collection_path, id_key, scenario_ids, band, reducer):
+def filter_liwo_collection_v2(collection_path, id_key, scenario_ids, band, reducer):
     # Filter based on breach location
     scenarios = ee.ImageCollection(collection_path)
     scenarios = scenarios.filter(ee.Filter.inList(id_key, scenario_ids))
