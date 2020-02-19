@@ -5,117 +5,65 @@ import numpy as np
 import os
 
 from hydroengine_service import config
-from hydroengine_service import error_handler
 from hydroengine_service import dgds_functions
+from hydroengine_service import error_handler
 
 EE_CREDENTIALS = ee.ServiceAccountCredentials(config.EE_ACCOUNT,
                                               config.EE_PRIVATE_KEY_FILE)
 
 ee.Initialize(EE_CREDENTIALS)
 
+# visualization files for datasets
+APP_DIR = os.path.dirname(os.path.realpath(__file__))
+DATASET_DIR = os.path.join(APP_DIR, 'datasets')
+
 logger = logging.getLogger(__name__)
+
 
 def get_liwo_styling(band):
     style = {
         'waterdepth': {
-            'sld_style': '\
-                <RasterSymbolizer>\
-                    <ColorMap type="intervals">\
-                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01999"/>\
-                        <ColorMapEntry color="#CEFEFE" opacity="1.0" quantity="0.5" label="&lt; 0.5"/>\
-                        <ColorMapEntry color="#94bff7" opacity="1.0" quantity="1" label="0.5 - 1.0"/>\
-                        <ColorMapEntry color="#278ef4" opacity="1.0" quantity="1.5" label="1.0 - 1.5"/>\
-                        <ColorMapEntry color="#0000cc" opacity="1.0" quantity="2.0" label="1.5 - 2.0"/>\
-                        <ColorMapEntry color="#4A0177" opacity="1.0" quantity="5" label="2.0 - 5.0"/>\
-                        <ColorMapEntry color="#73004c" opacity="1.0" quantity="9999" label="&gt; 5.0"/>\
-                    </ColorMap>\
-                </RasterSymbolizer>'
+            'sld_style': 'waterdepth_sld_style.txt'
         },
         'velocity': {
-            'sld_style': '\
-                <RasterSymbolizer>\
-                    <ColorMap type="intervals">\
-                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01"/>\
-                        <ColorMapEntry color="#FAD7FE" opacity="1.0" quantity="0.5" label="&lt; 0.5"/>\
-                        <ColorMapEntry color="#E95CF5" opacity="1.0" quantity="1" label="0.5 - 1.0"/>\
-                        <ColorMapEntry color="#CB00DB" opacity="1.0" quantity="2" label="1.0 - 2.0"/>\
-                        <ColorMapEntry color="#8100B1" opacity="1.0" quantity="4" label="2.0 - 4.0"/>\
-                        <ColorMapEntry color="#8100D2" opacity="1.0" quantity="1000" label="&gt; 4.0"/>\
-                    </ColorMap>\
-                </RasterSymbolizer>'
+            'sld_style': 'velocity_sld_style.txt'
         },
         'riserate': {
-            'sld_style': '\
-                <RasterSymbolizer>\
-                    <ColorMap type="intervals">\
-                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01"/>\
-                        <ColorMapEntry color="#FFF5E6" opacity="1.0" quantity="0.25" label="&lt; 0.25"/>\
-                        <ColorMapEntry color="#FFD2A8" opacity="1.0" quantity="0.5" label="0.25 - 0.5"/>\
-                        <ColorMapEntry color="#FFAD66" opacity="1.0" quantity="1" label="0.5 - 1.0"/>\
-                        <ColorMapEntry color="#EB7515" opacity="1.0" quantity="2" label="1.0 - 2.0"/>\
-                        <ColorMapEntry color="#B05500" opacity="1.0" quantity="1000000" label="&gt; 2.0"/>\
-                    </ColorMap>\
-                </RasterSymbolizer>'
+            'sld_style': 'riserate_sld_style.txt'
         },
         'damage': {
-            'sld_style': '\
-                <RasterSymbolizer>\
-                    <ColorMap type="intervals">\
-                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01"/>\
-                        <ColorMapEntry color="#499b1b" opacity="1.0" quantity="10000" label="&lt; 10.000"/>\
-                        <ColorMapEntry color="#61f033" opacity="1.0" quantity="100000" label="10.000 - 100.000"/>\
-                        <ColorMapEntry color="#ffbb33" opacity="1.0" quantity="1000000" label="100.000 - 1.000.000"/>\
-                        <ColorMapEntry color="#ff3333" opacity="1.0" quantity="5000000" label="1.000.000 - 5.000.000"/>\
-                        <ColorMapEntry color="#8f3333" opacity="1.0" quantity="1000000000000000" label="&gt; 5.000.000"/>\
-                    </ColorMap>\
-                </RasterSymbolizer>'
+            'sld_style': 'damage_sld_style.txt'
         },
         'fatalities': {
-            'sld_style': '\
-                <RasterSymbolizer>\
-                    <ColorMap type="intervals">\
-                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.0001"/>\
-                        <ColorMapEntry color="#499b1b" opacity="1.0" quantity="0.1" label="&lt; 0.1"/>\
-                        <ColorMapEntry color="#61f033" opacity="1.0" quantity="0.3" label="0.1 - 0.3"/>\
-                        <ColorMapEntry color="#ffbb33" opacity="1.0" quantity="1" label="0.3 - 1"/>\
-                        <ColorMapEntry color="#ff3333" opacity="1.0" quantity="3" label="1 - 3"/>\
-                        <ColorMapEntry color="#8f3333" opacity="1.0" quantity="10000" label="&gt; 3"/>\
-                    </ColorMap>\
-                </RasterSymbolizer>'
+            'sld_style': 'fatalities_sld_style.txt'
         },
         'affected': {
-            'sld_style': '\
-                <RasterSymbolizer>\
-                    <ColorMap type="intervals">\
-                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01999"/>\
-                        <ColorMapEntry color="#CEFEFE" opacity="1.0" quantity="0.5" label="&lt; 0.5"/>\
-                        <ColorMapEntry color="#94bff7" opacity="1.0" quantity="1" label="0.5 - 1.0"/>\
-                        <ColorMapEntry color="#278ef4" opacity="1.0" quantity="1.5" label="1.0 - 1.5"/>\
-                        <ColorMapEntry color="#0000cc" opacity="1.0" quantity="2.0" label="1.5 - 2.0"/>\
-                        <ColorMapEntry color="#4A0177" opacity="1.0" quantity="5" label="2.0 - 5.0"/>\
-                        <ColorMapEntry color="#73004c" opacity="1.0" quantity="9999" label="&gt; 5.0"/>\
-                    </ColorMap>\
-                </RasterSymbolizer>'
+            'sld_style': 'affected_sld_style.txt'
         },
         'arrivaltime': {
-            'sld_style': '\
-                <RasterSymbolizer>\
-                    <ColorMap type="intervals">\
-                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01999"/>\
-                        <ColorMapEntry color="#CEFEFE" opacity="1.0" quantity="0.5" label="&lt; 0.5"/>\
-                        <ColorMapEntry color="#94bff7" opacity="1.0" quantity="1" label="0.5 - 1.0"/>\
-                        <ColorMapEntry color="#278ef4" opacity="1.0" quantity="1.5" label="1.0 - 1.5"/>\
-                        <ColorMapEntry color="#0000cc" opacity="1.0" quantity="2.0" label="1.5 - 2.0"/>\
-                        <ColorMapEntry color="#4A0177" opacity="1.0" quantity="5" label="2.0 - 5.0"/>\
-                        <ColorMapEntry color="#73004c" opacity="1.0" quantity="9999" label="&gt; 5.0"/>\
-                    </ColorMap>\
-                </RasterSymbolizer>'
+            'sld_style': 'arrivaltime_sld_style.txt'
         }
     }
     assert band in style
-    return style[band]
+    style_dict = {}
+    with open(os.path.join(DATASET_DIR, style[band]['sld_style'])) as f:
+        style_string = f.read().replace('\n', '')
+
+    style_dict['sld_style'] = style_string
+    return style_dict
+
 
 def filter_liwo_collection_v1(collection_path, id_key, liwo_ids, band, reducer):
+    """
+    Create combined max image from collection. Version 1 based on unnamed single
+    and multi band images.
+    :param collection_path: Path to Earth Engine Image Collection
+    :param id_key: Metadata key name for unique ids
+    :param scenario_ids: List of scenario ids to combine
+    :param band: band of image to select
+    :param reducer: reducer operation by which to combine images
+    :return: combined image
+    """
     # Filter based on breach location
     collection = ee.ImageCollection(collection_path)
 
@@ -156,7 +104,16 @@ def filter_liwo_collection_v1(collection_path, id_key, liwo_ids, band, reducer):
 
 
 def filter_liwo_collection_v2(collection_path, id_key, scenario_ids, band, reducer):
-    # Filter based on breach location
+    """
+    Create combined max image from collection. Version 2 based on named image bands
+    :param collection_path: Path to Earth Engine Image Collection
+    :param id_key: Metadata key name for unique ids
+    :param scenario_ids: List of scenario ids to combine
+    :param band: band of image to select
+    :param reducer: reducer operation by which to combine images
+    :return: combined image
+    """
+    # Filter based on scenario id, band
     scenarios = ee.ImageCollection(collection_path)
     scenarios = scenarios.filter(ee.Filter.inList(id_key, scenario_ids))
     scenarios = scenarios.filter(ee.Filter.listContains("system:band_names", band))
@@ -170,7 +127,8 @@ def filter_liwo_collection_v2(collection_path, id_key, scenario_ids, band, reduc
         # raise ValueError("No images with band {} in scenario_ids {}".format(band, scenario_ids))
 
     if len(scenario_ids) != n_selected:
-        logging.info("imageName, {}, missing {} scenarios for band {}".format(dst, len(scenario_ids)-n_selected, band))
+        logging.info(
+            "imageName, {}, missing {} scenarios for band {}".format(dst, len(scenario_ids) - n_selected, band))
 
     # get reducer image
     reduce_func = getattr(ee.Reducer, reducer)()
