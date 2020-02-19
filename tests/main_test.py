@@ -308,6 +308,75 @@ class TestClient:
 
         assert 'mapid' in result
 
+    def test_v2_get_liwo_scenarios_max_no_region(self):
+        """test get liwo scenarios max"""
+        request = {
+            "liwo_ids": [11088, 808],
+            "band": "waterdepth"
+        }
+        resp = self.client.post(
+            '/v2/get_liwo_scenarios',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+
+        assert 'mapid' in result
+
+    def test_v2_get_liwo_scenarios_max_export(self):
+        """test get liwo scenarios max"""
+
+        # some of these variables are only used for export
+        request = {
+            "liwo_ids": [11088, 11089, 11090],
+            "band": "waterdepth",
+            "region": {
+                "geodesic": False,
+                "type": "Polygon",
+                "coordinates": [[
+                    [6.0161056877902865, 51.41901371286102],
+                    [6.2495651604465365, 51.417729076754576],
+                    [6.245101964645755, 51.54985700463136],
+                    [6.0174789788059115, 51.54836255319905],
+                    [6.0161056877902865, 51.41901371286102]
+                ]]
+            },
+            "scale": 30,
+            "export": True,
+            "crs": "EPSG:28992"
+        }
+        resp = self.client.post(
+            '/v2/get_liwo_scenarios',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+
+        assert 'mapid' in result
+
+    def test_v2_get_liwo_scenarios_max_regional_and_primary(self):
+        """test get liwo scenarios max"""
+        request = {
+            "liwo_ids": [11088, 808],
+            "band": "waterdepth"
+        }
+        resp = self.client.post(
+            '/v2/get_liwo_scenarios',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+        with open('test-data.txt', 'w') as outfile:
+            json.dump(result, outfile)
+
+        assert 'mapid' in result
+
     def test_get_glossis_data_with_waterlevel(self):
         """test get glossis waterlevel data, latest with no time stamp"""
 

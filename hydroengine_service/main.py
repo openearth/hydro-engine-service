@@ -11,13 +11,13 @@ import ee
 import numpy as np
 import flask_cors
 from flask import Flask
-from flask import Response
-from flask import request
+from flask import request, Response
 from flask import Blueprint
 
 from hydroengine_service import config
 from hydroengine_service import error_handler
 from hydroengine_service import dgds_functions
+from hydroengine_service import liwo_functions
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +37,6 @@ app.register_blueprint(error_handler.error_handler)
 
 v1 = Blueprint("version1", "version1")
 v2 = Blueprint('version2', "version2")
-
-
 
 # if 'privatekey.json' is defined in environmental variable - write it to file
 if 'key' in os.environ:
@@ -145,8 +143,7 @@ def api_get_image_urls():
         'get_image_urls is no longer supported, please update to get_bathymetry'
     )
     r = request.get_json()
-    dataset = r[
-        'dataset']  # bathymetry_jetski | bathymetry_vaklodingen | dem_srtm | ...
+    dataset = r['dataset']  # bathymetry_jetski | bathymetry_vaklodingen | dem_srtm | ...
     t_begin = ee.Date(r['begin_date'])
     t_end = ee.Date(r['end_date'])
     t_step = r['step']
@@ -1240,22 +1237,76 @@ def api_get_raster():
     data = {'url': url}
     return Response(json.dumps(data), status=200, mimetype='application/json')
 
-
-@v1.route('/get_liwo_scenarios', methods=['GET', 'POST'])
+@v2.route('/get_liwo_scenarios', methods=['GET', 'POST'])
 @flask_cors.cross_origin()
 def get_liwo_scenarios():
     r = request.get_json()
 
-    # Currently 'liwo' only option
-    variable = 'liwo'
     # name of breach location as string
     liwo_ids = r['liwo_ids']
     # band name as string
     band = r['band']
 
-    raster_assets = {
-        'liwo': 'users/rogersckw9/liwo/liwo-scenarios-03-2019'
+    collection = 'projects/deltares-rws/liwo/production'
+    id_key = 'Scenario_ID'
+    bands = {
+        'waterdepth': 'waterdiepte',
+        'velocity': 'stroomsnelheid',
+        'riserate': 'stijgsnelheid',
+        'damage': 'schade',
+        'fatalities': 'slachtoffers',
+        'affected': 'getroffenen',
+        'arrivaltime': 'aankomsttijd'
     }
+    reducers = {
+        "waterdepth": "max",
+        "velocity": "max",
+        "riserate": "max",
+        "damage": "max",
+        "fatalities": "max",
+        "affected": "max",
+        "arrivaltime": "min"
+    }
+    # TODO: do we also map old band names for new collection?
+    assert band in bands
+    band_name = bands[band]
+    reducer = reducers[band]
+
+    image = liwo_functions.filter_liwo_collection_v2(collection, id_key, liwo_ids, band_name, reducer)
+    params = liwo_functions.get_liwo_styling(band)
+    info = liwo_functions.generate_image_info(image, params)
+    info['liwo_ids'] = liwo_ids
+    info['band'] = band
+
+    # Following needed for export:
+    # Specify region over which to compute
+    # export  is True or None/False
+    if r.get('export'):
+        region = ee.Geometry(r['region'])
+        # scale of pixels for export, in meters
+        info['scale'] = float(r['scale'])
+        # coordinate system for export projection
+        info['crs'] = r['crs']
+        extra_info = liwo_functions.export_image_response(image, region, info)
+        info.update(extra_info)
+
+    return Response(
+        json.dumps(info),
+        status=200,
+        mimetype='application/json'
+    )
+
+@v1.route('/get_liwo_scenarios', methods=['GET', 'POST'])
+@flask_cors.cross_origin()
+def get_liwo_scenarios():
+    r = request.get_json()
+    # name of breach location as string
+    liwo_ids = r['liwo_ids']
+    # band name as string
+    band = r['band']
+
+    collection = 'users/rogersckw9/liwo/liwo-scenarios-03-2019'
+    id_key = 'LIWO_ID'
     bands = {
         'waterdepth': 'b1',
         'velocity': 'b2',
@@ -1272,165 +1323,20 @@ def get_liwo_scenarios():
         'fatalities': 'max'
     }
     # for now use max as a reducer
-    assert band in reducers
     assert band in bands
+    assert band in reducers
+    band_name = bands[band]
     reducer = reducers[band]
+    image = liwo_functions.filter_liwo_collection_v1(collection, id_key, liwo_ids, band_name, reducer)
 
-    styles = {
-        'waterdepth': {
-            'sld_style': '\
-                <RasterSymbolizer>\
-                    <ColorMap type="intervals">\
-                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01999"/>\
-                        <ColorMapEntry color="#CEFEFE" opacity="1.0" quantity="0.5" label="&lt; 0.5"/>\
-                        <ColorMapEntry color="#94bff7" opacity="1.0" quantity="1" label="0.5 - 1.0"/>\
-                        <ColorMapEntry color="#278ef4" opacity="1.0" quantity="1.5" label="1.0 - 1.5"/>\
-                        <ColorMapEntry color="#0000cc" opacity="1.0" quantity="2.0" label="1.5 - 2.0"/>\
-                        <ColorMapEntry color="#4A0177" opacity="1.0" quantity="5" label="2.0 - 5.0"/>\
-                        <ColorMapEntry color="#73004c" opacity="1.0" quantity="9999" label="&gt; 5.0"/>\
-                    </ColorMap>\
-                </RasterSymbolizer>'
-        },
-        'velocity': {
-            'sld_style': '\
-                <RasterSymbolizer>\
-                    <ColorMap type="intervals">\
-                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01"/>\
-                        <ColorMapEntry color="#FAD7FE" opacity="1.0" quantity="0.5" label="&lt; 0.5"/>\
-                        <ColorMapEntry color="#E95CF5" opacity="1.0" quantity="1" label="0.5 - 1.0"/>\
-                        <ColorMapEntry color="#CB00DB" opacity="1.0" quantity="2" label="1.0 - 2.0"/>\
-                        <ColorMapEntry color="#8100B1" opacity="1.0" quantity="4" label="2.0 - 4.0"/>\
-                        <ColorMapEntry color="#8100D2" opacity="1.0" quantity="1000" label="&gt; 4.0"/>\
-                    </ColorMap>\
-                </RasterSymbolizer>'
-        },
-        'riserate': {
-            'sld_style': '\
-                <RasterSymbolizer>\
-                    <ColorMap type="intervals">\
-                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01"/>\
-                        <ColorMapEntry color="#FFF5E6" opacity="1.0" quantity="0.25" label="&lt; 0.25"/>\
-                        <ColorMapEntry color="#FFD2A8" opacity="1.0" quantity="0.5" label="0.25 - 0.5"/>\
-                        <ColorMapEntry color="#FFAD66" opacity="1.0" quantity="1" label="0.5 - 1.0"/>\
-                        <ColorMapEntry color="#EB7515" opacity="1.0" quantity="2" label="1.0 - 2.0"/>\
-                        <ColorMapEntry color="#B05500" opacity="1.0" quantity="1000000" label="&gt; 2.0"/>\
-                    </ColorMap>\
-                </RasterSymbolizer>'
-        },
-        'damage': {
-            'sld_style': '\
-                <RasterSymbolizer>\
-                    <ColorMap type="intervals">\
-                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01"/>\
-                        <ColorMapEntry color="#499b1b" opacity="1.0" quantity="10000" label="&lt; 10.000"/>\
-                        <ColorMapEntry color="#61f033" opacity="1.0" quantity="100000" label="10.000 - 100.000"/>\
-                        <ColorMapEntry color="#ffbb33" opacity="1.0" quantity="1000000" label="100.000 - 1.000.000"/>\
-                        <ColorMapEntry color="#ff3333" opacity="1.0" quantity="5000000" label="1.000.000 - 5.000.000"/>\
-                        <ColorMapEntry color="#8f3333" opacity="1.0" quantity="1000000000000000" label="&gt; 5.000.000"/>\
-                    </ColorMap>\
-                </RasterSymbolizer>'
-        },
-        'fatalities': {
-            'sld_style': '\
-                <RasterSymbolizer>\
-                    <ColorMap type="intervals">\
-                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.0001"/>\
-                        <ColorMapEntry color="#499b1b" opacity="1.0" quantity="0.1" label="&lt; 0.1"/>\
-                        <ColorMapEntry color="#61f033" opacity="1.0" quantity="0.3" label="0.1 - 0.3"/>\
-                        <ColorMapEntry color="#ffbb33" opacity="1.0" quantity="1" label="0.3 - 1"/>\
-                        <ColorMapEntry color="#ff3333" opacity="1.0" quantity="3" label="1 - 3"/>\
-                        <ColorMapEntry color="#8f3333" opacity="1.0" quantity="10000" label="&gt; 3"/>\
-                    </ColorMap>\
-                </RasterSymbolizer>'
-        }
-    }
+    params = liwo_functions.get_liwo_styling(band)
 
-    # Filter based on breach location
-    collection = ee.ImageCollection(raster_assets[variable])
-
-    # TODO: how to make this generic, consider GraphQL
-    collection = collection.filter(
-        ee.Filter.inList('LIWO_ID', liwo_ids)
-    )
-
-    collection = collection.map(
-        lambda im: im.set('bandNames', im.bandNames())
-    )
-
-    n_selected = collection.size().getInfo()
-
-    if band != 'waterdepth':
-        collection = collection.filterMetadata('bandNames', 'equals', ['b1', 'b2', 'b3', 'b4', 'b5'])
-
-    n_filtered = collection.size().getInfo()
-
-    if n_selected != n_filtered:
-        logging.warning('missing images, selected %s, filtered %s', n_selected, n_filtered)
-
-    # Filter based on band name (characteristic to display)
-    collection = collection.select(bands[band])
-    n_images = collection.size().getInfo()
-    msg = 'No images available for breach locations: %s' % (liwo_ids,)
-    logger.debug(msg)
-
-    if not n_images:
-        raise error_handler.InvalidUsage(msg)
-
-    # get max image
-    reduce_func = getattr(ee.Reducer, reducer)()
-    image = ee.Image(collection.reduce(reduce_func))
-    # clip image to region and show only values greater than 0 (no-data value given in images) .clip(region)
-    image = image.mask(image.gt(0))
-
-    def generate_image_info(im, params):
-        """generate url and tokens for image"""
-        im = ee.Image(im)
-
-        # some images are scaled to a factor of 10.
-        if params.get('scale') == 'log':
-            im = im.log10()
-
-        im = im.sldStyle(params.get('sld_style'))
-
-        m = im.getMapId()
-
-        mapid = m.get('mapid')
-        token = m.get('token')
-
-        url = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'.format(
-            mapid=mapid,
-            token=token
-        )
-
-        result = {
-            'mapid': mapid,
-            'token': token,
-            'url': url
-        }
-        return result
-
-    def export_image_response(image, region, info):
-        """create export response for image"""
-        url = image.getDownloadURL({
-            'name': 'export',
-            'format': 'tif',
-            'crs': info['crs'],
-            'scale': info['scale'],
-            'region': json.dumps(region.bounds(info['scale']).getInfo())
-        })
-        result = {'export_url': url}
-        return result
-
-    # TODO: generate visualization params for map ids
-    params = styles[band]
-
-    info = generate_image_info(image, params)
-    info['variable'] = variable
+    info = liwo_functions.generate_image_info(image, params)
     info['liwo_ids'] = liwo_ids
     info['band'] = band
 
-    # # Following needed for export:
-    # # Specify region over which to compute
+    # Following needed for export:
+    # Specify region over which to compute
     # export  is True or None/False
     if r.get('export'):
         region = ee.Geometry(r['region'])
@@ -1438,7 +1344,7 @@ def get_liwo_scenarios():
         info['scale'] = float(r['scale'])
         # coordinate system for export projection
         info['crs'] = r['crs']
-        extra_info = export_image_response(image, region, info)
+        extra_info = liwo_functions.export_image_response(image, region, info)
         info.update(extra_info)
 
     return Response(
