@@ -20,7 +20,10 @@ class TestDGDSFunctions:
                                  ('projects/dgds-gee/glossis/waveheight', None, None, None),
                                  ('projects/dgds-gee/gloffis/weather', None, None, 5),
                                  ('projects/dgds-gee/gloffis/hydro', None, None, 5),
-                                 ('projects/dgds-gee/metocean/waves/percentiles', None, None, 5)])
+                                 ('projects/dgds-gee/metocean/waves/percentiles', None, None, 5),
+                                 ('projects/dgds-gee/chasm/waves', None, None, None),
+                                 ('projects/dgds-gee/chasm/wind', None, None, None)
+                             ])
     def test_get_image_collection_info(self, source, start_date, end_date, limit):
         image_date_list = dgds_functions.get_image_collection_info(source, start_date, end_date, limit)
 

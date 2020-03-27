@@ -259,6 +259,13 @@ def apply_image_operation(image, operation, data_params=None, band=None):
     if operation == "magnitude":
         image = image.pow(2).reduce(ee.Reducer.sum()).sqrt().rename('magnitude')
     if operation == "flowmap":
+        # if band.contains("speed"):
+        #     speed_band =
+        #     direction_band =
+        #     vector_component_u = speed_band.multiply(cos(direction_band))
+        #     vector_component_v = speed_band.multiply(sin(direction_band))
+        #     image = vector_component_u.addBands(vector_component_v)
+        print(data_params['bandNames'][band])
         image.unitScale(data_params['min'][operation], data_params['max'][operation]).unmask(-9999)
         data_mask = image.eq(-9999).select(data_params['bandNames'][band])
         image = image.clamp(0, 1).addBands(data_mask)
@@ -392,12 +399,15 @@ def _get_wms_url(image_id, type='ImageCollection', band=None, function=None, min
                 vis_params['palette'] = source_params['palette'][function]
             else:
                 assert function == source_params['function'][band]
-                # function = source_params.get('function', None).get(band, None)
+                function = source_params.get('function', None).get(band, None)
+                vis_params['min'] = source_params['min'][band]
+                vis_params['max'] = source_params['max'][band]
+                vis_params['palette'] = source_params['palette'][band]
             # if band_function and not function:
             #     function = source_params['function'][band]
                 # vis_params['function'] = source_params['function'][band]
             vis_params['function'] = function
-            image = apply_image_operation(image, function)
+            image = apply_image_operation(image, function, data_params=vis_params, band=band)
     else:
         try:
             image = image.select(band)

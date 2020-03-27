@@ -177,45 +177,46 @@
 		"bandNames": {
 			"significant_wave_height": "significant_wave_height",
 			"wave_direction": "wave_direction",
-            "wave_period": "wave_period"
+            "wave_period": "wave_period",
+            "turbulence": "turbulence"
 		},
 		"min": {
 			"significant_wave_height": 1.0,
 			"wave_direction": 0.0,
-            "wave_period": 0.0
+            "wave_period": 0.0,
+            "turbulence": 0.0
 		},
 		"max": {
 			"significant_wave_height": 2.0,
 			"wave_direction": 360.0,
-            "wave_period": 6.0
+            "wave_period": 6.0,
+            "turbulence": 6.0
 		},
 		"palette": {
 			"significant_wave_height": ["#042333", "#3c0912", "#730e27", "#a62225", "#c0583b", "#d08b73", "#dfbcb0", "#f1edec"],
 			"wave_direction": [],
-            "wave_period": ["#fff6f4", "#c3d1ba", "#7db390", "#2a937f", "#156d73", "#1c455b", "#151d44", "#042333"]
+            "wave_period": ["#fff6f4", "#c3d1ba", "#7db390", "#2a937f", "#156d73", "#1c455b", "#151d44", "#042333"],
+            "turbulence": ["#e9f6ab", "#d3c671", "#bf9747", "#a1703b", "#795338", "#4d392d", "#221f1b"]
+
 		}
 	},
     "projects/dgds-gee/chasm/wind": {
 		"type": "ImageCollection",
 		"bandNames": {
 			"wind_speed": "wind_speed",
-			"wind_direction": "wind_direction",
-            "turbulence": "turbulence"
+			"wind_direction": "wind_direction"
 		},
 		"min": {
 			"wind_speed": 0.0,
-			"wind_direction": 0.0,
-            "turbulence": 0.0
+			"wind_direction": 0.0
 		},
 		"max": {
 			"wind_speed": 50.0,
-			"wind_direction": 360.0,
-            "turbulence": 6.0
+			"wind_direction": 360.0
 		},
 		"palette": {
 			"wind_speed": ["#172313", "#144b2a", "#187328", "#5f920c", "#aaac20", "#e1cd73", "#fffdcd"],
-			"wind_direction": [],
-            "turbulence": ["#e9f6ab", "#d3c671", "#bf9747", "#a1703b", "#795338", "#4d392d", "#221f1b"]
-		}
+			"wind_direction": []
+        }
 	}
 }
