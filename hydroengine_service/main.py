@@ -1525,7 +1525,7 @@ def get_chasm_data():
 
     if dataset:
         source = 'projects/dgds-gee/chasm/' + dataset
-    if image_id:
+    elif image_id:
         image_location_parameters = image_id.split('/')
         source = ('/').join(image_location_parameters[:-1])
 
