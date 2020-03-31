@@ -1516,14 +1516,18 @@ def get_chasm_data():
     end_date = r.get('endDate', None)
     image_num_limit = r.get('limit', None)
 
+    source = None
+    # Can provide either dataset and/or image_id
     if not (dataset or image_id):
         msg = f'dataset or imageId required.'
         logger.error(msg)
         raise error_handler.InvalidUsage(msg)
+
     if dataset:
         source = 'projects/dgds-gee/chasm/' + dataset
     if image_id:
-        source = image_id
+        image_location_parameters = image_id.split('/')
+        source = ('/').join(image_location_parameters[:-1])
 
     image_info = dgds_functions.get_dgds_data(source, dataset, image_id, band, function, start_date, end_date, image_num_limit)
     if not image_info:
