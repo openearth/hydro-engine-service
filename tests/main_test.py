@@ -581,4 +581,4 @@ class TestClient:
 
         result = json.loads(resp.data)
 
-        assert result['value'] == 3.0175781
+        assert result['value'] == 3.02

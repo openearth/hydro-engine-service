@@ -1498,6 +1498,48 @@ def get_gebco_data():
         mimetype='application/json'
     )
 
+
+@v1.route('/get_chasm_data', methods=['POST'])
+@flask_cors.cross_origin()
+def get_chasm_data():
+    """
+    Get metocean data. dataset must be provided.
+    :return:
+    """
+    r = request.get_json()
+    dataset = r.get('dataset', None)
+    band = r['band']
+    image_id = r.get('imageId', None)
+
+    function = r.get('function', None)
+    start_date = r.get('startDate', None)
+    end_date = r.get('endDate', None)
+    image_num_limit = r.get('limit', None)
+
+    source = None
+    # Can provide either dataset and/or image_id
+    if not (dataset or image_id):
+        msg = f'dataset or imageId required.'
+        logger.error(msg)
+        raise error_handler.InvalidUsage(msg)
+
+    if dataset:
+        source = 'projects/dgds-gee/chasm/' + dataset
+    elif image_id:
+        image_location_parameters = image_id.split('/')
+        source = ('/').join(image_location_parameters[:-1])
+
+    image_info = dgds_functions.get_dgds_data(source, dataset, image_id, band, function, start_date, end_date, image_num_limit)
+    if not image_info:
+        raise error_handler.InvalidUsage('No images returned.')
+
+    return Response(
+        json.dumps(image_info),
+        status=200,
+        mimetype='application/json'
+    )
+
+
 @v1.route('/get_feature_info', methods=['POST'])
 @flask_cors.cross_origin()
 def get_feature_info():
@@ -1549,6 +1591,8 @@ def get_feature_info():
           },
           "type": "Feature"
         }
+    else:
+        value['properties']['value'] = round(value['properties']['value'], 2)
 
     if info_format == 'JSON':
         value = value['properties']
