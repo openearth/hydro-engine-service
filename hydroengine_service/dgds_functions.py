@@ -56,14 +56,15 @@ def get_dgds_data(source,
     """
     # Get list of objects with imageId and date for collection
     data_params = get_dgds_source_vis_params(source, image_id)
-    info = get_image_collection_info(source, start_date, end_date, image_num_limit)
-    if not info:
-        return
-
-    # get most recent to return url
-    returned_url_id = info[-1]["imageId"]
+    info = {}
     if image_id:
         returned_url_id = image_id
+    else:
+        info = get_image_collection_info(source, start_date, end_date, image_num_limit)
+        if not info:
+            return
+        # get most recent to return url
+        returned_url_id = info[-1]["imageId"]
 
     if data_params.get('function', None) and not function:
         function = data_params['function']
@@ -75,7 +76,8 @@ def get_dgds_data(source,
     image_info = _get_wms_url(returned_url_id, type=data_params['type'], band=band, function=function)
     image_info['dataset'] = dataset
     image_info['band'] = band
-    image_info['imageTimeseries'] = info
+    if info:
+        image_info['imageTimeseries'] = info
 
     return image_info
 
