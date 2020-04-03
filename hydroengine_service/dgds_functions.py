@@ -18,7 +18,13 @@ DATASET_DIR = os.path.join(APP_DIR, 'datasets')
 with open(DATASET_DIR + '/dataset_visualization_parameters.json') as json_file:
     DATASETS_VIS = json.load(json_file)
 
+with open(DATASET_DIR + '/elevation_dataset_parameters.json') as json_file:
+    ELEVATION_DATA = json.load(json_file)
+
 logger = logging.getLogger(__name__)
+
+LAND = ee.Image('users/gena/land_polygons_image')
+LANDMASK = LAND.unmask(1, False).Not().resample('bicubic').focal_mode(radius=2)
 
 def get_dgds_source_vis_params(source, image_id=None):
     """
@@ -81,50 +87,42 @@ def get_dgds_data(source,
 
     return image_info
 
-def degree_to_radians_image(image):
-    return ee.Image(image).toFloat().multiply(3.1415927).divide(180)
-
-
-def visualize_gebco(source, band):
+def visualize_elevation(image,
+                        land_mask=LANDMASK,
+                        bathy_only=False,
+                        azimuth=315,
+                        zenith=30,
+                        height_multiplier=30,
+                        weight=0.3,
+                        val_multiply=0.9,
+                        sat_multiply=0.8):
     """
-    Specialized function to visualize GEBCO data
-    :param source: String, Google Earth Engine image id
-    :param band: String, band of image to visualize
-    :return: Dictionary
+    :param image: Google Earth Engine image to visualize
+    :param land_mask: Boolean Google Earth Engine image representing 1 for land mask
+    :param bathy_only: Boolean for visualizing bathymetry only
+    :param azimuth: Angle for hillshade (keep at 315 for good perception)
+    :param zenith: Lower is longer shadows
+    :param height_multiplier:
+    :param weight: Weight between image and  hillshade (1=equal)
+    :param val_multiply: make darker (<1), lighter (>1)
+    :param sat_multiply: make  desaturated (<1) or more saturated (>1)
+    :return: Hillshaded Google Earth Engine image
     """
-    data_params = DATASETS_VIS[source]
-    image = ee.Image(source)
-
-    gebco = image.select(data_params['bandNames'][band])
-    # Angle for hillshade (keep at 315 for good perception)
-    azimuth = 315
-    # Lower is longer shadows
-    zenith = 30
-
-    bathy_only = data_params.get('bathy_only', False)
-
-    height_multiplier = 30
-    # Weight between image and  hillshade (1=equal)
-    weight = 0.3
-    # make darker (<1), lighter (>1)
-    val_multiply = 0.9
-    # make  desaturated (<1) or more saturated (>1)
-    sat_multiply = 0.8
 
     # palettes
     # visualization params
-    topo_rgb = gebco.mask(gebco.gt(0)).visualize(**data_params['topo_vis_params'])
-    bathy_rgb = gebco.mask(gebco.lte(0)).visualize(**data_params['bathy_vis_params'])
+    topo_rgb = image.mask(land_mask).visualize(**data_params['topo_vis_params'])
+    bathy_rgb = image.mask(land_mask.Not()).visualize(**data_params['bathy_vis_params'])
     image_rgb = topo_rgb.blend(bathy_rgb)
 
-    if (bathy_only):
+    if bathy_only:
         # overwrite with masked version
-        image_rgb = bathy_rgb.mask(gebco.multiply(ee.Image(-1)).unitScale(-1, 10).clamp(0, 1))
+        image_rgb = bathy_rgb.mask(image.multiply(ee.Image(-1)).unitScale(-1, 10).clamp(0, 1))
 
     # TODO:  see how this still fits in the hillshade function
     hsv = image_rgb.unitScale(0, 255).rgbToHsv()
 
-    z = gebco.multiply(ee.Image.constant(height_multiplier))
+    z = image.multiply(ee.Image.constant(height_multiplier))
 
     # Compute terrain properties
     terrain = ee.Algorithms.Terrain(z)
@@ -161,23 +159,65 @@ def visualize_gebco(source, band):
 
     hillshaded = ee.Image.cat(hue, sat, val).hsvToRgb()
 
+    return hillshaded
+
+def degree_to_radians_image(image):
+    return ee.Image(image).toFloat().multiply(3.1415927).divide(180)
+
+def resample_landmask(image):
+    return ee.Image(image).resample('bicubic').updateMask(landMask)
+
+def merge_elevation_datasets(dataset_list=None):
+    data_params = DATASETS_VIS["projects/dgds-gee/bathymetry/gebco/2019"]
+    elevation = ELEVATION_DATA
+    if not dataset_list:
+        dataset_list = elevation.keys()
+
+    band_name = 'elevation'
+    land_mask = LANDMASK
+    images = []
+    image_collections = []
+    for dataset in dataset_list:
+        params = elevation.get(dataset, None)
+        if not dataset_params:
+            print('Some warning')
+        type = params.get('type', None)
+        source = params.get('source', None)
+        band = params.get('band', None)
+        bathymetry = params.get('bathymetry', None)
+        topography = params.get('topography', None)
+
+        if type == 'Image':
+            image = ee.Image(source)
+            image = image.select(band).rename(band_name)
+            if dataset == "ALOS":
+                alos_mask = image.mask().eq(1)
+                image = image.resample('bicubic').updateMask(alos_mask.And(land_mask))
+                land_mask = land_mask.Or(image.mask().Not())
+            elif topography and not bathymetry:
+                image = resample_landmask(image)
+            else:
+                image = image.resample('bicubic')
+            images.append(image)
+        elif type == 'ImageCollection':
+            imageCollection = ee.ImageCollection(source)
+            imageCollection = imageCollection.map(resample_landmask)
+            image_collections.append(imageCollection)
+
+    dems = ee.ImageCollection(images)
+    for collection in image_collections:
+        dems = dems.merge(collection)
+
+
+    vis_collection = map(lambda i: visualize_elevation(i, land_mask), dems)
+    final_image = ee.ImageCollection(vis_collection).mosaic()
+    url = _get_gee_url(final_image)
+
     info = {}
-    info['dataset'] = 'gebco'
-    info['band'] = band
+    info['dataset'] = 'bathymetry'
+    info['band'] = band_name
     linear_gradient = []
     palette = data_params['bathy_vis_params']['palette'] + data_params['topo_vis_params']['palette']
-
-    # TODO: call to _generate_image_info
-
-    m = hillshaded.getMapId()
-    mapid = m.get('mapid')
-    token = m.get('token')
-
-    url = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'.format(
-        mapid=mapid,
-        token=token
-    )
-
     n_colors = len(palette)
     offsets = np.linspace(0, 100, num=n_colors)
     for color, offset in zip(palette, offsets):
@@ -186,7 +226,44 @@ def visualize_gebco(source, band):
             'opacity': 100,
             'color': color
         })
+    info.update({
+        'url': url,
+        'linearGradient': linear_gradient,
+        'min': data_params['bathy_vis_params']['min'],
+        'max': data_params['topo_vis_params']['max'],
+        'imageId': source
+    })
+    return info
 
+def visualize_gebco(source, band):
+    """
+    Specialized function to visualize GEBCO data
+    :param source: String, Google Earth Engine image id
+    :param band: String, band of image to visualize
+    :return: Dictionary
+    """
+    data_params = DATASETS_VIS[source]
+    image = ee.Image(source)
+
+    gebco = image.select(data_params['bandNames'][band])
+    land_mask = LANDMASK
+
+    hillshaded = visualize_elevation(gebco, land_mask)
+    url = _get_gee_url(hillshaded)
+
+    info = {}
+    info['dataset'] = 'gebco'
+    info['band'] = band
+    linear_gradient = []
+    palette = data_params['bathy_vis_params']['palette'] + data_params['topo_vis_params']['palette']
+    n_colors = len(palette)
+    offsets = np.linspace(0, 100, num=n_colors)
+    for color, offset in zip(palette, offsets):
+        linear_gradient.append({
+            'offset': '{:.3f}%'.format(offset),
+            'opacity': 100,
+            'color': color
+        })
     info.update({
         'url': url,
         'linearGradient': linear_gradient,
@@ -429,3 +506,16 @@ def _get_wms_url(image_id, type='ImageCollection', band=None, function=None, min
         info['max'] = 10 ** vis_params['max']
 
     return info
+
+def _get_gee_url(image):
+
+    m = image.getMapId()
+    mapid = m.get('mapid')
+    token = m.get('token')
+
+    url = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'.format(
+        mapid=mapid,
+        token=token
+    )
+    return url
+
