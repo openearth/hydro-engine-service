@@ -1,0 +1,10 @@
+<RasterSymbolizer>\
+    <ColorMap type="intervals">\
+        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01"/>\
+        <ColorMapEntry color="#FFF5E6" opacity="1.0" quantity="0.25" label="&lt; 0.25"/>\
+        <ColorMapEntry color="#FFD2A8" opacity="1.0" quantity="0.5" label="0.25 - 0.5"/>\
+        <ColorMapEntry color="#FFAD66" opacity="1.0" quantity="1" label="0.5 - 1.0"/>\
+        <ColorMapEntry color="#EB7515" opacity="1.0" quantity="2" label="1.0 - 2.0"/>\
+        <ColorMapEntry color="#B05500" opacity="1.0" quantity="1000000" label="&gt; 2.0"/>\
+    </ColorMap>\
+</RasterSymbolizer>

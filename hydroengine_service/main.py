@@ -11,11 +11,13 @@ import ee
 import numpy as np
 import flask_cors
 from flask import Flask
-from flask import Response
-from flask import request
+from flask import request, Response
+from flask import Blueprint
 
 from hydroengine_service import config
 from hydroengine_service import error_handler
+from hydroengine_service import dgds_functions
+from hydroengine_service import liwo_functions
 
 logger = logging.getLogger(__name__)
 
@@ -29,14 +31,12 @@ consoleHandler.setFormatter(logFormatter)
 
 logger.addHandler(consoleHandler)
 
-# if __name__ == '__main__':
-#    import config
-# else:
-#    from . import config
-
 app = Flask(__name__)
 
 app.register_blueprint(error_handler.error_handler)
+
+v1 = Blueprint("version1", "version1")
+v2 = Blueprint('version2', "version2")
 
 # if 'privatekey.json' is defined in environmental variable - write it to file
 if 'key' in os.environ:
@@ -56,12 +56,6 @@ EE_CREDENTIALS = ee.ServiceAccountCredentials(config.EE_ACCOUNT,
                                               config.EE_PRIVATE_KEY_FILE)
 
 ee.Initialize(EE_CREDENTIALS)
-
-# visualization parameters for datasets
-APP_DIR = os.path.dirname(os.path.realpath(__file__))
-DATASET_DIR = os.path.join(APP_DIR, 'datasets')
-with open(DATASET_DIR + '/dataset_visualization_parameters.json') as json_file:
-    DATASETS_VIS = json.load(json_file)
 
 # HydroBASINS level 5
 basins = {
@@ -142,15 +136,14 @@ def reduceImageProfile(image, line, reducer, scale):
     return image.reduceRegions(lines, reducer.setOutputs(band_names), scale)
 
 
-@app.route('/get_image_urls', methods=['GET', 'POST'])
+@v1.route('/get_image_urls', methods=['GET', 'POST'])
 @flask_cors.cross_origin()
 def api_get_image_urls():
     logger.warning(
         'get_image_urls is no longer supported, please update to get_bathymetry'
     )
     r = request.get_json()
-    dataset = r[
-        'dataset']  # bathymetry_jetski | bathymetry_vaklodingen | dem_srtm | ...
+    dataset = r['dataset']  # bathymetry_jetski | bathymetry_vaklodingen | dem_srtm | ...
     t_begin = ee.Date(r['begin_date'])
     t_end = ee.Date(r['end_date'])
     t_step = r['step']
@@ -228,7 +221,7 @@ def api_get_image_urls():
     return resp
 
 
-@app.route('/get_sea_surface_height_time_series', methods=['POST'])
+@v1.route('/get_sea_surface_height_time_series', methods=['POST'])
 @flask_cors.cross_origin()
 def get_sea_surface_height_time_series():
     """generate bathymetry image for a certain timespan (begin_date, end_date) and a dataset {jetski | vaklodingen | kustlidar}"""
@@ -255,7 +248,7 @@ def get_sea_surface_height_time_series():
     return Response(json.dumps(ssh_rows.getInfo()), status=200, mimetype='application/json')
 
 
-@app.route('/get_sea_surface_height_trend_image', methods=['GET', 'POST'])
+@v1.route('/get_sea_surface_height_trend_image', methods=['GET', 'POST'])
 @flask_cors.cross_origin()
 def get_sea_surface_height_trend_image():
     """generate bathymetry image for a certain timespan (begin_date, end_date) and a dataset {jetski | vaklodingen | kustlidar}"""
@@ -321,7 +314,7 @@ def hillshade(image_rgb, elevation, reproject, height_multiplier=500,  weight=1.
     return ee.Image.cat(huesat, intensity).hsvToRgb()
 
 
-@app.route('/get_bathymetry', methods=['GET', 'POST'])
+@v1.route('/get_bathymetry', methods=['GET', 'POST'])
 @flask_cors.cross_origin()
 def api_get_bathymetry():
     """generate bathymetry image for a certain timespan (begin_date, end_date) and a dataset {jetski | vaklodingen | kustlidar}"""
@@ -439,7 +432,7 @@ def api_get_bathymetry():
     return resp
 
 
-@app.route('/get_raster_profile', methods=['GET', 'POST'])
+@v1.route('/get_raster_profile', methods=['GET', 'POST'])
 @flask_cors.cross_origin()
 def api_get_raster_profile():
     r = request.get_json()
@@ -474,7 +467,7 @@ def api_get_raster_profile():
     return resp
 
 
-@app.route('/get_water_mask_raw', methods=['POST'])
+@v1.route('/get_water_mask_raw', methods=['POST'])
 def get_water_mask_raw():
     """
     Extracts water mask from raw satellite data.
@@ -576,7 +569,7 @@ def transform_feature(crs, scale):
                                  ee.Number(scale).divide(100))
 
 
-@app.route('/get_water_mask', methods=['POST', 'GET'])
+@v1.route('/get_water_mask', methods=['POST', 'GET'])
 def get_water_mask():
     """
     Code Editor URL: https://code.earthengine.google.com/81a463e6f4c9afc607086ece6de8d163
@@ -797,7 +790,7 @@ def generate_skeleton_from_voronoi(scale, water_vector):
     return {"centerline": centerline, "distance": distance}
 
 
-@app.route('/get_water_network', methods=['POST'])
+@v1.route('/get_water_network', methods=['POST'])
 def get_water_network():
     """
     Skeletonize water mask given boundary, converts it into a network
@@ -831,7 +824,7 @@ def get_water_network():
     return Response(json.dumps(data), status=200, mimetype='application/json')
 
 
-@app.route('/get_water_network_properties', methods=['POST'])
+@v1.route('/get_water_network_properties', methods=['POST'])
 def get_water_network_properties():
     """
     Generates variables along water skeleton network polylines.
@@ -948,7 +941,7 @@ def get_water_network_properties():
     return Response(json.dumps(data), status=200, mimetype='application/json')
 
 
-@app.route('/get_catchments', methods=['GET', 'POST'])
+@v1.route('/get_catchments', methods=['GET', 'POST'])
 def api_get_catchments():
     region = ee.Geometry(request.json['region'])
     region_filter = request.json['region_filter']
@@ -986,7 +979,7 @@ def api_get_catchments():
     return resp
 
 
-@app.route('/get_rivers', methods=['GET', 'POST'])
+@v1.route('/get_rivers', methods=['GET', 'POST'])
 def api_get_rivers():
     region = ee.Geometry(request.json['region'])
     region_filter = request.json['region_filter']
@@ -1054,7 +1047,7 @@ def api_get_rivers():
     # return resp
 
 
-@app.route('/get_lakes', methods=['GET', 'POST'])
+@v1.route('/get_lakes', methods=['GET', 'POST'])
 def api_get_lakes():
     region = ee.Geometry(request.json['region'])
     id_only = bool(request.json['id_only'])
@@ -1078,7 +1071,7 @@ def api_get_lakes():
     return Response(json.dumps(data), status=200, mimetype='application/json')
 
 
-@app.route('/get_lake_by_id', methods=['GET', 'POST'])
+@v1.route('/get_lake_by_id', methods=['GET', 'POST'])
 def get_lake_by_id():
     lake_id = int(request.json['lake_id'])
 
@@ -1129,7 +1122,7 @@ def get_lake_water_area(lake_id, scale):
     return {'time': area_times.getInfo(), 'water_area': area_values.getInfo()}
 
 
-@app.route('/get_lake_time_series', methods=['GET', 'POST'])
+@v1.route('/get_lake_time_series', methods=['GET', 'POST'])
 def api_get_lake_time_series():
     lake_id = int(request.json['lake_id'])
     variable = str(request.json['variable'])
@@ -1148,7 +1141,7 @@ def api_get_lake_time_series():
                     mimetype='application/json')
 
 
-@app.route('/get_feature_collection', methods=['GET', 'POST'])
+@v1.route('/get_feature_collection', methods=['GET', 'POST'])
 def api_get_feature_collection():
     region = ee.Geometry(request.json['region'])
 
@@ -1172,7 +1165,7 @@ def api_get_feature_collection():
     return Response(str, status=200, mimetype='application/json')
 
 
-@app.route('/get_raster', methods=['GET', 'POST'])
+@v1.route('/get_raster', methods=['GET', 'POST'])
 def api_get_raster():
     variable = request.json['variable']
     region = ee.Geometry(request.json['region'])
@@ -1244,22 +1237,76 @@ def api_get_raster():
     data = {'url': url}
     return Response(json.dumps(data), status=200, mimetype='application/json')
 
-
-@app.route('/get_liwo_scenarios', methods=['GET', 'POST'])
+@v2.route('/get_liwo_scenarios', methods=['GET', 'POST'])
 @flask_cors.cross_origin()
 def get_liwo_scenarios():
     r = request.get_json()
 
-    # Currently 'liwo' only option
-    variable = 'liwo'
     # name of breach location as string
     liwo_ids = r['liwo_ids']
     # band name as string
     band = r['band']
 
-    raster_assets = {
-        'liwo': 'users/rogersckw9/liwo/liwo-scenarios-03-2019'
+    collection = 'projects/deltares-rws/liwo/production'
+    id_key = 'Scenario_ID'
+    bands = {
+        'waterdepth': 'waterdiepte',
+        'velocity': 'stroomsnelheid',
+        'riserate': 'stijgsnelheid',
+        'damage': 'schade',
+        'fatalities': 'slachtoffers',
+        'affected': 'getroffenen',
+        'arrivaltime': 'aankomsttijd'
     }
+    reducers = {
+        "waterdepth": "max",
+        "velocity": "max",
+        "riserate": "max",
+        "damage": "max",
+        "fatalities": "max",
+        "affected": "max",
+        "arrivaltime": "min"
+    }
+    # TODO: do we also map old band names for new collection?
+    assert band in bands
+    band_name = bands[band]
+    reducer = reducers[band]
+
+    image = liwo_functions.filter_liwo_collection_v2(collection, id_key, liwo_ids, band_name, reducer)
+    params = liwo_functions.get_liwo_styling(band)
+    info = liwo_functions.generate_image_info(image, params)
+    info['liwo_ids'] = liwo_ids
+    info['band'] = band
+
+    # Following needed for export:
+    # Specify region over which to compute
+    # export  is True or None/False
+    if r.get('export'):
+        region = ee.Geometry(r['region'])
+        # scale of pixels for export, in meters
+        info['scale'] = float(r['scale'])
+        # coordinate system for export projection
+        info['crs'] = r['crs']
+        extra_info = liwo_functions.export_image_response(image, region, info)
+        info.update(extra_info)
+
+    return Response(
+        json.dumps(info),
+        status=200,
+        mimetype='application/json'
+    )
+
+@v1.route('/get_liwo_scenarios', methods=['GET', 'POST'])
+@flask_cors.cross_origin()
+def get_liwo_scenarios():
+    r = request.get_json()
+    # name of breach location as string
+    liwo_ids = r['liwo_ids']
+    # band name as string
+    band = r['band']
+
+    collection = 'users/rogersckw9/liwo/liwo-scenarios-03-2019'
+    id_key = 'LIWO_ID'
     bands = {
         'waterdepth': 'b1',
         'velocity': 'b2',
@@ -1276,165 +1323,20 @@ def get_liwo_scenarios():
         'fatalities': 'max'
     }
     # for now use max as a reducer
-    assert band in reducers
     assert band in bands
+    assert band in reducers
+    band_name = bands[band]
     reducer = reducers[band]
+    image = liwo_functions.filter_liwo_collection_v1(collection, id_key, liwo_ids, band_name, reducer)
 
-    styles = {
-        'waterdepth': {
-            'sld_style': '\
-                <RasterSymbolizer>\
-                    <ColorMap type="intervals">\
-                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01999"/>\
-                        <ColorMapEntry color="#CEFEFE" opacity="1.0" quantity="0.5" label="&lt; 0.5"/>\
-                        <ColorMapEntry color="#94bff7" opacity="1.0" quantity="1" label="0.5 - 1.0"/>\
-                        <ColorMapEntry color="#278ef4" opacity="1.0" quantity="1.5" label="1.0 - 1.5"/>\
-                        <ColorMapEntry color="#0000cc" opacity="1.0" quantity="2.0" label="1.5 - 2.0"/>\
-                        <ColorMapEntry color="#4A0177" opacity="1.0" quantity="5" label="2.0 - 5.0"/>\
-                        <ColorMapEntry color="#73004c" opacity="1.0" quantity="9999" label="&gt; 5.0"/>\
-                    </ColorMap>\
-                </RasterSymbolizer>'
-        },
-        'velocity': {
-            'sld_style': '\
-                <RasterSymbolizer>\
-                    <ColorMap type="intervals">\
-                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01"/>\
-                        <ColorMapEntry color="#FAD7FE" opacity="1.0" quantity="0.5" label="&lt; 0.5"/>\
-                        <ColorMapEntry color="#E95CF5" opacity="1.0" quantity="1" label="0.5 - 1.0"/>\
-                        <ColorMapEntry color="#CB00DB" opacity="1.0" quantity="2" label="1.0 - 2.0"/>\
-                        <ColorMapEntry color="#8100B1" opacity="1.0" quantity="4" label="2.0 - 4.0"/>\
-                        <ColorMapEntry color="#8100D2" opacity="1.0" quantity="1000" label="&gt; 4.0"/>\
-                    </ColorMap>\
-                </RasterSymbolizer>'
-        },
-        'riserate': {
-            'sld_style': '\
-                <RasterSymbolizer>\
-                    <ColorMap type="intervals">\
-                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01"/>\
-                        <ColorMapEntry color="#FFF5E6" opacity="1.0" quantity="0.25" label="&lt; 0.25"/>\
-                        <ColorMapEntry color="#FFD2A8" opacity="1.0" quantity="0.5" label="0.25 - 0.5"/>\
-                        <ColorMapEntry color="#FFAD66" opacity="1.0" quantity="1" label="0.5 - 1.0"/>\
-                        <ColorMapEntry color="#EB7515" opacity="1.0" quantity="2" label="1.0 - 2.0"/>\
-                        <ColorMapEntry color="#B05500" opacity="1.0" quantity="1000000" label="&gt; 2.0"/>\
-                    </ColorMap>\
-                </RasterSymbolizer>'
-        },
-        'damage': {
-            'sld_style': '\
-                <RasterSymbolizer>\
-                    <ColorMap type="intervals">\
-                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.01"/>\
-                        <ColorMapEntry color="#499b1b" opacity="1.0" quantity="10000" label="&lt; 10.000"/>\
-                        <ColorMapEntry color="#61f033" opacity="1.0" quantity="100000" label="10.000 - 100.000"/>\
-                        <ColorMapEntry color="#ffbb33" opacity="1.0" quantity="1000000" label="100.000 - 1.000.000"/>\
-                        <ColorMapEntry color="#ff3333" opacity="1.0" quantity="5000000" label="1.000.000 - 5.000.000"/>\
-                        <ColorMapEntry color="#8f3333" opacity="1.0" quantity="1000000000000000" label="&gt; 5.000.000"/>\
-                    </ColorMap>\
-                </RasterSymbolizer>'
-        },
-        'fatalities': {
-            'sld_style': '\
-                <RasterSymbolizer>\
-                    <ColorMap type="intervals">\
-                        <ColorMapEntry color="#FFFFFF" opacity="0.01" quantity="0.0001"/>\
-                        <ColorMapEntry color="#499b1b" opacity="1.0" quantity="0.1" label="&lt; 0.1"/>\
-                        <ColorMapEntry color="#61f033" opacity="1.0" quantity="0.3" label="0.1 - 0.3"/>\
-                        <ColorMapEntry color="#ffbb33" opacity="1.0" quantity="1" label="0.3 - 1"/>\
-                        <ColorMapEntry color="#ff3333" opacity="1.0" quantity="3" label="1 - 3"/>\
-                        <ColorMapEntry color="#8f3333" opacity="1.0" quantity="10000" label="&gt; 3"/>\
-                    </ColorMap>\
-                </RasterSymbolizer>'
-        }
-    }
+    params = liwo_functions.get_liwo_styling(band)
 
-    # Filter based on breach location
-    collection = ee.ImageCollection(raster_assets[variable])
-
-    # TODO: how to make this generic, consider GraphQL
-    collection = collection.filter(
-        ee.Filter.inList('LIWO_ID', liwo_ids)
-    )
-
-    collection = collection.map(
-        lambda im: im.set('bandNames', im.bandNames())
-    )
-
-    n_selected = collection.size().getInfo()
-
-    if band != 'waterdepth':
-        collection = collection.filterMetadata('bandNames', 'equals', ['b1', 'b2', 'b3', 'b4', 'b5'])
-
-    n_filtered = collection.size().getInfo()
-
-    if n_selected != n_filtered:
-        logging.warning('missing images, selected %s, filtered %s', n_selected, n_filtered)
-
-    # Filter based on band name (characteristic to display)
-    collection = collection.select(bands[band])
-    n_images = collection.size().getInfo()
-    msg = 'No images available for breach locations: %s' % (liwo_ids,)
-    logger.debug(msg)
-
-    if not n_images:
-        raise error_handler.InvalidUsage(msg)
-
-    # get max image
-    reduce_func = getattr(ee.Reducer, reducer)()
-    image = ee.Image(collection.reduce(reduce_func))
-    # clip image to region and show only values greater than 0 (no-data value given in images) .clip(region)
-    image = image.mask(image.gt(0))
-
-    def generate_image_info(im, params):
-        """generate url and tokens for image"""
-        im = ee.Image(im)
-
-        # some images are scaled to a factor of 10.
-        if params.get('scale') == 'log':
-            im = im.log10()
-
-        im = im.sldStyle(params.get('sld_style'))
-
-        m = im.getMapId()
-
-        mapid = m.get('mapid')
-        token = m.get('token')
-
-        url = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'.format(
-            mapid=mapid,
-            token=token
-        )
-
-        result = {
-            'mapid': mapid,
-            'token': token,
-            'url': url
-        }
-        return result
-
-    def export_image_response(image, region, info):
-        """create export response for image"""
-        url = image.getDownloadURL({
-            'name': 'export',
-            'format': 'tif',
-            'crs': info['crs'],
-            'scale': info['scale'],
-            'region': json.dumps(region.bounds(info['scale']).getInfo())
-        })
-        result = {'export_url': url}
-        return result
-
-    # TODO: generate visualization params for map ids
-    params = styles[band]
-
-    info = generate_image_info(image, params)
-    info['variable'] = variable
+    info = liwo_functions.generate_image_info(image, params)
     info['liwo_ids'] = liwo_ids
     info['band'] = band
 
-    # # Following needed for export:
-    # # Specify region over which to compute
+    # Following needed for export:
+    # Specify region over which to compute
     # export  is True or None/False
     if r.get('export'):
         region = ee.Geometry(r['region'])
@@ -1442,7 +1344,7 @@ def get_liwo_scenarios():
         info['scale'] = float(r['scale'])
         # coordinate system for export projection
         info['crs'] = r['crs']
-        extra_info = export_image_response(image, region, info)
+        extra_info = liwo_functions.export_image_response(image, region, info)
         info.update(extra_info)
 
     return Response(
@@ -1452,7 +1354,7 @@ def get_liwo_scenarios():
     )
 
 
-@app.route('/get_glossis_data', methods=['POST'])
+@v1.route('/get_glossis_data', methods=['POST'])
 @flask_cors.cross_origin()
 def get_glossis_data():
     """
@@ -1461,203 +1363,109 @@ def get_glossis_data():
     or astronomical_tide is requested
     :return:
     """
-    data_params = DATASETS_VIS['glossis']
-
     r = request.get_json()
-    dataset = r['dataset']
+    dataset = r.get('dataset', None)
+    image_id = r.get('imageId', None)
+    band = r.get('band', None)
 
-    assert (dataset in data_params), '{} not in assets. '.format(dataset)
-    data_params = data_params[dataset]
-    # Get collection based on dataset requested
-    collection = ee.ImageCollection(data_params['source'])
+    function = r.get('function', None)
+    start_date = r.get('startDate', None)
+    end_date = r.get('endDate', None)
+    image_num_limit = r.get('limit', None)
 
-    if 'date' in r:
-        start = ee.Date(r['date'])
-        collection = collection.filterDate(start)
-        # check that at least one image returned. If not, return error
-        n_images = collection.size().getInfo()
-        if not n_images:
-            msg = 'No images available for time: %s' % (r['date'])
-            logger.debug(msg)
-            raise error_handler.InvalidUsage(msg)
-
-    image = ee.Image(collection.sort('system:time_start', False).first())
-    image_date = image.date().format().getInfo()
-    # image_id = image.id().getInfo()
-
-    # Generate image on dataset requested (characteristic to display)
-    band = r.get('band', list(data_params['bandNames'].keys())[0])
-    assert band in data_params['bandNames']
+    if not (dataset or image_id):
+        msg = f'dataset or imageId required.'
+        logger.error(msg)
+        raise error_handler.InvalidUsage(msg)
+    if dataset:
+        source = 'projects/dgds-gee/glossis/'+dataset
+    if image_id:
+        image_location_parameters = image_id.split('/')
+        source = ('/').join(image_location_parameters[:-1])
 
 
-    if dataset in ['wind', 'currents']:
-        function = r.get('function', 'magnitude')
-        assert function in data_params['function']
-        if function == 'magnitude':
-            image = image.pow(2).reduce(ee.Reducer.sum()).sqrt()
-            vis_params = {
-                'min': data_params['min'][function],
-                'max': data_params['max'][function],
-                'palette': data_params['palette'][function]
-            }
-        else:
-            image = image.unitScale(data_params['min'][function], data_params['max'][function]).unmask(-9999)
-            data_mask = image.eq(-9999).select(data_params['bandNames'][band])
-            image = image.clamp(0, 1).addBands(data_mask)
-            vis_params = {
-                'min': data_params['min'][function],
-                'max': data_params['max'][function]
-            }
-    else:
-        image = image.select(data_params['bandNames'][band])
-        vis_params = {
-            'min': data_params['min'][band],
-            'max': data_params['max'][band],
-            'palette': data_params['palette'][band]
-        }
-
-    if 'min' in r:
-        vis_params['min'] = r['min']
-
-    if 'max' in r:
-        vis_params['max'] = r['max']
-
-    if 'palette' in r:
-        vis_params['palette'] = r['palette']
-
-    info = generate_image_info(image, vis_params)
-    info['dataset'] = dataset
-    info['date'] = image_date
-    # info['imageId'] = image_id
-    # info['imageSource'] = data_params['source']
+    image_info = dgds_functions.get_dgds_data(source, dataset, image_id, band, function, start_date, end_date, image_num_limit)
+    if not image_info:
+        raise error_handler.InvalidUsage('No images returned.')
 
     return Response(
-        json.dumps(info),
+        json.dumps(image_info),
         status=200,
         mimetype='application/json'
     )
 
 
-@app.route('/get_gloffis_data', methods=['POST'])
+@v1.route('/get_gloffis_data', methods=['POST'])
 @flask_cors.cross_origin()
 def get_gloffis_data():
     """
     Get GLOFFIS data. dataset must be provided.
     :return:
     """
-    data_params = DATASETS_VIS['gloffis']
-
     r = request.get_json()
-
-    dataset = r['dataset']
-    assert (dataset in data_params), '{} not in assets. '.format(dataset)
-    data_params = data_params[dataset]
-
+    dataset = r.get('dataset', None)
     band = r['band']
-    assert band in data_params['bandNames'].keys(), '{} not in bands. '.format(band)
+    image_id = r.get('imageId', None)
 
-    # Get collection based on dataset requested
-    collection = ee.ImageCollection(data_params['source'])
+    function = r.get('function', None)
+    start_date = r.get('startDate', None)
+    end_date = r.get('endDate', None)
+    image_num_limit = r.get('limit', None)
 
-    if 'date' in r:
-        start = ee.Date(r['date'])
-        collection = collection.filterDate(start)
-        # check that at least one image returned. If not, return error
-        n_images = collection.size().getInfo()
-        if not n_images:
-            msg = 'No images available for time: %s' % (r['date'])
-            logger.debug(msg)
-            raise error_handler.InvalidUsage(msg)
+    source = None
+    if not (dataset or image_id):
+        msg = f'dataset or imageId required.'
+        logger.error(msg)
+        raise error_handler.InvalidUsage(msg)
+    if dataset:
+        source = 'projects/dgds-gee/gloffis/' + dataset
+    if image_id:
+        image_location_parameters = image_id.split('/')
+        source = ('/').join(image_location_parameters[:-1])
 
-    image = ee.Image(collection.sort('system:time_start', False).first())
-    image_date = collection.sort('system:time_start', False).first().date().format().getInfo()
-
-    image = image.select(band)
-
-    vis_params = {
-        'min': data_params['min'][band],
-        'max': data_params['max'][band],
-        'palette': data_params['palette'][band]
-    }
-
-    if dataset == 'hydro':
-        image = image.mask(image.gte(0))
-
-    if band == 'discharge_routed_simulated':
-        image = image.log()
-
-    if 'min' in r:
-        vis_params['min'] = r['min']
-
-    if 'max' in r:
-        vis_params['max'] = r['max']
-
-    if 'palette' in r:
-        vis_params['palette'] = r['palette']
-
-    info = generate_image_info(image, vis_params)
-    info['dataset'] = dataset
-    info['band'] = band
-    info['date'] = image_date
-
-    if band == 'discharge_routed_simulated':
-        info['min'] = 10**vis_params['min']
-        info['max'] = 10**vis_params['max']
+    image_info = dgds_functions.get_dgds_data(source, dataset, image_id, band, function, start_date, end_date, image_num_limit)
+    if not image_info:
+        raise error_handler.InvalidUsage('No images returned.')
 
     return Response(
-        json.dumps(info),
+        json.dumps(image_info),
         status=200,
         mimetype='application/json'
     )
 
 
-@app.route('/get_metocean_data', methods=['POST'])
+@v1.route('/get_metocean_data', methods=['POST'])
 @flask_cors.cross_origin()
 def get_metocean_data():
     """
     Get metocean data. dataset must be provided.
     :return:
     """
-
-    data_params = DATASETS_VIS['metocean']
-
     r = request.get_json()
+    dataset = r.get('dataset', None)
+    band = r['band']
+    image_id = r.get('imageId', None)
 
-    dataset = r['dataset']
-    assert (dataset in data_params), '{} not in assets. '.format(dataset)
-    data_params = data_params[dataset]
+    function = r.get('function', None)
+    start_date = r.get('startDate', None)
+    end_date = r.get('endDate', None)
+    image_num_limit = r.get('limit', None)
 
-    band = list(data_params['bandNames'].keys())[0]
-    if 'band' in r:
-        band = r['band']
-        assert band in data_params['bandNames'], '{} not in bands. '.format(band)
+    if not (dataset or image_id):
+        msg = f'dataset or imageId required.'
+        logger.error(msg)
+        raise error_handler.InvalidUsage(msg)
+    if dataset:
+        source = 'projects/dgds-gee/metocean/waves/' + dataset
+    if image_id:
+        source = image_id
 
-    # Get collection based on dataset requested
-    image = ee.Image(data_params['source'])
-
-    image = image.select(data_params['bandNames'][band])
-
-    vis_params = {
-        'min': data_params['min'][band],
-        'max': data_params['max'][band],
-        'palette': data_params['palette'][band]
-    }
-
-    if 'min' in r:
-        vis_params['min'] = r['min']
-
-    if 'max' in r:
-        vis_params['max'] = r['max']
-
-    if 'palette' in r:
-        vis_params['palette'] = r['palette']
-
-    info = generate_image_info(image, vis_params)
-    info['dataset'] = dataset
-    info['band'] = band
+    image_info = dgds_functions.get_dgds_data(source, dataset, image_id, band, function, start_date, end_date, image_num_limit)
+    if not image_info:
+        raise error_handler.InvalidUsage('No images returned.')
 
     return Response(
-        json.dumps(info),
+        json.dumps(image_info),
         status=200,
         mimetype='application/json'
     )
@@ -1901,120 +1709,151 @@ def get_windfarm_data():
     return response
 
 
-@app.route('/get_gebco_data', methods=['POST'])
+@v1.route('/get_gebco_data', methods=['GET', 'POST'])
 @flask_cors.cross_origin()
 def get_gebco_data():
     r = request.get_json()
+    dataset = r.get('dataset', 'gebco')
+    band = r.get('band', 'elevation')
+    image_id = r.get('imageId', None)
 
-    data_params = DATASETS_VIS['bathymetry']['gebco']
-    image = ee.Image(data_params['source'])
-    band = data_params['bandNames']['elevation']
+    start_date = r.get('startDate', None)
+    end_date = r.get('endDate', None)
+    image_num_limit = r.get('limit', None)
 
-    gebco = image.select(band)
+    if dataset:
+        source = 'projects/dgds-gee/bathymetry/' + dataset + '/2019'
+    if image_id:
+        source = image_id
 
-    # Angle for hillshade (keep at 315 for good perception)
-    azimuth = 315
-    # Lower is longer shadows
-    zenith = 30
+    image_info = dgds_functions.get_dgds_data(source, dataset, image_id, band, start_date, end_date, image_num_limit)
+    if not image_info:
+        raise error_handler.InvalidUsage('No images returned.')
 
-    bathy_only = data_params.get('bathy_only', False)
-
-    height_multiplier = 30
-    # Weight between image and  hillshade (1=equal)
-    weight = 0.3
-    # make darker (<1), lighter (>1)
-    val_multiply = 0.9
-    # make  desaturated (<1) or more saturated (>1)
-    sat_multiply = 0.8
-
-    # palettes
-    # visualization params
-    topo_rgb = gebco.mask(gebco.gt(0)).visualize(**data_params['topo_vis_params'])
-    bathy_rgb = gebco.mask(gebco.lte(0)).visualize(**data_params['bathy_vis_params'])
-    image_rgb = topo_rgb.blend(bathy_rgb)
-
-    if (bathy_only):
-        # overwrite with masked version
-        image_rgb = bathy_rgb.mask(gebco.multiply(ee.Image(-1)).unitScale(-1, 10).clamp(0, 1))
-
-
-    # TODO:  see how this still fits in the hillshade function
-    hsv = image_rgb.unitScale(0, 255).rgbToHsv()
-
-    z = gebco.multiply(ee.Image.constant(height_multiplier))
-
-    def radians(image):
-        return ee.Image(image).toFloat().multiply(3.1415927).divide(180)
-
-
-    # Compute terrain properties
-    terrain = ee.Algorithms.Terrain(z)
-    slope = radians(terrain.select(['slope']))
-    aspect = radians(terrain.select(['aspect'])).resample('bicubic')
-    azimuth = radians(ee.Image.constant(azimuth))
-    zenith = radians(ee.Image.constant(zenith))
-    # hillshade
-    hs = (
-        azimuth
-        .subtract(aspect)
-        .cos()
-        .multiply(slope.sin())
-        .multiply(zenith.sin())
-        .add(
-            zenith
-            .cos()
-            .multiply(
-                slope.cos()
-            )
-        )
-        .resample('bicubic')
+    return Response(
+        json.dumps(image_info),
+        status=200,
+        mimetype='application/json'
     )
 
-    # weighted average of hillshade and value
-    intensity = hs.multiply(hsv.select('value'))
 
+@v1.route('/get_chasm_data', methods=['POST'])
+@flask_cors.cross_origin()
+def get_chasm_data():
+    """
+    Get metocean data. dataset must be provided.
+    :return:
+    """
+    r = request.get_json()
+    dataset = r.get('dataset', None)
+    band = r['band']
+    image_id = r.get('imageId', None)
 
+    function = r.get('function', None)
+    start_date = r.get('startDate', None)
+    end_date = r.get('endDate', None)
+    image_num_limit = r.get('limit', None)
 
-    hue = hsv.select('hue')
+    source = None
+    # Can provide either dataset and/or image_id
+    if not (dataset or image_id):
+        msg = f'dataset or imageId required.'
+        logger.error(msg)
+        raise error_handler.InvalidUsage(msg)
 
-    # desaturate a bit
-    sat = hsv.select('saturation').multiply(sat_multiply)
-    # make a bit darker
-    val = intensity.multiply(val_multiply)
+    if dataset:
+        source = 'projects/dgds-gee/chasm/' + dataset
+    elif image_id:
+        image_location_parameters = image_id.split('/')
+        source = ('/').join(image_location_parameters[:-1])
 
-    hillshaded = ee.Image.cat(hue, sat, val).hsvToRgb()
+    image_info = dgds_functions.get_dgds_data(source, dataset, image_id, band, function, start_date, end_date, image_num_limit)
+    if not image_info:
+        raise error_handler.InvalidUsage('No images returned.')
 
-    info = {}
-    info['dataset'] = 'gebco'
-    info['band'] = band
-
-    m = hillshaded.getMapId()
-    mapid = m.get('mapid')
-    token = m.get('token')
-
-    url = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'.format(
-        mapid=mapid,
-        token=token
+    return Response(
+        json.dumps(image_info),
+        status=200,
+        mimetype='application/json'
     )
 
-    linear_gradient = []
-    palette = data_params['bathy_vis_params']['palette'] + data_params['topo_vis_params']['palette']
-    n_colors = len(palette)
-    offsets = np.linspace(0, 100, num=n_colors)
-    for color, offset in zip(palette, offsets):
-        linear_gradient.append({
-            'offset': '{:.3f}%'.format(offset),
-            'opacity': 100,
-            'color': color
+
+@v1.route('/get_feature_info', methods=['POST'])
+@flask_cors.cross_origin()
+def get_feature_info():
+    """
+    Get image value at point
+    :return:
+    """
+    r = request.get_json()
+    image_id = r['imageId']
+    bbox = r['bbox']
+    band = r.get('band', None)
+    function = r.get('function', None)
+    info_format = r.get('info_format', 'JSON')
+
+    image = ee.Image(image_id)
+    image_location_parameters = image_id.split('/')
+    source = ('/').join(image_location_parameters[:-1])
+
+    data_params = dgds_functions.get_dgds_source_vis_params(source, image_id)
+
+    if band:
+        band_name = data_params['bandNames'][band]
+        image = image.select(band_name)
+    if function:
+        assert (function in data_params.get('function', None)) or \
+               (function == data_params['function'].get(band, None)), \
+            f'{function} not an option.'
+
+    image = dgds_functions.apply_image_operation(image, function, data_params, band)
+    image = image.rename('value')
+
+    value = (
+        image.sample(**{
+            'region': ee.Geometry(bbox),
+            'geometries': True
         })
+        .first()
+        .getInfo()
+    )
 
-    info.update({
-        'mapid': mapid,
-        'token': token,
-        'url': url,
-        'linearGradient': linear_gradient
-    })
+    # if no data at point, value will be None.
+    if not value:
+        # return Feature with value None (standard return format from GEE)
+        value = {
+          "geometry": bbox,
+          "id": "0",
+          "properties": {
+            "value": None
+          },
+          "type": "Feature"
+        }
+    else:
+        value['properties']['value'] = round(value['properties']['value'], 2)
 
+    if info_format == 'JSON':
+        value = value['properties']
+
+    return Response(
+        json.dumps(value),
+        status=200,
+        mimetype='application/json'
+    )
+
+
+@v1.route('/get_image_collection_info', methods=['POST'])
+@flask_cors.cross_origin()
+def get_image_collection_info():
+    r = request.get_json()
+    source = r['source']
+    start_date = r.get('startDate', None)
+    end_date = r.get('endDate', None)
+    image_num_limit = r.get('limit', None)
+
+    info = dgds_functions.get_image_collection_info(source, start_date, end_date, image_num_limit)
+    if not info:
+        raise error_handler.InvalidUsage('No images returned.')
 
     return Response(
         json.dumps(info),
@@ -2023,57 +1862,28 @@ def get_gebco_data():
     )
 
 
-def generate_image_info(im, params):
-    """"generate url and tokens for image"""
-    image = ee.Image(im)
+@v1.route('/get_wms_url', methods=['POST'])
+@flask_cors.cross_origin()
+def get_wms_url():
+    # TODO: check how many bands, if band is not specified return warning.
+    r = request.get_json()
+    image_id = r['imageId']
+    band = r.get('band', None)
+    function = r.get('function', None)
+    min = r.get('min', None)
+    max = r.get('max', None)
+    palette = r.get('palette', None)
 
-    if 'sld_style' in params:
-        m = image.sldStyle(params.get('sld_style'))
-        del params['sld_style']
-    elif 'palette' in params:
-        m = image.visualize(**{
-            'min': params.get('min'),
-            'max': params.get('max'),
-            'palette': params.get('palette')
-        })
-    else:
-        m = image
+    info = dgds_functions.get_wms_url(image_id, 'Image', band, function, min, max, palette)
 
-    if 'hillshade' in params:
-        # also pass along hillshade arguments
-        hillshade_args = params.get('hillshade_args',  {})
-        m = hillshade(m, image, False, **hillshade_args)
-
-    m = m.getMapId()
-    mapid = m.get('mapid')
-    token = m.get('token')
-
-    url = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'.format(
-        mapid=mapid,
-        token=token
+    return Response(
+        json.dumps(info),
+        status=200,
+        mimetype='application/json'
     )
 
-    linear_gradient = []
-    if 'palette' in params:
-        n_colors = len(params.get('palette'))
-        palette = params.get('palette')
-        offsets = np.linspace(0, 100, num=n_colors)
-        for color, offset in zip(palette, offsets):
-            linear_gradient.append({
-                'offset': '{:.3f}%'.format(offset),
-                'opacity': 100,
-                'color': color
-            })
 
-    params.update({
-        'mapid': mapid,
-        'token': token,
-        'url': url,
-        'linearGradient': linear_gradient})
-    return params
-
-
-@app.route('/')
+@v1.route('/')
 def root():
     return 'Welcome to Hydro Earth Engine. Currently, only RESTful API is supported. Visit <a href="http://github.com/deltares/hydro-engine">http://github.com/deltares/hydro-engine</a> for more information ...'
 
@@ -2085,6 +1895,12 @@ def server_error(e):
     An internal error occurred: <pre>{}</pre>
     See logs for full stacktrace.
     """.format(e), 500
+
+# Note, this should be here. Don't move this above.
+app.register_blueprint(v1, url_prefix="/v1")
+app.register_blueprint(v2, url_prefix="/v2")
+# use version 1
+app.register_blueprint(v1, url_prefix="/")
 
 
 if __name__ == '__main__':

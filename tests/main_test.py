@@ -1,7 +1,7 @@
 import os
 import json
-import unittest
 import logging
+import pytest
 
 from . import auth
 
@@ -12,7 +12,8 @@ from hydroengine_service import main
 logger = logging.getLogger(__name__)
 
 
-class TestClient(unittest.TestCase):
+class TestClient:
+    @pytest.fixture(autouse=True)
     def setUp(self):
         main.app.testing = True
         self.client = main.app.test_client()
@@ -287,7 +288,6 @@ class TestClient(unittest.TestCase):
 
         assert 'mapid' in result
 
-
     def test_get_liwo_scenarios_max_regional_and_primary(self):
         """test get liwo scenarios max"""
         request = {
@@ -297,6 +297,75 @@ class TestClient(unittest.TestCase):
         }
         resp = self.client.post(
             '/get_liwo_scenarios',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+        with open('test-data.txt', 'w') as outfile:
+            json.dump(result, outfile)
+
+        assert 'mapid' in result
+
+    def test_v2_get_liwo_scenarios_max_no_region(self):
+        """test get liwo scenarios max"""
+        request = {
+            "liwo_ids": [11088, 808],
+            "band": "waterdepth"
+        }
+        resp = self.client.post(
+            '/v2/get_liwo_scenarios',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+
+        assert 'mapid' in result
+
+    def test_v2_get_liwo_scenarios_max_export(self):
+        """test get liwo scenarios max"""
+
+        # some of these variables are only used for export
+        request = {
+            "liwo_ids": [11088, 11089, 11090],
+            "band": "waterdepth",
+            "region": {
+                "geodesic": False,
+                "type": "Polygon",
+                "coordinates": [[
+                    [6.0161056877902865, 51.41901371286102],
+                    [6.2495651604465365, 51.417729076754576],
+                    [6.245101964645755, 51.54985700463136],
+                    [6.0174789788059115, 51.54836255319905],
+                    [6.0161056877902865, 51.41901371286102]
+                ]]
+            },
+            "scale": 30,
+            "export": True,
+            "crs": "EPSG:28992"
+        }
+        resp = self.client.post(
+            '/v2/get_liwo_scenarios',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+
+        assert 'mapid' in result
+
+    def test_v2_get_liwo_scenarios_max_regional_and_primary(self):
+        """test get liwo scenarios max"""
+        request = {
+            "liwo_ids": [11088, 808],
+            "band": "waterdepth"
+        }
+        resp = self.client.post(
+            '/v2/get_liwo_scenarios',
             data=json.dumps(request),
             content_type='application/json'
         )
@@ -324,7 +393,7 @@ class TestClient(unittest.TestCase):
 
         result = json.loads(resp.data)
 
-        assert 'mapid' in result
+        assert 'band' in result
         assert result['dataset'] == "waterlevel"
 
     def test_get_glossis_data_with_current(self):
@@ -342,15 +411,16 @@ class TestClient(unittest.TestCase):
 
         result = json.loads(resp.data)
 
-        assert 'mapid' in result
+        assert result['function'] == 'magnitude'
+        assert result['band'] == None
         assert result['dataset'] == "currents"
 
-    def test_get_glossis_data_with_date(self):
+    def test_get_glossis_data_by_id(self):
         """test get glossis current data"""
 
+        image_id = "projects/dgds-gee/glossis/wind/glossis_wind_20190808000000"
         request = {
-            "dataset": "wind",
-            "date": "2019-08-08T00:00:00"
+            "imageId": image_id
         }
         resp = self.client.post(
             '/get_glossis_data',
@@ -361,7 +431,9 @@ class TestClient(unittest.TestCase):
 
         result = json.loads(resp.data)
 
-        assert 'mapid' in result
+        assert 'function' in result
+        assert result['band'] == None
+        assert result['imageId'] == image_id
         assert result['date'] == "2019-08-08T00:00:00"
 
     def test_get_glossis_data_with_wrong_date(self):
@@ -369,7 +441,8 @@ class TestClient(unittest.TestCase):
 
         request = {
             "dataset": "waterlevel",
-            "date": "2018-06-18T22:00:00"
+            "band": "water_level",
+            "startDate": "2018-06-18T22:00:00"
         }
         resp = self.client.post(
             '/get_glossis_data',
@@ -394,7 +467,34 @@ class TestClient(unittest.TestCase):
 
         result = json.loads(resp.data)
 
-        assert 'mapid' in result
+        assert 'url' in result
+        assert 'band' in result
+        assert 'imageId' in result
+        assert result['min'] == -50
+        assert result['max'] == 50
+
+    def test_get_gloffis_data_log(self):
+        """test get gloffis hydro data"""
+
+        request = {
+            "dataset": "hydro",
+            "band": "discharge_routed_simulated"
+        }
+        resp = self.client.post(
+            '/get_gloffis_data',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+
+        assert 'url' in result
+        assert 'band' in result
+        assert 'function' in result
+        assert 'imageId' in result
+        assert result['min'] == 1.0
+        assert result['max'] == 1000000.0
 
     def test_get_metocean_data(self):
         """test get metocean percentile data"""
@@ -412,7 +512,9 @@ class TestClient(unittest.TestCase):
 
         result = json.loads(resp.data)
 
-        assert 'mapid' in result
+        assert 'url' in result
+        assert result['imageId'] == 'projects/dgds-gee/metocean/waves/percentiles'
+        assert 'function' not in result
 
     def test_get_gebco_data(self):
         """test get gebco data"""
@@ -429,7 +531,54 @@ class TestClient(unittest.TestCase):
 
         result = json.loads(resp.data)
 
-        assert 'mapid' in result
+        assert result['band'] == 'elevation'
+        assert 'function' not in result
 
-if __name__ == '__main__':
-    unittest.main()
+    def test_get_feature_info_null(self):
+        request = {
+            "imageId": "projects/dgds-gee/gloffis/hydro/gloffis_hydro_20190829000000",
+            "band": "discharge_routed_simulated",
+            "function": "log",
+            "bbox": {
+                "type": "Point",
+                "coordinates": [
+                    -28.23,
+                    49.05
+                ]
+            }
+        }
+        resp = self.client.post(
+            '/get_feature_info',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        print(resp)
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+
+        assert result['value'] is None
+
+    def test_get_feature_info(self):
+        request = {
+            "imageId": "projects/dgds-gee/metocean/waves/percentiles",
+            "band": "50th",
+            "bbox": {
+                "type": "Point",
+                "coordinates": [
+                    -28.23,
+                    49.05
+                ]
+            }
+        }
+        resp = self.client.post(
+            '/get_feature_info',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        print(resp)
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+
+        assert result['value'] == 3.02
