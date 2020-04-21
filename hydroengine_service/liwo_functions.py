@@ -132,15 +132,8 @@ def filter_liwo_collection_v2(collection_path, id_key, scenario_ids, band, reduc
 
     # get reducer image
     reduce_func = getattr(ee.Reducer, reducer)()
-    if reducer == 'max':
-        image = ee.Image(scenarios.reduce(reduce_func))
-        # clip image to region and show only values greater than 0 (no-data value given in images) .clip(region)
-        image = image.mask(image.gt(0))
-    if reducer == 'min':
-        scenarios = scenarios.map(lambda i: i.mask(i.gt(0)))
-        image = ee.Image(scenarios.reduce(reduce_func))
-    else:
-        image = ee.Image(scenarios.reduce(reduce_func))
+    scenarios = scenarios.map(lambda i: i.mask(i.gt(0)))
+    image = ee.Image(scenarios.reduce(reduce_func))
 
     return image
 
