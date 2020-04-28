@@ -130,10 +130,16 @@ def filter_liwo_collection_v2(collection_path, id_key, scenario_ids, band, reduc
         logging.info(
             "imageName, {}, missing {} scenarios for band {}".format(dst, len(scenario_ids) - n_selected, band))
 
-    # get reducer image
+    # reduce image
     reduce_func = getattr(ee.Reducer, reducer)()
-    scenarios = scenarios.map(lambda i: i.mask(i.gt(0)))
+    if reducer == 'min':
+        # Aankomstijden <= 0 should not be included in the aggregated minimum
+        scenarios = scenarios.map(lambda i: i.mask(i.gt(0)))
+
     image = ee.Image(scenarios.reduce(reduce_func))
+    if reducer == 'max':
+        # Do not display any values <= 0 (Some no data values assigned as 0 and not -9999).
+        image = image.mask(image.gt(0))
 
     return image
 
