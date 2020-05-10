@@ -10,6 +10,7 @@ import os
 
 import ee
 import numpy as np
+import geojson
 import flask_cors
 from flask import Flask
 from flask import request, Response
@@ -1482,32 +1483,18 @@ def get_windfarm_data():
     collection = ee.FeatureCollection(features)
 
 
-    ports = ee.FeatureCollection("users/fbaart/osm/ne_50m_ports")
-    coast = ee.Image("users/gena/land_polygons_image")
+    ports = ee.FeatureCollection("users/fbaart/worldlogistic/port")
     gebco = ee.Image("projects/dgds-gee/gebco/2019")
-
-    data_params = config.DATASETS_VIS['era5']['wind']
-    era5 = ee.ImageCollection(data_params['source'])
+    coast = ee.Image("users/gena/land_polygons_image")
+    wind = ee.Image("projects/dgds-gee/gwa/gwa3/10m").rename('wind_magnitude_mean')
 
     scale = 1000
-    bands = [data_params['bandNames']['u'], data_params['bandNames']['v']]
-
-    months = era5.sort('system:time_start', False).toList(12)
-    # select u and v
-    def select_bands(image):
-        return image.select(bands)
-
-
-    months = ee.ImageCollection(months).map(select_bands)
-    # compute mean
-    annual = months.reduce(ee.Reducer.mean())
-
-    meanWind = digitwin.magnitude(annual)
+    max_distance = 200000
 
     distanceToPort = (
         ports
         .distance(**{
-            'searchRadius': 200000,
+            'searchRadius': max_distance,
             'maxError': 1000
         })
         .rename('distance_to_port')
@@ -1524,7 +1511,7 @@ def get_windfarm_data():
         .rename('distance_to_coast')
     )
 
-    dataset = meanWind.addBands(gebco.rename('bathymetry'))
+    dataset = wind.addBands(gebco.rename('bathymetry'))
     dataset = dataset.addBands(distanceToPort)
     dataset = dataset.addBands(distanceToCoast)
 
@@ -1534,12 +1521,21 @@ def get_windfarm_data():
         "reducer": ee.Reducer.mean(),
         "scale": 1000
     })
-    feature = meanWindFarm.first()
-    grid = digitwin.create_turbine_grid(feature)
+    # compute area
+    meanWindFarm = meanWindFarm.map(digitwin.compute_area)
+    print('area', meanWindFarm.getInfo())
+    # compute grid parameters
+    meanWindFarm = meanWindFarm.map(digitwin.create_turbine_grid)
 
-    meanWindFarm = meanWindFarm.map(digitwin.compute_feature)
-
-    computed = meanWindFarm.getInfo()
+    # do the rest local, we need scipy
+    mean_wind_farm = meanWindFarm.getInfo()
+    features = [
+        digitwin.compute_feature(feature)
+        for feature
+        in mean_wind_farm['features']
+    ]
+    print(features)
+    computed = geojson.FeatureCollection(features)
     response = Response(
         json.dumps(computed),
         status=200,

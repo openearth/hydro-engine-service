@@ -1,6 +1,38 @@
 # coding: utf-8
 import numpy as np
+import scipy.interpolate
+
 import ee
+
+# Levelized Cost of Energy function for AC/DC
+# https://northseawindpowerhub.eu/wp-content/uploads/2019/02/112522-19-001.830-rapd-report-Cost-Evaluation-of-North-Sea-Offshore-Wind....pdf
+# distance to port (km), depth (m), LCoE EUR/MWh
+LCOE_POINTS = np.array([
+    (0, 5, 26.8),
+    (0, 10, 26.9),
+    (100, 7, 26.9),
+    (125, 5, 26.9),
+    (0, 17, 27),
+    (150, 16, 27),
+    (300, 14, 27),
+    (0, 27, 27.5),
+    (150, 26, 27.5),
+    (300, 24, 27.5),
+    (0, 40, 29),
+    (150, 39, 29),
+    (300, 38, 29),
+    (0, 55, 30.7),
+    (150, 55, 30.7),
+    (300, 55, 30.7),
+    (50, 25, 27.1)
+])
+
+LCOE_fit = scipy.interpolate.SmoothBivariateSpline(LCOE_POINTS[:, 0], LCOE_POINTS[:, 1], LCOE_POINTS[:, 2], kx=2, ky=2)
+
+def compute_area(feature):
+    """compute area of feature"""
+    feature = feature.set('area', feature.geometry().area())
+    return feature
 
 
 def magnitude(image):
@@ -89,37 +121,13 @@ def create_turbine_grid(feature):
     props = props.set('n_turbines', n_turbines)
     props = props.set('turbine_spacing', turbine_spacing)
     grid = ee.Feature(points, props)
-    return grid
+    return feature.copyProperties(grid)
 
-def lcoe(power):
+def lcoe(distance_to_port, depth):
     """compute the levelized cost of energy for a windfarm"""
 
-    # TODO: follow this approach:
-    # https://northseawindpowerhub.eu/wp-content/uploads/2019/02/112522-19-001.830-rapd-report-Cost-Evaluation-of-North-Sea-Offshore-Wind....pdf
-
-    # formula is not in si units, explicitly mention  unit
-    power_kW = power.multiply(1000)
-    # Based on these numbers
-    # https://www.pbl.nl/sites/default/files/downloads/pbl-2019-costs-of-offshore-wind-energy-2018_3623.pdf
-
-    investment_cost = 1800 # per kW
-    operation_cost = 50 # EUR/kW/year
-    grid_connection_cost = 0.02 # EUR/kWh
-    base_cost = 0.048 # EUR/kWh
-    load_hours  = 4600 # hours/year
-    lifetime = 25 # years
-    hours = load_hours * lifetime
-    base_cost_life = power_kW.multiply(base_cost * hours)
-    grid_connection_cost_life  =  power_kW.multiply(grid_connection_cost  * hours)
-    operation_cost_life = power_kW.multiply(operation_cost * lifetime)
-    investment_cost_life  = power_kW.multiply(investment_cost)
-    # TODO: this doesn't quite add up
-    cost = base_cost_life.add(grid_connection_cost_life).add(operation_cost_life).add(investment_cost_life)
-    lcoe = cost.divide(power_kW.multiply(hours))
-
-    # For now return the  LCOE based on boven de Wadden [EUR/wH]
-    lcoe = ee.Number( 0.071 / 1000)
-    return lcoe
+    lcoe = LCOE_fit.ev(distance_to_port, depth)
+    return float(lcoe)
 
 
 def windpower(V):
@@ -138,21 +146,19 @@ def windpower(V):
     Ng = 0.8
     # gear box bearing efficiency (Nb)
     Nb = 0.95
-    P = (
-        V
-        .pow(3)
-        .multiply(1/2 * rho * performance * A *  Ng)
-    )
+    P = (V ** 3) * (1/2 * rho * performance * A *  Ng)
     return P
 
 def compute_feature(feature):
     """compute relevant properties for windfarm"""
 
+    print(feature)
     # roughness length at sea
     roughness = 0.0002 #  m
-    height = 260
+    # default height
+    height = 130
     height_0 = 10
-    feature = feature.set({"height": height})
+    feature['height'] = feature['properties'].get('height', 130)
 
     conversion = (
         np.log(height / roughness)
@@ -160,27 +166,29 @@ def compute_feature(feature):
         np.log(height_0 / roughness)
     )
 
-    magnitude = feature.getNumber('wind_magnitude_mean').multiply(conversion)
+    magnitude = feature['properties']['wind_magnitude_mean'] * conversion
     power = windpower(magnitude)
-    area = feature.geometry().area()
+    area = feature['properties']['area']
 
     # assuming square  area
-    turbine_grid = create_turbine_grid(feature)
-    n_turbines = turbine_grid.get('n_turbines')
-    area_per_turbine = turbine_grid.getNumber('turbine_spacing').pow(2)
+    n_turbines = feature['properties']['n_turbines']
+    turbine_spacing = feature['properties']['turbine_spacing']
+    area_per_turbine = turbine_spacing
 
+    depth = feature['properties']['bathymetry'] * -1
+    distance_to_port = feature['properties']['distance_to_port']
 
-    feature = feature.set({
+    feature['properties'].update({
         "wind_magnitude_mean_height": magnitude,
         "wind_power_mean": power,
-        "levelized_cost_of_energy": lcoe(power).multiply(1000000), # convert to EUR/Wh
+        "levelized_cost_of_energy": lcoe(distance_to_port, depth), # convert to EUR/Wh
         "n_turbines": n_turbines,
         "area": area,
         "area_per_turbine": area_per_turbine,
-        "turbine_spacing": turbine_grid.get('turbine_spacing'),
+        "turbine_spacing": turbine_spacing,
         # deprecated
-        "spacing": turbine_grid.get('turbine_spacing'),
-        "wind_power_total": power.multiply(n_turbines)
+        "spacing": turbine_spacing,
+        "wind_power_total": power * n_turbines
     })
     return feature
 
