@@ -1247,7 +1247,7 @@ def get_liwo_scenarios():
     # band name as string
     band = r['band']
 
-    collection = 'projects/deltares-rws/liwo/production'
+    collection = 'projects/deltares-rws/liwo/2020_0_2'
     id_key = 'Scenario_ID'
     bands = {
         'waterdepth': 'waterdiepte',
@@ -1267,7 +1267,7 @@ def get_liwo_scenarios():
         "affected": "max",
         "arrivaltime": "min"
     }
-    # TODO: do we also map old band names for new collection?
+
     assert band in bands
     band_name = bands[band]
     reducer = reducers[band]
