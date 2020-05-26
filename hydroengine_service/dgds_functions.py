@@ -24,7 +24,7 @@ with open(DATASET_DIR + '/elevation_dataset_parameters.json') as json_file:
 logger = logging.getLogger(__name__)
 
 LAND = ee.Image('users/gena/land_polygons_image')
-LANDMASK = LAND.unmask(1, False).Not().resample('bicubic').focal_mode(radius=2)
+LANDMASK = ee.Image(LAND.unmask(1, False).Not().resample('bicubic').focal_mode(2))
 
 def get_dgds_source_vis_params(source, image_id=None):
     """
@@ -89,6 +89,7 @@ def get_dgds_data(source,
 
 def visualize_elevation(image,
                         land_mask=LANDMASK,
+                        data_params=None,
                         bathy_only=False,
                         azimuth=315,
                         zenith=30,
@@ -108,9 +109,8 @@ def visualize_elevation(image,
     :param sat_multiply: make  desaturated (<1) or more saturated (>1)
     :return: Hillshaded Google Earth Engine image
     """
-
-    # palettes
-    # visualization params
+    if not data_params:
+        data_params = DATASETS_VIS["projects/dgds-gee/bathymetry/gebco/2019"]
     topo_rgb = image.mask(land_mask).visualize(**data_params['topo_vis_params'])
     bathy_rgb = image.mask(land_mask.Not()).visualize(**data_params['bathy_vis_params'])
     image_rgb = topo_rgb.blend(bathy_rgb)
@@ -165,21 +165,15 @@ def degree_to_radians_image(image):
     return ee.Image(image).toFloat().multiply(3.1415927).divide(180)
 
 def resample_landmask(image):
-    return ee.Image(image).resample('bicubic').updateMask(landMask)
+    return ee.Image(image).float().resample('bicubic').updateMask(LANDMASK).rename('elevation')
 
-def merge_elevation_datasets(dataset_list=None):
-    data_params = DATASETS_VIS["projects/dgds-gee/bathymetry/gebco/2019"]
-    elevation = ELEVATION_DATA
-    if not dataset_list:
-        dataset_list = elevation.keys()
-
+def mosaic_elevation_datasets(dataset_list=None):
     band_name = 'elevation'
-    land_mask = LANDMASK
     images = []
     image_collections = []
     for dataset in dataset_list:
-        params = elevation.get(dataset, None)
-        if not dataset_params:
+        params = ELEVATION_DATA.get(dataset, None)
+        if not params:
             print('Some warning')
         type = params.get('type', None)
         source = params.get('source', None)
@@ -192,30 +186,37 @@ def merge_elevation_datasets(dataset_list=None):
             image = image.select(band).rename(band_name)
             if dataset == "ALOS":
                 alos_mask = image.mask().eq(1)
-                image = image.resample('bicubic').updateMask(alos_mask.And(land_mask))
-                land_mask = land_mask.Or(image.mask().Not())
+                image = image.resample('bicubic').updateMask(alos_mask.And(LANDMASK)).float()
             elif topography and not bathymetry:
                 image = resample_landmask(image)
             else:
-                image = image.resample('bicubic')
+                image = image.float().resample('bicubic')
             images.append(image)
         elif type == 'ImageCollection':
-            imageCollection = ee.ImageCollection(source)
-            imageCollection = imageCollection.map(resample_landmask)
-            image_collections.append(imageCollection)
+            image_collection = ee.ImageCollection(source)
+            image_collection = image_collection.map(resample_landmask)
+            image_collections.append(image_collection)
 
     dems = ee.ImageCollection(images)
     for collection in image_collections:
         dems = dems.merge(collection)
 
+    elevation_image = ee.ImageCollection(dems).mosaic()
+    return ee.Image(elevation_image)
 
-    vis_collection = map(lambda i: visualize_elevation(i, land_mask), dems)
-    final_image = ee.ImageCollection(vis_collection).mosaic()
+def generate_elevation_map(dataset_list=None):
+    if not dataset_list:
+        dataset_list = ELEVATION_DATA.keys()
+
+    mosaic_image = mosaic_elevation_datasets(dataset_list)
+
+    final_image = visualize_elevation(mosaic_image)
+    data_params = DATASETS_VIS["projects/dgds-gee/bathymetry/gebco/2019"]
     url = _get_gee_url(final_image)
 
     info = {}
-    info['dataset'] = 'bathymetry'
-    info['band'] = band_name
+    info['dataset'] = 'elevation'
+    info['band'] = 'elevation'
     linear_gradient = []
     palette = data_params['bathy_vis_params']['palette'] + data_params['topo_vis_params']['palette']
     n_colors = len(palette)
@@ -231,7 +232,9 @@ def merge_elevation_datasets(dataset_list=None):
         'linearGradient': linear_gradient,
         'min': data_params['bathy_vis_params']['min'],
         'max': data_params['topo_vis_params']['max'],
-        'imageId': source
+        'imageId': None,
+        'datasets': list(dataset_list),
+        'function': 'mosaic_elevation_datasets'
     })
     return info
 
@@ -248,7 +251,7 @@ def visualize_gebco(source, band):
     gebco = image.select(data_params['bandNames'][band])
     land_mask = LANDMASK
 
-    hillshaded = visualize_elevation(gebco, land_mask)
+    hillshaded = visualize_elevation(gebco, land_mask, data_params)
     url = _get_gee_url(hillshaded)
 
     info = {}
