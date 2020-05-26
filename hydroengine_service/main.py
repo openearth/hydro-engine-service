@@ -1503,12 +1503,7 @@ def get_gebco_data():
 def get_elevation_data():
     r = request.get_json()
     datasets = r.get('datasets', None)
-    # band = r.get('band', None)
     image_id = r.get('imageId', None)
-
-    # start_date = r.get('startDate', None)
-    # end_date = r.get('endDate', None)
-    # image_num_limit = r.get('limit', None)
     source = None
     if datasets:
         source = datasets
