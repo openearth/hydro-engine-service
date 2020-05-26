@@ -582,3 +582,38 @@ class TestClient:
         result = json.loads(resp.data)
 
         assert result['value'] == 3.02
+
+    def test_get_feature_info_elevation(self):
+        request = {
+            "imageId": None,
+            "datasets": [
+                "GEBCO",
+                "ALOS",
+                "USGSNED",
+                "GLDEM",
+                "CADEM",
+                "AHN2",
+                "AUDEM",
+                "REMA",
+                "EMODnet"
+            ],
+            "function": "mosaic_elevation_datasets",
+            "bbox": {
+                "type": "Point",
+                "coordinates": [
+                    -28.23,
+                    49.05
+                ]
+            }
+        }
+        resp = self.client.post(
+            '/get_feature_info',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        print(resp)
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+
+        assert result['value'] == -3712.95
