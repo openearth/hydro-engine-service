@@ -63,15 +63,6 @@
         "bathymetry": false,
         "topography": true
     },
-    "ArcticDEM": {
-        "source": "UMN/PGC/ArcticDEM/V3/2m_mosaic",
-        "type": "Image",
-        "name": "Arctic Digital Elevation Model",
-        "band": "elevation",
-        "region": "subcontinental",
-        "bathymetry": false,
-        "topography": true
-    },
     "REMA":{
         "source": "UMN/PGC/REMA/V1_1/8m",
         "type": "Image",
