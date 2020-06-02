@@ -18,13 +18,14 @@ DATASET_DIR = os.path.join(APP_DIR, 'datasets')
 with open(DATASET_DIR + '/dataset_visualization_parameters.json') as json_file:
     DATASETS_VIS = json.load(json_file)
 
-with open(DATASET_DIR + '/elevation_dataset_parameters.json') as json_file:
+with open(DATASET_DIR + '/dataset_elevation_parameters.json') as json_file:
     ELEVATION_DATA = json.load(json_file)
 
 logger = logging.getLogger(__name__)
 
 LAND = ee.Image('users/gena/land_polygons_image')
 LANDMASK = ee.Image(LAND.unmask(1, False).Not().resample('bicubic').focal_mode(2))
+
 
 def get_dgds_source_vis_params(source, image_id=None):
     """
@@ -87,6 +88,7 @@ def get_dgds_data(source,
 
     return image_info
 
+
 def visualize_elevation(image,
                         land_mask=LANDMASK,
                         data_params=None,
@@ -101,16 +103,14 @@ def visualize_elevation(image,
     :param image: Google Earth Engine image to visualize
     :param land_mask: Boolean Google Earth Engine image representing 1 for land mask
     :param bathy_only: Boolean for visualizing bathymetry only
-    :param azimuth: Angle for hillshade (keep at 315 for good perception)
-    :param zenith: Lower is longer shadows
+    :param azimuth: Angle for hillshade.
+    :param zenith: Zenith for hillshade. Lower is longer shadows
     :param height_multiplier:
     :param weight: Weight between image and  hillshade (1=equal)
     :param val_multiply: make darker (<1), lighter (>1)
     :param sat_multiply: make  desaturated (<1) or more saturated (>1)
     :return: Hillshaded Google Earth Engine image
     """
-    if not data_params:
-        data_params = DATASETS_VIS["projects/dgds-gee/bathymetry/gebco/2019"]
     topo_rgb = image.mask(land_mask).visualize(**data_params['topo_vis_params'])
     bathy_rgb = image.mask(land_mask.Not()).visualize(**data_params['bathy_vis_params'])
     image_rgb = topo_rgb.blend(bathy_rgb)
@@ -161,11 +161,14 @@ def visualize_elevation(image,
 
     return hillshaded
 
+
 def degree_to_radians_image(image):
     return ee.Image(image).toFloat().multiply(3.1415927).divide(180)
 
+
 def resample_landmask(image):
     return ee.Image(image).float().resample('bicubic').updateMask(LANDMASK).rename('elevation')
+
 
 def mosaic_elevation_datasets(dataset_list=None):
     band_name = 'elevation'
@@ -174,7 +177,9 @@ def mosaic_elevation_datasets(dataset_list=None):
     for dataset in dataset_list:
         params = ELEVATION_DATA.get(dataset, None)
         if not params:
-            print('Some warning')
+            error_handler.handle_invalid_usage(
+                f'No parameters defined for {dataset} in dataset_elevation_parameters.json'
+            )
         type = params.get('type', None)
         source = params.get('source', None)
         band = params.get('band', None)
@@ -203,6 +208,7 @@ def mosaic_elevation_datasets(dataset_list=None):
 
     elevation_image = ee.ImageCollection(dems).mosaic()
     return ee.Image(elevation_image)
+
 
 def generate_elevation_map(dataset_list=None):
     if not dataset_list:
@@ -237,6 +243,7 @@ def generate_elevation_map(dataset_list=None):
         'function': 'mosaic_elevation_datasets'
     })
     return info
+
 
 def visualize_gebco(source, band):
     """
@@ -275,6 +282,7 @@ def visualize_gebco(source, band):
         'imageId': source
     })
     return info
+
 
 def _generate_image_info(im, params):
     """"generate url and tokens for image"""
@@ -328,6 +336,7 @@ def _generate_image_info(im, params):
         'linearGradient': linear_gradient})
     return params
 
+
 def apply_image_operation(image, operation, data_params=None, band=None):
     """
     Apply an operation to an image, based on specified operation and data parameters
@@ -346,6 +355,7 @@ def apply_image_operation(image, operation, data_params=None, band=None):
         image = image.clamp(0, 1).addBands(data_mask)
 
     return image
+
 
 def get_image_collection_info(source, start_date=None, end_date=None, image_num_limit=None):
     """
@@ -412,6 +422,7 @@ def get_image_collection_info(source, start_date=None, end_date=None, image_num_
 
     return response
 
+
 def _get_wms_url(image_id, type='ImageCollection', band=None, function=None, min=None, max=None, palette=None):
     """
     Get WMS url from image_id
@@ -425,7 +436,7 @@ def _get_wms_url(image_id, type='ImageCollection', band=None, function=None, min
     :return: Dictionary, json object with image and wms info
     """
     # TODO: improve generalizing specialized styling for GEBCO
-    if 'gebco'in image_id:
+    if 'gebco' in image_id:
         info = visualize_gebco(image_id, band)
         return info
 
@@ -510,8 +521,8 @@ def _get_wms_url(image_id, type='ImageCollection', band=None, function=None, min
 
     return info
 
-def _get_gee_url(image):
 
+def _get_gee_url(image):
     m = image.getMapId()
     mapid = m.get('mapid')
     token = m.get('token')
@@ -521,4 +532,3 @@ def _get_gee_url(image):
         token=token
     )
     return url
-
