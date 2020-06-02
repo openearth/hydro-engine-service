@@ -1498,6 +1498,26 @@ def get_gebco_data():
         mimetype='application/json'
     )
 
+@v1.route('/get_elevation_data', methods=['GET', 'POST'])
+@flask_cors.cross_origin()
+def get_elevation_data():
+    r = request.get_json()
+    datasets = r.get('datasets', None)
+    image_id = r.get('imageId', None)
+    source = None
+    if datasets:
+        source = datasets
+    if image_id:
+        source = image_id
+
+    image_info = dgds_functions.generate_elevation_map(source)
+
+    return Response(
+        json.dumps(image_info),
+        status=200,
+        mimetype='application/json'
+    )
+
 
 @v1.route('/get_chasm_data', methods=['POST'])
 @flask_cors.cross_origin()
@@ -1550,31 +1570,39 @@ def get_feature_info():
     r = request.get_json()
     image_id = r['imageId']
     bbox = r['bbox']
+    datasets = r.get('datasets', None)
     band = r.get('band', None)
     function = r.get('function', None)
     info_format = r.get('info_format', 'JSON')
+    if function == 'mosaic_elevation_datasets':
+        if not datasets:
+            msg = f'datsets list expected for function {function}'
+            raise error_handler.InvalidUsage(msg)
+        image = ee.Image(dgds_functions.mosaic_elevation_datasets(datasets).select('elevation'))
+    else:
+        image = ee.Image(image_id)
+        image_location_parameters = image_id.split('/')
+        source = ('/').join(image_location_parameters[:-1])
 
-    image = ee.Image(image_id)
-    image_location_parameters = image_id.split('/')
-    source = ('/').join(image_location_parameters[:-1])
+        data_params = dgds_functions.get_dgds_source_vis_params(source, image_id)
 
-    data_params = dgds_functions.get_dgds_source_vis_params(source, image_id)
+        if band:
+            band_name = data_params['bandNames'][band]
+            image = image.select(band_name)
+        if function:
+            assert (function in data_params.get('function', None)) or \
+                   (function == data_params['function'].get(band, None)), \
+                f'{function} not an option.'
 
-    if band:
-        band_name = data_params['bandNames'][band]
-        image = image.select(band_name)
-    if function:
-        assert (function in data_params.get('function', None)) or \
-               (function == data_params['function'].get(band, None)), \
-            f'{function} not an option.'
+        image = dgds_functions.apply_image_operation(image, function, data_params, band)
 
-    image = dgds_functions.apply_image_operation(image, function, data_params, band)
     image = image.rename('value')
-
+    # TODO: get scale of image, or load default scale from parameters
     value = (
         image.sample(**{
             'region': ee.Geometry(bbox),
-            'geometries': True
+            'geometries': True,
+            'scale': 10
         })
         .first()
         .getInfo()

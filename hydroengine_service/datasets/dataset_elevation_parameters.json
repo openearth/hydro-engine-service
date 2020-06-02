@@ -1,0 +1,84 @@
+{
+    "GEBCO": {
+        "source": "projects/dgds-gee/gebco/2019",
+        "type": "Image",
+        "name": "GEBCO",
+        "band": "b1",
+        "region": "global",
+        "bathymetry": true,
+        "topography": true
+    },
+    "ALOS":{
+        "source": "JAXA/ALOS/AW3D30_V1_1",
+        "type": "Image",
+        "name": "ALOS",
+        "band": "MED",
+        "region": "global",
+        "bathymetry": false,
+        "topography": true
+    },
+    "USGSNED": {
+        "source": "USGS/NED",
+        "type": "Image",
+        "name": "USGS National Elevation Dataset",
+        "band": "elevation",
+        "region": "national",
+        "bathymetry": false,
+        "topography": true
+    },
+    "GLDEM": {
+        "source": "OSU/GIMP/DEM",
+        "type": "Image",
+        "name": "Greenland Digital Elevation Model",
+        "band": "elevation",
+        "region": "national",
+        "bathymetry": false,
+        "topography": true
+    },
+    "CADEM": {
+        "source": "NRCan/CDEM",
+        "type": "ImageCollection",
+        "name": "Canadian Digital Elevation Model",
+        "band": "elevation",
+        "id": "CDEM",
+        "region": "national",
+        "bathymetry": false,
+        "topography": true
+    },
+    "AHN2": {
+        "source": "AHN/AHN2_05M_RUW",
+        "type": "Image",
+        "name": "Actueel Hoogtebestand Nederland",
+        "band": "elevation",
+        "region": "national",
+        "bathymetry": false,
+        "topography": true
+    },
+    "AUDEM": {
+        "source": "AU/GA/AUSTRALIA_5M_DEM",
+        "type": "ImageCollection",
+        "name": "Australian Digital Elevation Model",
+        "band": "elevation",
+        "region": "national",
+        "bathymetry": false,
+        "topography": true
+    },
+    "REMA":{
+        "source": "UMN/PGC/REMA/V1_1/8m",
+        "type": "Image",
+        "name": "Reference Elevation Model of Antarctica",
+        "band": "elevation",
+        "region": "continental",
+        "bathymetry": false,
+        "topography": true
+    },
+    "EMODnet": {
+        "source": "projects/deltares-rws/eo-bathymetry/EMODnet_2018",
+        "type": "Image",
+        "name": "Reference Elevation Model of Antarctica",
+        "band": "b1",
+        "region": "continental",
+        "bathymetry": true,
+        "topography": false
+    }
+}
