@@ -89,37 +89,25 @@ def get_dgds_data(source,
     return image_info
 
 
-def visualize_elevation(image,
-                        land_mask=LANDMASK,
-                        data_params=None,
-                        bathy_only=False,
-                        azimuth=315,
-                        zenith=30,
-                        height_multiplier=30,
-                        weight=0.3,
-                        val_multiply=0.9,
-                        sat_multiply=0.8):
+def hillshade(image_rgb,
+              image,
+              azimuth=315,
+              zenith=30,
+              height_multiplier=30,
+              weight=0.3,
+              val_multiply=0.9,
+              sat_multiply=0.8):
     """
-    :param image: Google Earth Engine image to visualize
-    :param land_mask: Boolean Google Earth Engine image representing 1 for land mask
-    :param bathy_only: Boolean for visualizing bathymetry only
+    :param image_rgb: GEE image visualized in RGB to hillshade
+    :param image: GEE image raw values, not visualized
     :param azimuth: Angle for hillshade.
     :param zenith: Zenith for hillshade. Lower is longer shadows
     :param height_multiplier:
     :param weight: Weight between image and  hillshade (1=equal)
     :param val_multiply: make darker (<1), lighter (>1)
     :param sat_multiply: make  desaturated (<1) or more saturated (>1)
-    :return: Hillshaded Google Earth Engine image
+    :return:
     """
-    topo_rgb = image.mask(land_mask).visualize(**data_params['topo_vis_params'])
-    bathy_rgb = image.mask(land_mask.Not()).visualize(**data_params['bathy_vis_params'])
-    image_rgb = topo_rgb.blend(bathy_rgb)
-
-    if bathy_only:
-        # overwrite with masked version
-        image_rgb = bathy_rgb.mask(image.multiply(ee.Image(-1)).unitScale(-1, 10).clamp(0, 1))
-
-    # TODO:  see how this still fits in the hillshade function
     hsv = image_rgb.unitScale(0, 255).rgbToHsv()
 
     z = image.multiply(ee.Image.constant(height_multiplier))
@@ -138,12 +126,12 @@ def visualize_elevation(image,
             .multiply(slope.sin())
             .multiply(zenith.sin())
             .add(
-            zenith
-                .cos()
-                .multiply(
-                slope.cos()
+                zenith
+                    .cos()
+                    .multiply(
+                        slope.cos()
+                    )
             )
-        )
             .resample('bicubic')
     )
 
@@ -158,6 +146,33 @@ def visualize_elevation(image,
     val = intensity.multiply(val_multiply)
 
     hillshaded = ee.Image.cat(hue, sat, val).hsvToRgb()
+    return hillshaded
+
+
+def visualize_elevation(image,
+                        land_mask=LANDMASK,
+                        data_params=None,
+                        bathy_only=False,
+                        hillshade_image=True,
+                        hillshade_args={}):
+    """
+    :param image: Google Earth Engine image to visualize
+    :param land_mask: Boolean Google Earth Engine image representing 1 for land mask
+    :param bathy_only: Boolean for visualizing bathymetry only
+    :param hillshade: Boolean for hillshading, default True
+    :return: Hillshaded Google Earth Engine image
+    """
+    topo_rgb = image.mask(land_mask).visualize(**data_params['topo_vis_params'])
+    bathy_rgb = image.mask(land_mask.Not()).visualize(**data_params['bathy_vis_params'])
+    image_rgb = topo_rgb.blend(bathy_rgb)
+
+    if bathy_only:
+        # overwrite with masked version
+        image_rgb = bathy_rgb.mask(image.multiply(ee.Image(-1)).unitScale(-1, 10).clamp(0, 1))
+
+    if hillshade_image:
+        # hillshade with default parameters
+        hillshaded = hillshade(image_rgb, image, **hillshade_args)
 
     return hillshaded
 
@@ -258,7 +273,11 @@ def visualize_gebco(source, band):
     gebco = image.select(data_params['bandNames'][band])
     land_mask = LANDMASK
 
-    hillshaded = visualize_elevation(gebco, land_mask, data_params)
+    hillshaded = visualize_elevation(gebco,
+                                     land_mask=land_mask,
+                                     data_params=data_params,
+                                     bathy_only=False,
+                                     hillshade_image=True)
     url = _get_gee_url(hillshaded)
 
     info = {}
@@ -303,16 +322,9 @@ def _generate_image_info(im, params):
     if 'hillshade' in params:
         # also pass along hillshade arguments
         hillshade_args = params.get('hillshade_args', {})
-        m = hillshade(m, image, False, **hillshade_args)
+        m = hillshade(m, image, **hillshade_args)
 
-    m = m.getMapId()
-    mapid = m.get('mapid')
-    token = m.get('token')
-
-    url = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'.format(
-        mapid=mapid,
-        token=token
-    )
+    url = _get_gee_url(m)
 
     linear_gradient = []
     if 'palette' in params:
@@ -435,7 +447,7 @@ def _get_wms_url(image_id, type='ImageCollection', band=None, function=None, min
     :param palette: List, palette applied to image visualization, given as list of hex codes.
     :return: Dictionary, json object with image and wms info
     """
-    # TODO: improve generalizing specialized styling for GEBCO
+    # GEBCO is styled differently, non-linear color palette
     if 'gebco' in image_id:
         info = visualize_gebco(image_id, band)
         return info
