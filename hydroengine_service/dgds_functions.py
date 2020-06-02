@@ -32,7 +32,7 @@ def get_dgds_source_vis_params(source, image_id=None):
     Check source and/or image_id has default visualization parameters defined
     :param source: String, source/location of Earth Engine Object
     :param image_id: String, Earth Engine Image id
-    :return:
+    :return: Dictionary
     """
     data_params = DATASETS_VIS.get(source, None)
     if image_id and not data_params:
@@ -106,7 +106,7 @@ def hillshade(image_rgb,
     :param weight: Weight between image and  hillshade (1=equal)
     :param val_multiply: make darker (<1), lighter (>1)
     :param sat_multiply: make  desaturated (<1) or more saturated (>1)
-    :return:
+    :return: Google Earth Engine ee.Image() object, hillshaded image
     """
     hsv = image_rgb.unitScale(0, 255).rgbToHsv()
 
@@ -160,7 +160,7 @@ def visualize_elevation(image,
     :param land_mask: Boolean Google Earth Engine image representing 1 for land mask
     :param bathy_only: Boolean for visualizing bathymetry only
     :param hillshade: Boolean for hillshading, default True
-    :return: Hillshaded Google Earth Engine image
+    :return: Google Earth Engine ee.Image() object, Hillshaded image
     """
     topo_rgb = image.mask(land_mask).visualize(**data_params['topo_vis_params'])
     bathy_rgb = image.mask(land_mask.Not()).visualize(**data_params['bathy_vis_params'])
@@ -178,14 +178,29 @@ def visualize_elevation(image,
 
 
 def degree_to_radians_image(image):
+    """
+    Transform GEE image from degrees to radians
+    :param image: GEE image object
+    :return: Google Earth Engine ee.Image() object
+    """
     return ee.Image(image).toFloat().multiply(3.1415927).divide(180)
 
 
 def resample_landmask(image):
+    """
+    Bicubic resampling and apply mask of land to image, renaming band to elevation
+    :param image: GEE image object
+    :return: Google Earth Engine ee.Image() object
+    """
     return ee.Image(image).float().resample('bicubic').updateMask(LANDMASK).rename('elevation')
 
 
 def mosaic_elevation_datasets(dataset_list=None):
+    """
+    Create an image mosaic from multiple elevation data sources in GEE.
+    :param dataset_list: List of dataset ids, as defined in dataset_elevation_parameters.json
+    :return: Google Earth Engine ee.Image() object, elevation image
+    """
     band_name = 'elevation'
     images = []
     image_collections = []
@@ -226,6 +241,11 @@ def mosaic_elevation_datasets(dataset_list=None):
 
 
 def generate_elevation_map(dataset_list=None):
+    """
+    Create a WMS tile url from GEE for an image mosaic from multiple elevation data sources in GEE.
+    :param dataset_list: List of dataset ids, as defined in dataset_elevation_parameters.json
+    :return: Dictionary, elevation image WMS tile info
+    """
     if not dataset_list:
         dataset_list = ELEVATION_DATA.keys()
 
@@ -535,6 +555,11 @@ def _get_wms_url(image_id, type='ImageCollection', band=None, function=None, min
 
 
 def _get_gee_url(image):
+    """
+    Generate GEE url to access map from GEE image
+    :param image: GEE image object
+    :return: String, url
+    """
     m = image.getMapId()
     mapid = m.get('mapid')
     token = m.get('token')
