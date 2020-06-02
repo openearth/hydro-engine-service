@@ -48,7 +48,9 @@ def get_dgds_data(source,
                   function=None,
                   start_date=None,
                   end_date=None,
-                  image_num_limit=None):
+                  image_num_limit=None,
+                  min_range=None,
+                  max_range=None):
     """
 
     :param source: String, source/location of Earth Engine Object
@@ -59,6 +61,8 @@ def get_dgds_data(source,
     :param start_date: String, start date to filter collection on
     :param end_date: String, end date to filter collection on
     :param image_num_limit: String, limit of objects to return
+    :param min_range: Number,
+    :param max_range: Number,
     :return: Dictionary
     """
     # Get list of objects with imageId and date for collection
@@ -80,7 +84,14 @@ def get_dgds_data(source,
         else:
             function = function.get(band, None)
 
-    image_info = _get_wms_url(returned_url_id, type=data_params['type'], band=band, function=function)
+    image_info = _get_wms_url(
+        returned_url_id,
+        type=data_params['type'],
+        band=band,
+        function=function,
+        min=min_range,
+        max=max_range
+    )
     image_info['dataset'] = dataset
     image_info['band'] = band
     if info:
@@ -240,7 +251,7 @@ def mosaic_elevation_datasets(dataset_list=None):
     return ee.Image(elevation_image)
 
 
-def generate_elevation_map(dataset_list=None):
+def generate_elevation_map(dataset_list=None, min=None, max=None):
     """
     Create a WMS tile url from GEE for an image mosaic from multiple elevation data sources in GEE.
     :param dataset_list: List of dataset ids, as defined in dataset_elevation_parameters.json
@@ -250,9 +261,13 @@ def generate_elevation_map(dataset_list=None):
         dataset_list = ELEVATION_DATA.keys()
 
     mosaic_image = mosaic_elevation_datasets(dataset_list)
-
-    final_image = visualize_elevation(mosaic_image)
+    if min:
+        data_params['bathy_vis_params']['min'] = min
+    if max:
+        data_params['topo_vis_params']['max'] = max
+    final_image = visualize_elevation(mosaic_image, data_params=data_params)
     data_params = DATASETS_VIS["projects/dgds-gee/bathymetry/gebco/2019"]
+
     url = _get_gee_url(final_image)
 
     info = {}
