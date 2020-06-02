@@ -1511,8 +1511,6 @@ def get_elevation_data():
         source = image_id
 
     image_info = dgds_functions.generate_elevation_map(source)
-    if not image_info:
-        raise error_handler.InvalidUsage('No images returned.')
 
     return Response(
         json.dumps(image_info),
@@ -1599,7 +1597,7 @@ def get_feature_info():
         image = dgds_functions.apply_image_operation(image, function, data_params, band)
 
     image = image.rename('value')
-
+    # TODO: get scale of image, or load default scale from parameters
     value = (
         image.sample(**{
             'region': ee.Geometry(bbox),
