@@ -251,8 +251,8 @@ def generate_elevation_map(dataset_list=None):
 
     mosaic_image = mosaic_elevation_datasets(dataset_list)
 
-    final_image = visualize_elevation(mosaic_image)
     data_params = DATASETS_VIS["projects/dgds-gee/bathymetry/gebco/2019"]
+    final_image = visualize_elevation(mosaic_image, data_params=data_params)
     url = _get_gee_url(final_image)
 
     info = {}
