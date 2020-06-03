@@ -85,7 +85,7 @@ def get_dgds_data(source,
             function = function.get(band, None)
 
     image_info = _get_wms_url(
-        returned_url_id,
+        image_id=returned_url_id,
         type=data_params['type'],
         band=band,
         function=function,
@@ -251,7 +251,7 @@ def mosaic_elevation_datasets(dataset_list=None):
     return ee.Image(elevation_image)
 
 
-def generate_elevation_map(dataset_list=None, min=None, max=None):
+def generate_elevation_map(dataset_list=None, min_range=None, max_range=None):
     """
     Create a WMS tile url from GEE for an image mosaic from multiple elevation data sources in GEE.
     :param dataset_list: List of dataset ids, as defined in dataset_elevation_parameters.json
@@ -262,9 +262,9 @@ def generate_elevation_map(dataset_list=None, min=None, max=None):
 
     mosaic_image = mosaic_elevation_datasets(dataset_list)
     if min:
-        data_params['bathy_vis_params']['min'] = min
+        data_params['bathy_vis_params']['min'] = min_range
     if max:
-        data_params['topo_vis_params']['max'] = max
+        data_params['topo_vis_params']['max'] = max_range
     final_image = visualize_elevation(mosaic_image, data_params=data_params)
     data_params = DATASETS_VIS["projects/dgds-gee/bathymetry/gebco/2019"]
 
@@ -470,7 +470,14 @@ def get_image_collection_info(source, start_date=None, end_date=None, image_num_
     return response
 
 
-def _get_wms_url(image_id, type='ImageCollection', band=None, function=None, min=None, max=None, palette=None):
+def _get_wms_url(image_id,
+                 type='ImageCollection',
+                 band=None,
+                 datasets=None,
+                 function=None,
+                 min=None,
+                 max=None,
+                 palette=None):
     """
     Get WMS url from image_id
     :param image_id: String, Google Earth Engine image id
@@ -485,6 +492,13 @@ def _get_wms_url(image_id, type='ImageCollection', band=None, function=None, min
     # GEBCO is styled differently, non-linear color palette
     if 'gebco' in image_id:
         info = visualize_gebco(image_id, band)
+        return info
+
+    if function == 'mosaic_elevation_datasets':
+        info = generate_elevation_map(
+            dataset_list=datasets,
+            min_range=min,
+            max_range=max)
         return info
 
     image = ee.Image(image_id)
