@@ -27,8 +27,7 @@ LAND = ee.Image('users/gena/land_polygons_image')
 LANDMASK = ee.Image(LAND.unmask(1, False).Not().resample('bicubic').focal_mode(2))
 
 def validate_min_lt_max(min, max):
-    min_lt_max = min < max
-    if not min_lt_max:
+    if not min < max:
         raise error_handler.InvalidUsage('Specified min must be less than max.')
 
 
@@ -54,8 +53,8 @@ def get_dgds_data(source,
                   start_date=None,
                   end_date=None,
                   image_num_limit=None,
-                  min_range=None,
-                  max_range=None):
+                  min=None,
+                  max=None):
     """
 
     :param source: String, source/location of Earth Engine Object
@@ -66,8 +65,8 @@ def get_dgds_data(source,
     :param start_date: String, start date to filter collection on
     :param end_date: String, end date to filter collection on
     :param image_num_limit: String, limit of objects to return
-    :param min_range: Number,
-    :param max_range: Number,
+    :param min: Number, minimum value for image visualization
+    :param max: Number, maximum value for image visualization
     :return: Dictionary
     """
     # Get list of objects with imageId and date for collection
@@ -94,8 +93,8 @@ def get_dgds_data(source,
         type=data_params['type'],
         band=band,
         function=function,
-        min=min_range,
-        max=max_range
+        min=min,
+        max=max
     )
     image_info['dataset'] = dataset
     image_info['band'] = band
@@ -262,7 +261,7 @@ def mosaic_elevation_datasets(dataset_list=None):
     return ee.Image(elevation_image)
 
 
-def generate_elevation_map(dataset_list=None, min_range=None, max_range=None):
+def generate_elevation_map(dataset_list=None, min=None, max=None):
     """
     Create a WMS tile url from GEE for an image mosaic from multiple elevation data sources in GEE.
     :param dataset_list: List of dataset ids, as defined in dataset_elevation_parameters.json
@@ -274,10 +273,10 @@ def generate_elevation_map(dataset_list=None, min_range=None, max_range=None):
     mosaic_image = mosaic_elevation_datasets(dataset_list)
     data_params = DATASETS_VIS["projects/dgds-gee/bathymetry/gebco/2019"]
 
-    if min:
-        data_params['bathy_vis_params']['min'] = min_range
-    if max:
-        data_params['topo_vis_params']['max'] = max_range
+    if min is not None:
+        data_params['bathy_vis_params']['min'] = min
+    if max is not None:
+        data_params['topo_vis_params']['max'] = max
 
     final_image = visualize_elevation(image=mosaic_image,
                                       data_params=data_params,
@@ -318,9 +317,9 @@ def visualize_gebco(source, band, min=None, max=None):
     :return: Dictionary
     """
     data_params = DATASETS_VIS[source]
-    if min:
+    if min is not None:
         data_params['bathy_vis_params']['min'] = min
-    if max:
+    if max is not None:
         data_params['topo_vis_params']['max'] = max
 
     image = ee.Image(source)
@@ -518,8 +517,8 @@ def _get_wms_url(image_id,
     if function == 'mosaic_elevation_datasets':
         info = generate_elevation_map(
             dataset_list=datasets,
-            min_range=min,
-            max_range=max)
+            min=min,
+            max=max)
         return info
 
     image = ee.Image(image_id)

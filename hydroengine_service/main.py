@@ -1372,8 +1372,8 @@ def get_glossis_data():
     start_date = r.get('startDate', None)
     end_date = r.get('endDate', None)
     image_num_limit = r.get('limit', None)
-    min_range = r.get('min', None)
-    max_range = r.get('max', None)
+    min = r.get('min', None)
+    max = r.get('max', None)
 
     if not (dataset or image_id):
         msg = f'dataset or imageId required.'
@@ -1395,8 +1395,8 @@ def get_glossis_data():
         start_date=start_date,
         end_date=end_date,
         image_num_limit=image_num_limit,
-        min_range=min_range,
-        max_range=max_range
+        min=min,
+        max=max
     )
     if not image_info:
         raise error_handler.InvalidUsage('No images returned.')
@@ -1424,8 +1424,8 @@ def get_gloffis_data():
     start_date = r.get('startDate', None)
     end_date = r.get('endDate', None)
     image_num_limit = r.get('limit', None)
-    min_range = r.get('min', None)
-    max_range = r.get('max', None)
+    min = r.get('min', None)
+    max = r.get('max', None)
 
     source = None
     if not (dataset or image_id):
@@ -1447,8 +1447,8 @@ def get_gloffis_data():
         start_date=start_date,
         end_date=end_date,
         image_num_limit=image_num_limit,
-        min_range=min_range,
-        max_range=max_range
+        min=min,
+        max=max
     )
     if not image_info:
         raise error_handler.InvalidUsage('No images returned.')
@@ -1476,8 +1476,8 @@ def get_metocean_data():
     start_date = r.get('startDate', None)
     end_date = r.get('endDate', None)
     image_num_limit = r.get('limit', None)
-    min_range = r.get('min', None)
-    max_range = r.get('max', None)
+    min = r.get('min', None)
+    max = r.get('max', None)
 
     if not (dataset or image_id):
         msg = f'dataset or imageId required.'
@@ -1497,8 +1497,8 @@ def get_metocean_data():
         start_date=start_date,
         end_date=end_date,
         image_num_limit=image_num_limit,
-        min_range=min_range,
-        max_range=max_range
+        min=min,
+        max=max
     )
     if not image_info:
         raise error_handler.InvalidUsage('No images returned.')
@@ -1521,8 +1521,8 @@ def get_gebco_data():
     start_date = r.get('startDate', None)
     end_date = r.get('endDate', None)
     image_num_limit = r.get('limit', None)
-    min_range = r.get('min', None)
-    max_range = r.get('max', None)
+    min = r.get('min', None)
+    max = r.get('max', None)
 
     if dataset:
         source = 'projects/dgds-gee/bathymetry/' + dataset + '/2019'
@@ -1537,8 +1537,8 @@ def get_gebco_data():
         start_date=start_date,
         end_date=end_date,
         image_num_limit=image_num_limit,
-        min_range=min_range,
-        max_range=max_range
+        min=min,
+        max=max
     )
     if not image_info:
         raise error_handler.InvalidUsage('No images returned.')
@@ -1561,13 +1561,13 @@ def get_elevation_data():
     if image_id:
         source = image_id
 
-    min_range = r.get('min', None)
-    max_range = r.get('max', None)
+    min = r.get('min', None)
+    max = r.get('max', None)
 
     image_info = dgds_functions.generate_elevation_map(
         dataset_list=source,
-        min_range=min_range,
-        max_range=max_range)
+        min=min,
+        max=max)
 
     return Response(
         json.dumps(image_info),
@@ -1592,8 +1592,8 @@ def get_chasm_data():
     start_date = r.get('startDate', None)
     end_date = r.get('endDate', None)
     image_num_limit = r.get('limit', None)
-    min_range = r.get('min', None)
-    max_range = r.get('max', None)
+    min = r.get('min', None)
+    max = r.get('max', None)
 
     source = None
     # Can provide either dataset and/or image_id
@@ -1617,8 +1617,8 @@ def get_chasm_data():
         start_date=start_date,
         end_date=end_date,
         image_num_limit=image_num_limit,
-        min_range=min_range,
-        max_range=max_range
+        min=min,
+        max=max
     )
     if not image_info:
         raise error_handler.InvalidUsage('No images returned.')
