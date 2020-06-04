@@ -1398,6 +1398,8 @@ def get_glossis_data():
         min_range=min_range,
         max_range=max_range
     )
+    if not image_info:
+        raise error_handler.InvalidUsage('No images returned.')
 
     return Response(
         json.dumps(image_info),
@@ -1448,6 +1450,8 @@ def get_gloffis_data():
         min_range=min_range,
         max_range=max_range
     )
+    if not image_info:
+        raise error_handler.InvalidUsage('No images returned.')
 
     return Response(
         json.dumps(image_info),
@@ -1496,6 +1500,8 @@ def get_metocean_data():
         min_range=min_range,
         max_range=max_range
     )
+    if not image_info:
+        raise error_handler.InvalidUsage('No images returned.')
 
     return Response(
         json.dumps(image_info),
@@ -1534,6 +1540,8 @@ def get_gebco_data():
         min_range=min_range,
         max_range=max_range
     )
+    if not image_info:
+        raise error_handler.InvalidUsage('No images returned.')
 
     return Response(
         json.dumps(image_info),
