@@ -1372,6 +1372,8 @@ def get_glossis_data():
     start_date = r.get('startDate', None)
     end_date = r.get('endDate', None)
     image_num_limit = r.get('limit', None)
+    min = r.get('min', None)
+    max = r.get('max', None)
 
     if not (dataset or image_id):
         msg = f'dataset or imageId required.'
@@ -1384,7 +1386,18 @@ def get_glossis_data():
         source = ('/').join(image_location_parameters[:-1])
 
 
-    image_info = dgds_functions.get_dgds_data(source, dataset, image_id, band, function, start_date, end_date, image_num_limit)
+    image_info = dgds_functions.get_dgds_data(
+        source=source,
+        dataset=dataset,
+        image_id=image_id,
+        band=band,
+        function=function,
+        start_date=start_date,
+        end_date=end_date,
+        image_num_limit=image_num_limit,
+        min=min,
+        max=max
+    )
     if not image_info:
         raise error_handler.InvalidUsage('No images returned.')
 
@@ -1411,6 +1424,8 @@ def get_gloffis_data():
     start_date = r.get('startDate', None)
     end_date = r.get('endDate', None)
     image_num_limit = r.get('limit', None)
+    min = r.get('min', None)
+    max = r.get('max', None)
 
     source = None
     if not (dataset or image_id):
@@ -1423,7 +1438,18 @@ def get_gloffis_data():
         image_location_parameters = image_id.split('/')
         source = ('/').join(image_location_parameters[:-1])
 
-    image_info = dgds_functions.get_dgds_data(source, dataset, image_id, band, function, start_date, end_date, image_num_limit)
+    image_info = dgds_functions.get_dgds_data(
+        source=source,
+        dataset=dataset,
+        image_id=image_id,
+        band=band,
+        function=function,
+        start_date=start_date,
+        end_date=end_date,
+        image_num_limit=image_num_limit,
+        min=min,
+        max=max
+    )
     if not image_info:
         raise error_handler.InvalidUsage('No images returned.')
 
@@ -1450,6 +1476,8 @@ def get_metocean_data():
     start_date = r.get('startDate', None)
     end_date = r.get('endDate', None)
     image_num_limit = r.get('limit', None)
+    min = r.get('min', None)
+    max = r.get('max', None)
 
     if not (dataset or image_id):
         msg = f'dataset or imageId required.'
@@ -1460,7 +1488,18 @@ def get_metocean_data():
     if image_id:
         source = image_id
 
-    image_info = dgds_functions.get_dgds_data(source, dataset, image_id, band, function, start_date, end_date, image_num_limit)
+    image_info = dgds_functions.get_dgds_data(
+        source=source,
+        dataset=dataset,
+        image_id=image_id,
+        band=band,
+        function=function,
+        start_date=start_date,
+        end_date=end_date,
+        image_num_limit=image_num_limit,
+        min=min,
+        max=max
+    )
     if not image_info:
         raise error_handler.InvalidUsage('No images returned.')
 
@@ -1482,13 +1521,25 @@ def get_gebco_data():
     start_date = r.get('startDate', None)
     end_date = r.get('endDate', None)
     image_num_limit = r.get('limit', None)
+    min = r.get('min', None)
+    max = r.get('max', None)
 
     if dataset:
         source = 'projects/dgds-gee/bathymetry/' + dataset + '/2019'
     if image_id:
         source = image_id
 
-    image_info = dgds_functions.get_dgds_data(source, dataset, image_id, band, start_date, end_date, image_num_limit)
+    image_info = dgds_functions.get_dgds_data(
+        source=source,
+        dataset=dataset,
+        image_id=image_id,
+        band=band,
+        start_date=start_date,
+        end_date=end_date,
+        image_num_limit=image_num_limit,
+        min=min,
+        max=max
+    )
     if not image_info:
         raise error_handler.InvalidUsage('No images returned.')
 
@@ -1510,7 +1561,13 @@ def get_elevation_data():
     if image_id:
         source = image_id
 
-    image_info = dgds_functions.generate_elevation_map(source)
+    min = r.get('min', None)
+    max = r.get('max', None)
+
+    image_info = dgds_functions.generate_elevation_map(
+        dataset_list=source,
+        min=min,
+        max=max)
 
     return Response(
         json.dumps(image_info),
@@ -1535,6 +1592,8 @@ def get_chasm_data():
     start_date = r.get('startDate', None)
     end_date = r.get('endDate', None)
     image_num_limit = r.get('limit', None)
+    min = r.get('min', None)
+    max = r.get('max', None)
 
     source = None
     # Can provide either dataset and/or image_id
@@ -1549,7 +1608,18 @@ def get_chasm_data():
         image_location_parameters = image_id.split('/')
         source = ('/').join(image_location_parameters[:-1])
 
-    image_info = dgds_functions.get_dgds_data(source, dataset, image_id, band, function, start_date, end_date, image_num_limit)
+    image_info = dgds_functions.get_dgds_data(
+        source=source,
+        dataset=dataset,
+        image_id=image_id,
+        band=band,
+        function=function,
+        start_date=start_date,
+        end_date=end_date,
+        image_num_limit=image_num_limit,
+        min=min,
+        max=max
+    )
     if not image_info:
         raise error_handler.InvalidUsage('No images returned.')
 
@@ -1659,12 +1729,13 @@ def get_wms_url():
     r = request.get_json()
     image_id = r['imageId']
     band = r.get('band', None)
+    datasets = r.get('datasets', None)
     function = r.get('function', None)
     min = r.get('min', None)
     max = r.get('max', None)
     palette = r.get('palette', None)
 
-    info = dgds_functions.get_wms_url(image_id, 'Image', band, function, min, max, palette)
+    info = dgds_functions.get_wms_url(image_id, 'Image', band, datasets, function, min, max, palette)
 
     return Response(
         json.dumps(info),

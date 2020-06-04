@@ -5,8 +5,6 @@ from . import auth
 
 from hydroengine_service import dgds_functions
 
-# import palettes
-
 logger = logging.getLogger(__name__)
 
 class TestDGDSFunctions:
