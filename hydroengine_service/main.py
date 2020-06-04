@@ -1373,7 +1373,7 @@ def get_glossis_data():
     end_date = r.get('endDate', None)
     image_num_limit = r.get('limit', None)
     min_range = r.get('min', None)
-    max_range = r.get('min', None)
+    max_range = r.get('max', None)
 
     if not (dataset or image_id):
         msg = f'dataset or imageId required.'
@@ -1425,7 +1425,7 @@ def get_gloffis_data():
     end_date = r.get('endDate', None)
     image_num_limit = r.get('limit', None)
     min_range = r.get('min', None)
-    max_range = r.get('min', None)
+    max_range = r.get('max', None)
 
     source = None
     if not (dataset or image_id):
@@ -1477,7 +1477,7 @@ def get_metocean_data():
     end_date = r.get('endDate', None)
     image_num_limit = r.get('limit', None)
     min_range = r.get('min', None)
-    max_range = r.get('min', None)
+    max_range = r.get('max', None)
 
     if not (dataset or image_id):
         msg = f'dataset or imageId required.'
@@ -1522,7 +1522,7 @@ def get_gebco_data():
     end_date = r.get('endDate', None)
     image_num_limit = r.get('limit', None)
     min_range = r.get('min', None)
-    max_range = r.get('min', None)
+    max_range = r.get('max', None)
 
     if dataset:
         source = 'projects/dgds-gee/bathymetry/' + dataset + '/2019'
@@ -1534,7 +1534,6 @@ def get_gebco_data():
         dataset=dataset,
         image_id=image_id,
         band=band,
-        function=function,
         start_date=start_date,
         end_date=end_date,
         image_num_limit=image_num_limit,
@@ -1563,7 +1562,7 @@ def get_elevation_data():
         source = image_id
 
     min_range = r.get('min', None)
-    max_range = r.get('min', None)
+    max_range = r.get('max', None)
 
     image_info = dgds_functions.generate_elevation_map(
         dataset_list=source,
@@ -1594,7 +1593,7 @@ def get_chasm_data():
     end_date = r.get('endDate', None)
     image_num_limit = r.get('limit', None)
     min_range = r.get('min', None)
-    max_range = r.get('min', None)
+    max_range = r.get('max', None)
 
     source = None
     # Can provide either dataset and/or image_id
