@@ -261,13 +261,17 @@ def generate_elevation_map(dataset_list=None, min_range=None, max_range=None):
         dataset_list = ELEVATION_DATA.keys()
 
     mosaic_image = mosaic_elevation_datasets(dataset_list)
+    data_params = DATASETS_VIS["projects/dgds-gee/bathymetry/gebco/2019"]
+
     if min:
         data_params['bathy_vis_params']['min'] = min_range
     if max:
         data_params['topo_vis_params']['max'] = max_range
-    final_image = visualize_elevation(mosaic_image, data_params=data_params)
-    data_params = DATASETS_VIS["projects/dgds-gee/bathymetry/gebco/2019"]
 
+    final_image = visualize_elevation(image=mosaic_image,
+                                      data_params=data_params,
+                                      bathy_only=False,
+                                      hillshade_image=True)
     url = _get_gee_url(final_image)
 
     info = {}
@@ -295,7 +299,7 @@ def generate_elevation_map(dataset_list=None, min_range=None, max_range=None):
     return info
 
 
-def visualize_gebco(source, band):
+def visualize_gebco(source, band, min=None, max=None):
     """
     Specialized function to visualize GEBCO data
     :param source: String, Google Earth Engine image id
@@ -303,12 +307,17 @@ def visualize_gebco(source, band):
     :return: Dictionary
     """
     data_params = DATASETS_VIS[source]
+    if min:
+        data_params['bathy_vis_params']['min'] = min
+    if max:
+        data_params['topo_vis_params']['max'] = max
+
     image = ee.Image(source)
 
     gebco = image.select(data_params['bandNames'][band])
     land_mask = LANDMASK
 
-    hillshaded = visualize_elevation(gebco,
+    hillshaded = visualize_elevation(image=gebco,
                                      land_mask=land_mask,
                                      data_params=data_params,
                                      bathy_only=False,
@@ -328,6 +337,7 @@ def visualize_gebco(source, band):
             'opacity': 100,
             'color': color
         })
+
     info.update({
         'url': url,
         'linearGradient': linear_gradient,
@@ -491,7 +501,7 @@ def _get_wms_url(image_id,
     """
     # GEBCO is styled differently, non-linear color palette
     if 'gebco' in image_id:
-        info = visualize_gebco(image_id, band)
+        info = visualize_gebco(image_id, band, min, max)
         return info
 
     if function == 'mosaic_elevation_datasets':
@@ -559,10 +569,11 @@ def _get_wms_url(image_id,
             logger.debug(msg)
             return
 
-    # Overwrite vis params if provided in request
-    if min:
+    # Overwrite vis params if provided in request,
+    # min/max values can be zero, should not be None
+    if min is not None:
         vis_params['min'] = min
-    if max:
+    if max is not None:
         vis_params['max'] = max
     if palette:
         vis_params['palette'] = palette
