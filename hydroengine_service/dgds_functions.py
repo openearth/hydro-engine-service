@@ -26,6 +26,11 @@ logger = logging.getLogger(__name__)
 LAND = ee.Image('users/gena/land_polygons_image')
 LANDMASK = ee.Image(LAND.unmask(1, False).Not().resample('bicubic').focal_mode(2))
 
+def validate_min_lt_max(min, max):
+    min_lt_max = min < max
+    if not min_lt_max:
+        raise error_handler.InvalidUsage('Specified min must be less than max.')
+
 
 def get_dgds_source_vis_params(source, image_id=None):
     """
@@ -173,6 +178,12 @@ def visualize_elevation(image,
     :param hillshade: Boolean for hillshading, default True
     :return: Google Earth Engine ee.Image() object, Hillshaded image
     """
+    # validate min is less than max, otherwise raise error
+    min = data_params['bathy_vis_params']['min']
+    max = data_params['topo_vis_params']['max']
+    if min and max is not None:
+        validate_min_lt_max(min, max)
+
     topo_rgb = image.mask(land_mask).visualize(**data_params['topo_vis_params'])
     bathy_rgb = image.mask(land_mask.Not()).visualize(**data_params['bathy_vis_params'])
     image_rgb = topo_rgb.blend(bathy_rgb)
@@ -218,7 +229,7 @@ def mosaic_elevation_datasets(dataset_list=None):
     for dataset in dataset_list:
         params = ELEVATION_DATA.get(dataset, None)
         if not params:
-            error_handler.handle_invalid_usage(
+            raise error_handler.handle_invalid_usage(
                 f'No parameters defined for {dataset} in dataset_elevation_parameters.json'
             )
         type = params.get('type', None)
@@ -273,7 +284,7 @@ def generate_elevation_map(dataset_list=None, min_range=None, max_range=None):
                                       bathy_only=False,
                                       hillshade_image=True)
     url = _get_gee_url(final_image)
-
+    # TODO: clean up, repeated content from gebco
     info = {}
     info['dataset'] = 'elevation'
     info['band'] = 'elevation'
@@ -580,6 +591,9 @@ def _get_wms_url(image_id,
 
     if source == 'projects/dgds-gee/gloffis/hydro':
         image = image.mask(image.gte(0))
+
+    # validate min is less than max, otherwise raise error
+    validate_min_lt_max(vis_params['min'], vis_params['max'])
 
     info = _generate_image_info(image, vis_params)
     info['source'] = source
