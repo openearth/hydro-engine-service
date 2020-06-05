@@ -1630,6 +1630,62 @@ def get_chasm_data():
     )
 
 
+@v1.route('/get_gtsm_data', methods=['POST'])
+@flask_cors.cross_origin()
+def get_gtsm_data():
+    """
+    Get GTSM data. Either waterlevel or tidal dataset must be provided.
+    If waterlevel dataset is requested, must specify which band return period
+    [waterlevel_2, waterlevel_5, waterlevel_10
+    If tidal datset, bands are:
+    []
+    :return:
+    """
+    r = request.get_json()
+    dataset = r.get('dataset', None)
+    image_id = r.get('imageId', None)
+    band = r.get('band', None)
+
+    function = r.get('function', None)
+    start_date = r.get('startDate', None)
+    end_date = r.get('endDate', None)
+    image_num_limit = r.get('limit', None)
+    min = r.get('min', None)
+    max = r.get('max', None)
+
+    if not dataset or image_id and band:
+        msg = f'dataset or imageId and band '
+        logger.error(msg)
+        raise error_handler.InvalidUsage(msg)
+    if dataset:
+        source = 'projects/dgds-gee/gtsm/'+dataset
+    if image_id:
+        image_location_parameters = image_id.split('/')
+        source = ('/').join(image_location_parameters[:-1])
+
+
+    image_info = dgds_functions.get_dgds_data(
+        source=source,
+        dataset=dataset,
+        image_id=image_id,
+        band=band,
+        function=function,
+        start_date=start_date,
+        end_date=end_date,
+        image_num_limit=image_num_limit,
+        min=min,
+        max=max
+    )
+    if not image_info:
+        raise error_handler.InvalidUsage('No images returned.')
+
+    return Response(
+        json.dumps(image_info),
+        status=200,
+        mimetype='application/json'
+    )
+
+
 @v1.route('/get_feature_info', methods=['POST'])
 @flask_cors.cross_origin()
 def get_feature_info():
