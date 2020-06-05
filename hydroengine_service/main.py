@@ -77,7 +77,7 @@ bathymetry = {
     'jetski': ee.ImageCollection('users/gena/eo-bathymetry/sandengine_jetski'),
     'vaklodingen': ee.ImageCollection('users/gena/vaklodingen'),
     'kustlidar': ee.ImageCollection('users/gena/eo-bathymetry/rws_lidar'),
-    'jarkus': ee.ImageCollection('users/rogersckw9/eo-bathymetry/jarkus'),
+    'jarkus': ee.ImageCollection('projects/deltares-rws/eo-bathymetry/jarkus'),
     'ahn': ee.ImageCollection('users/rogersckw9/eo-bathymetry/ahn')
 }
 
