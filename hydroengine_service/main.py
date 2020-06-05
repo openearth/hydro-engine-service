@@ -1634,11 +1634,8 @@ def get_chasm_data():
 @flask_cors.cross_origin()
 def get_gtsm_data():
     """
-    Get GTSM data. Either waterlevel or tidal dataset must be provided.
-    If waterlevel dataset is requested, must specify which band return period
-    [waterlevel_2, waterlevel_5, waterlevel_10
-    If tidal datset, bands are:
-    []
+    Get GTSM data. Either waterlevel_return_period, or tidal_indicators dataset must be provided.
+    See datasets_visualization_parameters.json for possible bands to request as band
     :return:
     """
     r = request.get_json()
