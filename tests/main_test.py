@@ -311,7 +311,7 @@ class TestClient:
     def test_v2_get_liwo_scenarios_max_no_region(self):
         """test get liwo scenarios max"""
         request = {
-            "liwo_ids": [11088, 808],
+            "liwo_ids": [18037, 18038, 18039],
             "band": "waterdepth"
         }
         resp = self.client.post(
@@ -330,7 +330,7 @@ class TestClient:
 
         # some of these variables are only used for export
         request = {
-            "liwo_ids": [11088, 11089, 11090],
+            "liwo_ids": [18037, 18038, 18039],
             "band": "waterdepth",
             "region": {
                 "geodesic": False,
@@ -361,7 +361,7 @@ class TestClient:
     def test_v2_get_liwo_scenarios_max_regional_and_primary(self):
         """test get liwo scenarios max"""
         request = {
-            "liwo_ids": [11088, 808],
+            "liwo_ids": [18037, 621],
             "band": "waterdepth"
         }
         resp = self.client.post(
