@@ -1650,16 +1650,18 @@ def get_gtsm_data():
     min = r.get('min', None)
     max = r.get('max', None)
 
-    if not dataset or image_id and band:
-        msg = f'dataset or imageId and band '
+    if not band:
+        msg = f'band is a required parameter'
         logger.error(msg)
         raise error_handler.InvalidUsage(msg)
     if dataset:
         source = 'projects/dgds-gee/gtsm/'+dataset
-    if image_id:
-        image_location_parameters = image_id.split('/')
-        source = ('/').join(image_location_parameters[:-1])
-
+    elif image_id:
+        source = image_id
+    else:
+        msg = f'dataset or image_id is a required parameter'
+        logger.error(msg)
+        raise error_handler.InvalidUsage(msg)
 
     image_info = dgds_functions.get_dgds_data(
         source=source,
