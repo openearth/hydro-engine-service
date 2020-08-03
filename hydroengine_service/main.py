@@ -528,9 +528,6 @@ def get_water_mask_raw():
 
 
 def get_water_mask_vector(region, scale, start, stop):
-    # quick fix for bad regions
-    region = region.simplify(1)
-
     #  water occurrence(monthly)
     water_occurrence = monthly_water \
         .filterDate(start, stop) \
