@@ -800,6 +800,7 @@ def get_water_network():
 
     j = request.json
 
+    use_url = j['use_url']
     region = ee.Geometry(j['region'])
     start = j['start']
     stop = j['stop']
@@ -819,7 +820,11 @@ def get_water_network():
     centerline = centerline.map(transform_feature(crs, scale))
 
     # create response
-    data = centerline.getInfo()
+    if use_url:
+        url = centerline.getDownloadURL('json')
+        data = {'url': url}
+    else:
+        data = centerline.getInfo()
 
     return Response(json.dumps(data), status=200, mimetype='application/json')
 
@@ -832,6 +837,7 @@ def get_water_network_properties():
 
     j = request.json
 
+    use_url = j['use_url']
     region = ee.Geometry(j['region'])
     start = j['start']
     stop = j['stop']
@@ -936,7 +942,11 @@ def get_water_network_properties():
     points = points.map(transform_feature(crs, scale))
 
     # create response
-    data = points.getInfo()
+    if use_url:
+        url = points.getDownloadURL('json')
+        data = {'url': url}
+    else:
+        data = points.getInfo()
 
     return Response(json.dumps(data), status=200, mimetype='application/json')
 
