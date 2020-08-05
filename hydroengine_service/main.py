@@ -527,7 +527,7 @@ def get_water_mask_raw():
     return Response(json.dumps(data), status=200, mimetype='application/json')
 
 
-def get_water_mask_vector(region, scale, start, stop):
+def get_water_mask_vector(region, scale, start, stop, largest_only=True):
     #  water occurrence(monthly)
     water_occurrence = monthly_water \
         .filterDate(start, stop) \
@@ -549,12 +549,13 @@ def get_water_mask_vector(region, scale, start, stop):
                             "tileScale": 4})
 
     # take the largest
-    water_mask_vector = water_mask_vector \
-        .map(lambda o: o.set({"area": o.area(scale)}))
+    if largest_only:
+        water_mask_vector = water_mask_vector \
+            .map(lambda o: o.set({"area": o.area(scale)}))
 
-    water_mask_vector = ee.Feature(
-        water_mask_vector.sort('area', False).first()
-    )
+        water_mask_vector = ee.Feature(
+            water_mask_vector.sort('area', False).first()
+        )
 
     # simplify
     water_mask_vector = water_mask_vector.simplify(scale * 1.5)
@@ -583,8 +584,9 @@ def get_water_mask():
     stop = j['stop']
     scale = j['scale']
     crs = j['crs']
-
-    water_mask_vector = get_water_mask_vector(region, scale, start, stop)
+    largest_only = j.get('largest_only', True)
+    
+    water_mask_vector = get_water_mask_vector(region, scale, start, stop, largest_only)
 
     water_mask_vector = water_mask_vector.map(transform_feature(crs, scale))
 
@@ -806,9 +808,10 @@ def get_water_network():
     stop = j['stop']
     scale = j['scale']
     crs = j['crs']
+    largest_only = j.get('largest_only', True)
 
     # get water mask
-    water_vector = get_water_mask_vector(region, scale, start, stop)
+    water_vector = get_water_mask_vector(region, scale, start, stop, largest_only)
 
     # skeletonize
     output = generate_skeleton_from_voronoi(scale, water_vector)
@@ -842,10 +845,9 @@ def get_water_network_properties():
     start = j['start']
     stop = j['stop']
     scale = j['scale']
-
     step = j['step']
-
     crs = j['crs']
+    largest_only = j.get('largest_only', True)
 
     error = ee.ErrorMargin(scale / 2, 'meters')
 
@@ -854,7 +856,7 @@ def get_water_network_properties():
             'TODO: re-using existing networks is not supported yet')
 
     # get water mask
-    water_vector = get_water_mask_vector(region, scale, start, stop)
+    water_vector = get_water_mask_vector(region, scale, start, stop, largest_only)
 
     # skeletonize
     output = generate_skeleton_from_voronoi(scale, water_vector)
