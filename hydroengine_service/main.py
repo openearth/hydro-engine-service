@@ -586,7 +586,7 @@ def get_water_mask():
     scale = j['scale']
     crs = j['crs']
     largest_only = j.get('largest_only', True)
-    
+
     water_mask_vector = get_water_mask_vector(region, scale, start, stop, largest_only)
 
     water_mask_vector = water_mask_vector.map(transform_feature(crs, scale))
@@ -799,11 +799,13 @@ def get_water_network():
     Skeletonize water mask given boundary, converts it into a network
     (undirected graph) and generates a feature collection
     Script: https://code.earthengine.google.com/da4dd67e84910ca42c4f82c41e7f9bcb
+
+    TODO: add function to use given water_mask
     """
 
     j = request.json
 
-    use_url = j['use_url']
+    use_url = j.get('use_url', False)
     region = ee.Geometry(j['region'])
     start = j['start']
     stop = j['stop']
@@ -837,11 +839,13 @@ def get_water_network():
 def get_water_network_properties():
     """
     Generates variables along water skeleton network polylines.
+
+    TODO: add function to use given water_mask and water_network
     """
 
     j = request.json
 
-    use_url = j['use_url']
+    use_url = j.get('use_url', False)
     region = ee.Geometry(j['region'])
     start = j['start']
     stop = j['stop']
