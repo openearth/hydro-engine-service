@@ -546,7 +546,8 @@ def get_water_mask_vector(region, scale, start, stop, largest_only=True):
     water_mask_vector = water_mask.mask(water_mask) \
         .reduceToVectors(**{"geometry": region,
                             "scale": scale / 2,
-                            "tileScale": 4})
+                            "tileScale": 4,
+                            "bestEffort": True})
 
     # take the largest
     if largest_only:
