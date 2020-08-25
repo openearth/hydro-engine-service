@@ -1,6 +1,6 @@
 {
     "GEBCO": {
-        "source": "projects/dgds-gee/gebco/2019",
+        "source": "projects/dgds-gee/bathymetry/gebco/2019",
         "type": "Image",
         "name": "GEBCO",
         "band": "b1",
