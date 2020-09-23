@@ -1,7 +1,7 @@
 Flask==1.0
 Flask-Cors==3.0.3
 gunicorn==19.7.1
-earthengine-api==0.1.149
+earthengine-api>=0.1.232
 requests==2.18.4
 oauth2client==4.1.2
 Click>=6.0
