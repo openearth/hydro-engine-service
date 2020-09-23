@@ -157,16 +157,14 @@ def generate_image_info(im, params):
     m = im.getMapId()
 
     mapid = m.get('mapid')
-    token = m.get('token')
 
-    url = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'.format(
-        mapid=mapid,
-        token=token
-    )
+    url = 'https://earthengine.googleapis.com/v1alpha/{mapid}/tiles/{{z}}/{{x}}/{{y}}'\
+        .format(
+            mapid=mapid
+        )
 
     result = {
         'mapid': mapid,
-        'token': token,
         'url': url
     }
     return result
