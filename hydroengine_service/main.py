@@ -405,7 +405,6 @@ def api_get_bathymetry():
 
         result = {
             'mapid': mapid,
-            'token': token,
             'url': url
         }
         return result
