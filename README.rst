@@ -38,7 +38,9 @@ Deploy
 
 Deploy app, optionally: -v <version> - a bit faster:
 
-gcloud app deploy --project hydro-engine --version dev2
+gcloud app deploy --project hydro-engine --version green
+
+versions used: green/blue deployment scheme. Check console for
 
 Browse: 
 
