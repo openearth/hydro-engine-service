@@ -1,6 +1,6 @@
 Flask==1.1.*
 Flask-Cors==3.*
-earthengine-api==0.1.*
+earthengine-api>=0.1.241
 gunicorn==20.*
 requests==2.*
 oauth2client==4.1.*
