@@ -6,6 +6,7 @@ from flask import request, Response
 from flask import Blueprint
 
 from hydroengine_service import dgds_functions
+from hydroengine_service import error_handler
 
 v1 = Blueprint("dgds-v1", __name__)
 v2 = Blueprint('dgds-v2', __name__)

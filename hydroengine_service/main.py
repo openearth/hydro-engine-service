@@ -876,10 +876,10 @@ def api_get_lakes():
         return Response(json.dumps(ids.getInfo()), status=200,
                         mimetype='application/json')
 
-    # create response
-    url = selected_lakes.getDownloadURL('json')
+    #
 
-    data = {'url': url}
+    # create response
+    data = selected_lakes.getInfo()
 
     return Response(json.dumps(data), status=200, mimetype='application/json')
 
@@ -888,9 +888,13 @@ def api_get_lakes():
 def get_lake_by_id():
     lake_id = int(request.json['lake_id'])
 
-    lake = ee.Feature(ee.FeatureCollection(
-        lakes.filter(ee.Filter.eq('Hylak_id', lake_id))).first())
-
+    lake = ee.Feature(
+        ee.FeatureCollection(
+            lakes.filter(
+                ee.Filter.eq('Hylak_id', lake_id)
+            )
+        ).first()
+    )
     return Response(json.dumps(lake.getInfo()), status=200,
                     mimetype='application/json')
 
