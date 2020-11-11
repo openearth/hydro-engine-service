@@ -615,10 +615,8 @@ def _get_gee_url(image):
     """
     m = image.getMapId()
     mapid = m.get('mapid')
-    token = m.get('token')
-
-    url = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'.format(
-        mapid=mapid,
-        token=token
+    url = 'https://earthengine.googleapis.com/v1alpha/{mapid}/tiles/{{z}}/{{x}}/{{y}}' \
+        .format(
+        mapid=mapid
     )
     return url

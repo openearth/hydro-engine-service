@@ -205,16 +205,16 @@ def api_get_image_urls():
         )
 
         mapid = m.get('mapid')
-        token = m.get('token')
-
-        url = 'https://earthengine.googleapis.com/map/{0}/{{z}}/{{x}}/{{y}}?token={1}'.format(
-            mapid, token)
+        url = 'https://earthengine.googleapis.com/v1alpha/{mapid}/tiles/{{z}}/{{x}}/{{y}}' \
+            .format(
+            mapid=mapid
+        )
 
         begin = image.get('begin').getInfo()
 
         end = image.get('end').getInfo()
 
-        return {'mapid': mapid, 'token': token, 'url': url, 'begin': begin,
+        return {'mapid': mapid, 'url': url, 'begin': begin,
                 'end': end}
 
     images = ee.List.sequence(0, t_count).map(generate_average_image)
@@ -270,10 +270,10 @@ def get_sea_surface_height_trend_image():
     m = image.getMapId()
 
     mapid = m.get('mapid')
-    token = m.get('token')
-
-    url = 'https://earthengine.googleapis.com/map/{0}/{{z}}/{{x}}/{{y}}?token={1}'.format(
-        mapid, token)
+    url = 'https://earthengine.googleapis.com/v1alpha/{mapid}/tiles/{{z}}/{{x}}/{{y}}' \
+        .format(
+        mapid=mapid
+    )
 
     response = Response(json.dumps({'url': url}), status=200,
                         mimetype='application/json')
@@ -404,16 +404,13 @@ def api_get_bathymetry():
         m = image_vis.getMapId()
 
         mapid = m.get('mapid')
-        token = m.get('token')
-
-        url = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'.format(
-            mapid=mapid,
-            token=token
+        url = 'https://earthengine.googleapis.com/v1alpha/{mapid}/tiles/{{z}}/{{x}}/{{y}}' \
+            .format(
+            mapid=mapid
         )
 
         result = {
             'mapid': mapid,
-            'token': token,
             'url': url
         }
         return result
