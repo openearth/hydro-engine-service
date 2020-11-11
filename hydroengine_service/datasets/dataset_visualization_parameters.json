@@ -229,5 +229,75 @@
             }
         }
     }
-
+	},
+    "projects/dgds-gee/gtsm/waterlevel_return_period": {
+        "type": "Image",
+		"bandNames": {
+            "waterlevel_2": "waterlevel_2",
+            "waterlevel_5": "waterlevel_5",
+            "waterlevel_10": "waterlevel_10",
+            "waterlevel_25": "waterlevel_25",
+            "waterlevel_50": "waterlevel_50",
+            "waterlevel_75": "waterlevel_75",
+            "waterlevel_100": "waterlevel_100"
+        },
+		"min": {
+            "waterlevel_2": 0.0,
+            "waterlevel_5": 0.0,
+            "waterlevel_10": 0.0,
+            "waterlevel_25": 0.0,
+            "waterlevel_50": 0.0,
+            "waterlevel_75": 0.0,
+            "waterlevel_100": 0.0
+        },
+		"max": {
+            "waterlevel_2": 7.0,
+            "waterlevel_5": 7.0,
+            "waterlevel_10": 7.0,
+            "waterlevel_25": 7.0,
+            "waterlevel_50": 7.0,
+            "waterlevel_75": 7.0,
+            "waterlevel_100": 7.0
+        },
+		"palette": {
+            "waterlevel_2": ["151d44", "1c455b", "156d73", "2a937f", "7db390", "c3d1ba", "fff6f4"],
+            "waterlevel_5": ["151d44", "1c455b", "156d73", "2a937f", "7db390", "c3d1ba", "fff6f4"],
+            "waterlevel_10": ["151d44", "1c455b", "156d73", "2a937f", "7db390", "c3d1ba", "fff6f4"],
+            "waterlevel_25": ["151d44", "1c455b", "156d73", "2a937f", "7db390", "c3d1ba", "fff6f4"],
+            "waterlevel_50": ["151d44", "1c455b", "156d73", "2a937f", "7db390", "c3d1ba", "fff6f4"],
+            "waterlevel_75": ["151d44", "1c455b", "156d73", "2a937f", "7db390", "c3d1ba", "fff6f4"],
+            "waterlevel_100": ["151d44", "1c455b", "156d73", "2a937f", "7db390", "c3d1ba", "fff6f4"]
+        }
+    },
+    "projects/dgds-gee/gtsm/tidal_indicators": {
+        "type": "Image",
+        "bandNames": {
+            "mean_sea_level": "mean_sea_level",
+            "mean_higher_high_water": "mean_higher_high_water",
+            "mean_lower_low_water": "mean_lower_low_water",
+            "highest_astronomical_tide": "highest_astronomical_tide",
+            "lowest_astronomical_tide": "lowest_astronomical_tide"
+        },
+        "min": {
+            "mean_sea_level": -0.1,
+            "mean_higher_high_water": 0.0,
+            "mean_lower_low_water": -3.0,
+            "highest_astronomical_tide": 0.0,
+            "lowest_astronomical_tide": -3.0
+        },
+        "max": {
+            "mean_sea_level": 0.1,
+            "mean_higher_high_water": 3.0,
+            "mean_lower_low_water": 0.0,
+            "highest_astronomical_tide": 3.0,
+            "lowest_astronomical_tide": 0.0
+        },
+        "palette": {
+            "mean_sea_level": ["#D1CBFF", "#006391", "#1D1B1A", "#902F14", "#FCB0B2"],
+            "mean_higher_high_water": ["#1D1B1A", "#902F14", "#FCB0B2"],
+            "mean_lower_low_water": ["#D1CBFF", "#006391", "#1D1B1A"],
+            "highest_astronomical_tide": ["#1D1B1A", "#902F14", "#FCB0B2"],
+            "lowest_astronomical_tide": ["#D1CBFF", "#006391", "#1D1B1A"]
+        }
+    }
 }

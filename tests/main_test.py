@@ -311,7 +311,7 @@ class TestClient:
     def test_v2_get_liwo_scenarios_max_no_region(self):
         """test get liwo scenarios max"""
         request = {
-            "liwo_ids": [11088, 808],
+            "liwo_ids": [18037, 18038, 18039],
             "band": "waterdepth"
         }
         resp = self.client.post(
@@ -330,7 +330,7 @@ class TestClient:
 
         # some of these variables are only used for export
         request = {
-            "liwo_ids": [11088, 11089, 11090],
+            "liwo_ids": [18037, 18038, 18039],
             "band": "waterdepth",
             "region": {
                 "geodesic": False,
@@ -361,7 +361,7 @@ class TestClient:
     def test_v2_get_liwo_scenarios_max_regional_and_primary(self):
         """test get liwo scenarios max"""
         request = {
-            "liwo_ids": [11088, 808],
+            "liwo_ids": [18037, 621],
             "band": "waterdepth"
         }
         resp = self.client.post(
@@ -582,3 +582,37 @@ class TestClient:
         result = json.loads(resp.data)
 
         assert result['value'] == 3.02
+
+    def test_get_feature_info_elevation(self):
+        request = {
+            "imageId": None,
+            "datasets": [
+                "GEBCO",
+                "ALOS",
+                "USGSNED",
+                "GLDEM",
+                "CADEM",
+                "AHN2",
+                "AUDEM",
+                "REMA",
+                "EMODnet"
+            ],
+            "function": "mosaic_elevation_datasets",
+            "bbox": {
+                "type": "Point",
+                "coordinates": [
+                    -28.23,
+                    49.05
+                ]
+            }
+        }
+        resp = self.client.post(
+            '/get_feature_info',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+
+        assert result['value'] == -3712.95

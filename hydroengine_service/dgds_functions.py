@@ -18,14 +18,25 @@ DATASET_DIR = os.path.join(APP_DIR, 'datasets')
 with open(DATASET_DIR + '/dataset_visualization_parameters.json') as json_file:
     DATASETS_VIS = json.load(json_file)
 
+with open(DATASET_DIR + '/dataset_elevation_parameters.json') as json_file:
+    ELEVATION_DATA = json.load(json_file)
+
 logger = logging.getLogger(__name__)
+
+LAND = ee.Image('users/gena/land_polygons_image')
+LANDMASK = ee.Image(LAND.unmask(1, False).Not().resample('bicubic').focal_mode(2))
+
+def validate_min_lt_max(min, max):
+    if not min < max:
+        raise error_handler.InvalidUsage('Specified min must be less than max.')
+
 
 def get_dgds_source_vis_params(source, image_id=None):
     """
     Check source and/or image_id has default visualization parameters defined
     :param source: String, source/location of Earth Engine Object
     :param image_id: String, Earth Engine Image id
-    :return:
+    :return: Dictionary
     """
     data_params = DATASETS_VIS.get(source, None)
     if image_id and not data_params:
@@ -41,7 +52,9 @@ def get_dgds_data(source,
                   function=None,
                   start_date=None,
                   end_date=None,
-                  image_num_limit=None):
+                  image_num_limit=None,
+                  min=None,
+                  max=None):
     """
 
     :param source: String, source/location of Earth Engine Object
@@ -52,6 +65,8 @@ def get_dgds_data(source,
     :param start_date: String, start date to filter collection on
     :param end_date: String, end date to filter collection on
     :param image_num_limit: String, limit of objects to return
+    :param min: Number, minimum value for image visualization
+    :param max: Number, maximum value for image visualization
     :return: Dictionary
     """
     # Get list of objects with imageId and date for collection
@@ -73,7 +88,14 @@ def get_dgds_data(source,
         else:
             function = function.get(band, None)
 
-    image_info = _get_wms_url(returned_url_id, type=data_params['type'], band=band, function=function)
+    image_info = _get_wms_url(
+        image_id=returned_url_id,
+        type=data_params['type'],
+        band=band,
+        function=function,
+        min=min,
+        max=max
+    )
     image_info['dataset'] = dataset
     image_info['band'] = band
     if info:
@@ -81,50 +103,29 @@ def get_dgds_data(source,
 
     return image_info
 
-def degree_to_radians_image(image):
-    return ee.Image(image).toFloat().multiply(3.1415927).divide(180)
 
-
-def visualize_gebco(source, band):
+def hillshade(image_rgb,
+              image,
+              azimuth=315,
+              zenith=30,
+              height_multiplier=30,
+              weight=0.3,
+              val_multiply=0.9,
+              sat_multiply=0.8):
     """
-    Specialized function to visualize GEBCO data
-    :param source: String, Google Earth Engine image id
-    :param band: String, band of image to visualize
-    :return: Dictionary
+    :param image_rgb: GEE image visualized in RGB to hillshade
+    :param image: GEE image raw values, not visualized
+    :param azimuth: Angle for hillshade.
+    :param zenith: Zenith for hillshade. Lower is longer shadows
+    :param height_multiplier:
+    :param weight: Weight between image and  hillshade (1=equal)
+    :param val_multiply: make darker (<1), lighter (>1)
+    :param sat_multiply: make  desaturated (<1) or more saturated (>1)
+    :return: Google Earth Engine ee.Image() object, hillshaded image
     """
-    data_params = DATASETS_VIS[source]
-    image = ee.Image(source)
-
-    gebco = image.select(data_params['bandNames'][band])
-    # Angle for hillshade (keep at 315 for good perception)
-    azimuth = 315
-    # Lower is longer shadows
-    zenith = 30
-
-    bathy_only = data_params.get('bathy_only', False)
-
-    height_multiplier = 30
-    # Weight between image and  hillshade (1=equal)
-    weight = 0.3
-    # make darker (<1), lighter (>1)
-    val_multiply = 0.9
-    # make  desaturated (<1) or more saturated (>1)
-    sat_multiply = 0.8
-
-    # palettes
-    # visualization params
-    topo_rgb = gebco.mask(gebco.gt(0)).visualize(**data_params['topo_vis_params'])
-    bathy_rgb = gebco.mask(gebco.lte(0)).visualize(**data_params['bathy_vis_params'])
-    image_rgb = topo_rgb.blend(bathy_rgb)
-
-    if (bathy_only):
-        # overwrite with masked version
-        image_rgb = bathy_rgb.mask(gebco.multiply(ee.Image(-1)).unitScale(-1, 10).clamp(0, 1))
-
-    # TODO:  see how this still fits in the hillshade function
     hsv = image_rgb.unitScale(0, 255).rgbToHsv()
 
-    z = gebco.multiply(ee.Image.constant(height_multiplier))
+    z = image.multiply(ee.Image.constant(height_multiplier))
 
     # Compute terrain properties
     terrain = ee.Algorithms.Terrain(z)
@@ -140,12 +141,12 @@ def visualize_gebco(source, band):
             .multiply(slope.sin())
             .multiply(zenith.sin())
             .add(
-            zenith
-                .cos()
-                .multiply(
-                slope.cos()
+                zenith
+                    .cos()
+                    .multiply(
+                        slope.cos()
+                    )
             )
-        )
             .resample('bicubic')
     )
 
@@ -160,24 +161,184 @@ def visualize_gebco(source, band):
     val = intensity.multiply(val_multiply)
 
     hillshaded = ee.Image.cat(hue, sat, val).hsvToRgb()
+    return hillshaded
+
+
+def visualize_elevation(image,
+                        land_mask=LANDMASK,
+                        data_params=None,
+                        bathy_only=False,
+                        hillshade_image=True,
+                        hillshade_args={}):
+    """
+    :param image: Google Earth Engine image to visualize
+    :param land_mask: Boolean Google Earth Engine image representing 1 for land mask
+    :param bathy_only: Boolean for visualizing bathymetry only
+    :param hillshade: Boolean for hillshading, default True
+    :return: Google Earth Engine ee.Image() object, Hillshaded image
+    """
+    # validate min is less than max, otherwise raise error
+    min = data_params['bathy_vis_params']['min']
+    max = data_params['topo_vis_params']['max']
+    if min and max is not None:
+        validate_min_lt_max(min, max)
+
+    topo_rgb = image.mask(land_mask).visualize(**data_params['topo_vis_params'])
+    bathy_rgb = image.mask(land_mask.Not()).visualize(**data_params['bathy_vis_params'])
+    image_rgb = topo_rgb.blend(bathy_rgb)
+
+    if bathy_only:
+        # overwrite with masked version
+        image_rgb = bathy_rgb.mask(image.multiply(ee.Image(-1)).unitScale(-1, 10).clamp(0, 1))
+
+    if hillshade_image:
+        # hillshade with default parameters
+        hillshaded = hillshade(image_rgb, image, **hillshade_args)
+
+    return hillshaded
+
+
+def degree_to_radians_image(image):
+    """
+    Transform GEE image from degrees to radians
+    :param image: GEE image object
+    :return: Google Earth Engine ee.Image() object
+    """
+    return ee.Image(image).toFloat().multiply(3.1415927).divide(180)
+
+
+def resample_landmask(image):
+    """
+    Bicubic resampling and apply mask of land to image, renaming band to elevation
+    :param image: GEE image object
+    :return: Google Earth Engine ee.Image() object
+    """
+    return ee.Image(image).float().resample('bicubic').updateMask(LANDMASK).rename('elevation')
+
+
+def mosaic_elevation_datasets(dataset_list=None):
+    """
+    Create an image mosaic from multiple elevation data sources in GEE.
+    :param dataset_list: List of dataset ids, as defined in dataset_elevation_parameters.json
+    :return: Google Earth Engine ee.Image() object, elevation image
+    """
+    band_name = 'elevation'
+    images = []
+    image_collections = []
+    for dataset in dataset_list:
+        params = ELEVATION_DATA.get(dataset, None)
+        if not params:
+            raise error_handler.handle_invalid_usage(
+                f'No parameters defined for {dataset} in dataset_elevation_parameters.json'
+            )
+        type = params.get('type', None)
+        source = params.get('source', None)
+        band = params.get('band', None)
+        bathymetry = params.get('bathymetry', None)
+        topography = params.get('topography', None)
+
+        if type == 'Image':
+            image = ee.Image(source)
+            image = image.select(band).rename(band_name)
+            if dataset == "ALOS":
+                alos_mask = image.mask().eq(1)
+                image = image.resample('bicubic').updateMask(alos_mask.And(LANDMASK)).float()
+            elif topography and not bathymetry:
+                image = resample_landmask(image)
+            else:
+                image = image.float().resample('bicubic')
+            images.append(image)
+        elif type == 'ImageCollection':
+            image_collection = ee.ImageCollection(source)
+            image_collection = image_collection.map(resample_landmask)
+            image_collections.append(image_collection)
+
+    dems = ee.ImageCollection(images)
+    for collection in image_collections:
+        dems = dems.merge(collection)
+
+    elevation_image = ee.ImageCollection(dems).mosaic()
+    return ee.Image(elevation_image)
+
+
+def generate_elevation_map(dataset_list=None, min=None, max=None):
+    """
+    Create a WMS tile url from GEE for an image mosaic from multiple elevation data sources in GEE.
+    :param dataset_list: List of dataset ids, as defined in dataset_elevation_parameters.json
+    :return: Dictionary, elevation image WMS tile info
+    """
+    if not dataset_list:
+        dataset_list = ELEVATION_DATA.keys()
+
+    mosaic_image = mosaic_elevation_datasets(dataset_list)
+    data_params = DATASETS_VIS["projects/dgds-gee/bathymetry/gebco/2019"]
+
+    if min is not None:
+        data_params['bathy_vis_params']['min'] = min
+    if max is not None:
+        data_params['topo_vis_params']['max'] = max
+
+    final_image = visualize_elevation(image=mosaic_image,
+                                      data_params=data_params,
+                                      bathy_only=False,
+                                      hillshade_image=True)
+    url = _get_gee_url(final_image)
+    # TODO: clean up, repeated content from gebco
+    info = {}
+    info['dataset'] = 'elevation'
+    info['band'] = 'elevation'
+    linear_gradient = []
+    palette = data_params['bathy_vis_params']['palette'] + data_params['topo_vis_params']['palette']
+    n_colors = len(palette)
+    offsets = np.linspace(0, 100, num=n_colors)
+    for color, offset in zip(palette, offsets):
+        linear_gradient.append({
+            'offset': '{:.3f}%'.format(offset),
+            'opacity': 100,
+            'color': color
+        })
+    info.update({
+        'url': url,
+        'linearGradient': linear_gradient,
+        'min': data_params['bathy_vis_params']['min'],
+        'max': data_params['topo_vis_params']['max'],
+        'imageId': None,
+        'datasets': list(dataset_list),
+        'function': 'mosaic_elevation_datasets'
+    })
+    return info
+
+
+def visualize_gebco(source, band, min=None, max=None):
+    """
+    Specialized function to visualize GEBCO data
+    :param source: String, Google Earth Engine image id
+    :param band: String, band of image to visualize
+    :return: Dictionary
+    """
+    data_params = DATASETS_VIS[source]
+    if min is not None:
+        data_params['bathy_vis_params']['min'] = min
+    if max is not None:
+        data_params['topo_vis_params']['max'] = max
+
+    image = ee.Image(source)
+
+    gebco = image.select(data_params['bandNames'][band])
+    land_mask = LANDMASK
+
+    hillshaded = visualize_elevation(image=gebco,
+                                     land_mask=land_mask,
+                                     data_params=data_params,
+                                     bathy_only=False,
+                                     hillshade_image=True)
+    url = _get_gee_url(hillshaded)
 
     info = {}
     info['dataset'] = 'gebco'
     info['band'] = band
     linear_gradient = []
     palette = data_params['bathy_vis_params']['palette'] + data_params['topo_vis_params']['palette']
-
-    # TODO: call to _generate_image_info
-
-    m = hillshaded.getMapId()
-    mapid = m.get('mapid')
-    token = m.get('token')
-
-    url = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'.format(
-        mapid=mapid,
-        token=token
-    )
-
     n_colors = len(palette)
     offsets = np.linspace(0, 100, num=n_colors)
     for color, offset in zip(palette, offsets):
@@ -195,6 +356,7 @@ def visualize_gebco(source, band):
         'imageId': source
     })
     return info
+
 
 def _generate_image_info(im, params):
     """"generate url and tokens for image"""
@@ -215,16 +377,9 @@ def _generate_image_info(im, params):
     if 'hillshade' in params:
         # also pass along hillshade arguments
         hillshade_args = params.get('hillshade_args', {})
-        m = hillshade(m, image, False, **hillshade_args)
+        m = hillshade(m, image, **hillshade_args)
 
-    m = m.getMapId()
-    mapid = m.get('mapid')
-    token = m.get('token')
-
-    url = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'.format(
-        mapid=mapid,
-        token=token
-    )
+    url = _get_gee_url(m)
 
     linear_gradient = []
     if 'palette' in params:
@@ -248,6 +403,7 @@ def _generate_image_info(im, params):
         'linearGradient': linear_gradient})
     return params
 
+
 def apply_image_operation(image, operation, data_params=None, band=None):
     """
     Apply an operation to an image, based on specified operation and data parameters
@@ -266,6 +422,7 @@ def apply_image_operation(image, operation, data_params=None, band=None):
         image = image.clamp(0, 1).addBands(data_mask)
 
     return image
+
 
 def get_image_collection_info(source, start_date=None, end_date=None, image_num_limit=None):
     """
@@ -332,7 +489,15 @@ def get_image_collection_info(source, start_date=None, end_date=None, image_num_
 
     return response
 
-def _get_wms_url(image_id, type='ImageCollection', band=None, function=None, min=None, max=None, palette=None):
+
+def _get_wms_url(image_id,
+                 type='ImageCollection',
+                 band=None,
+                 datasets=None,
+                 function=None,
+                 min=None,
+                 max=None,
+                 palette=None):
     """
     Get WMS url from image_id
     :param image_id: String, Google Earth Engine image id
@@ -344,9 +509,16 @@ def _get_wms_url(image_id, type='ImageCollection', band=None, function=None, min
     :param palette: List, palette applied to image visualization, given as list of hex codes.
     :return: Dictionary, json object with image and wms info
     """
-    # TODO: improve generalizing specialized styling for GEBCO
-    if 'gebco'in image_id:
-        info = visualize_gebco(image_id, band)
+    # GEBCO is styled differently, non-linear color palette
+    if 'gebco' in image_id:
+        info = visualize_gebco(image_id, band, min, max)
+        return info
+
+    if function == 'mosaic_elevation_datasets':
+        info = generate_elevation_map(
+            dataset_list=datasets,
+            min=min,
+            max=max)
         return info
 
     image = ee.Image(image_id)
@@ -407,16 +579,20 @@ def _get_wms_url(image_id, type='ImageCollection', band=None, function=None, min
             logger.debug(msg)
             return
 
-    # Overwrite vis params if provided in request
-    if min:
+    # Overwrite vis params if provided in request,
+    # min/max values can be zero, should not be None
+    if min is not None:
         vis_params['min'] = min
-    if max:
+    if max is not None:
         vis_params['max'] = max
     if palette:
         vis_params['palette'] = palette
 
     if source == 'projects/dgds-gee/gloffis/hydro':
         image = image.mask(image.gte(0))
+
+    # validate min is less than max, otherwise raise error
+    validate_min_lt_max(vis_params['min'], vis_params['max'])
 
     info = _generate_image_info(image, vis_params)
     info['source'] = source
@@ -429,3 +605,18 @@ def _get_wms_url(image_id, type='ImageCollection', band=None, function=None, min
         info['max'] = 10 ** vis_params['max']
 
     return info
+
+
+def _get_gee_url(image):
+    """
+    Generate GEE url to access map from GEE image
+    :param image: GEE image object
+    :return: String, url
+    """
+    m = image.getMapId()
+    mapid = m.get('mapid')
+    url = 'https://earthengine.googleapis.com/v1alpha/{mapid}/tiles/{{z}}/{{x}}/{{y}}' \
+        .format(
+        mapid=mapid
+    )
+    return url

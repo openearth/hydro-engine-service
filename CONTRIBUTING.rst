@@ -70,6 +70,11 @@ Ready to contribute? Here's how to set up `hydroengine_service` for local develo
     $ cd hydroengine_service/
     $ python setup.py develop
 
+Or with conda:
+    $ conda create --name hydroengine_service python=3.7
+    $ conda activate hydroengine_service
+    $ conda install --file requirements.txt
+
 4. Create a branch for local development::
 
     $ git checkout -b name-of-your-bugfix-or-feature
