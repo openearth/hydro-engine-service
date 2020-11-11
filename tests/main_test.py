@@ -418,7 +418,7 @@ class TestClient:
     def test_get_glossis_data_by_id(self):
         """test get glossis current data"""
 
-        image_id = "projects/dgds-gee/glossis/wind/glossis_wind_20190808000000"
+        image_id = "projects/dgds-gee/glossis/wind/glossis_wind_20200301000000"
         request = {
             "imageId": image_id
         }
@@ -434,7 +434,6 @@ class TestClient:
         assert 'function' in result
         assert result['band'] == None
         assert result['imageId'] == image_id
-        assert result['date'] == "2019-08-08T00:00:00"
 
     def test_get_glossis_data_with_wrong_date(self):
         """test get glossis current data"""
@@ -536,7 +535,7 @@ class TestClient:
 
     def test_get_feature_info_null(self):
         request = {
-            "imageId": "projects/dgds-gee/gloffis/hydro/gloffis_hydro_20190829000000",
+            "imageId": "projects/dgds-gee/gloffis/hydro/gloffis_hydro_20200120000000",
             "band": "discharge_routed_simulated",
             "function": "log",
             "bbox": {
