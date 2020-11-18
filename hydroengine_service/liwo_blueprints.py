@@ -10,6 +10,41 @@ from hydroengine_service import liwo_functions
 v1 = Blueprint("liwo-v1", __name__)
 v2 = Blueprint('liwo-v2', __name__)
 
+@v2.route('/get_liwo_scenarios_info', methods=['POST'])
+@flask_cors.cross_origin()
+def get_liwo_scenarios_info():
+    """return info abbout scenarios, expects {"liwo_ids": [10001, 10002]}"""
+
+    # parse request
+    r = request.get_json()
+
+    # get the liwo scenario ids
+    liwo_ids = r['liwo_ids']
+
+    # hard coded version
+    collection = 'projects/deltares-rws/liwo/2020_0_2'
+
+    # load the image collection
+    scenarios = ee.ImageCollection(collection)
+
+    # filter the requested scenarios
+    selected = scenarios.filter(
+        ee.Filter.inList('Scenario_ID', liwo_ids)
+    )
+
+    # get all properties
+    def scenario_info(im):
+        feature = ee.Feature(im)
+        return feature.bounds(10)
+
+    # return geojson
+    result = selected.map(scenario_info).getInfo()
+    return Response(
+        json.dumps(result),
+        status=200,
+        mimetype='application/json'
+    )
+
 
 @v2.route('/get_liwo_scenarios', methods=['GET', 'POST'])
 @flask_cors.cross_origin()
@@ -69,6 +104,7 @@ def get_liwo_scenarios():
         status=200,
         mimetype='application/json'
     )
+
 
 @v1.route('/get_liwo_scenarios', methods=['GET', 'POST'])
 @flask_cors.cross_origin()
