@@ -26,7 +26,7 @@ from hydroengine_service import river_functions
 from hydroengine_service import dgds_functions
 
 from hydroengine_service import liwo_functions
-from hydroengine_service import digitwin
+from hydroengine_service import digitwin_blueprints
 
 logger = logging.getLogger(__name__)
 
@@ -1200,10 +1200,14 @@ app.register_blueprint(liwo_blueprints.v2, url_prefix="/v2")
 app.register_blueprint(dgds_blueprints.v1, url_prefix="/v1")
 app.register_blueprint(dgds_blueprints.v2, url_prefix="/v2")
 
+app.register_blueprint(digitwin_blueprints.v1, url_prefix="/v1")
+app.register_blueprint(digitwin_blueprints.v2, url_prefix="/v2")
+
 # use version 1
 app.register_blueprint(v1, url_prefix="/")
 app.register_blueprint(liwo_blueprints.v1, url_prefix="/")
 app.register_blueprint(dgds_blueprints.v1, url_prefix="/")
+app.register_blueprint(digitwin_blueprints.v1, url_prefix="/")
 
 
 if __name__ == '__main__':
