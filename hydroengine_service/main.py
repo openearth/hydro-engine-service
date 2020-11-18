@@ -1519,7 +1519,7 @@ def get_windfarm_data():
     collection = ee.FeatureCollection(features)
 
 
-    ports = ee.FeatureCollection("users/fbaart/worldlogistic/port")
+    ports = ee.FeatureCollection("projects/dgds-gee/worldlogistic/port")
     gebco = ee.Image("projects/dgds-gee/gebco/2019")
     coast = ee.Image("users/gena/land_polygons_image")
     wind = ee.Image("projects/dgds-gee/gwa/gwa3/10m").rename('wind_magnitude_mean')
