@@ -13,8 +13,8 @@ class TestDGDSFunctions:
                              [
                                  ('projects/dgds-gee/bathymetry/gebco/2019', None, None, 10),
                                  ('projects/dgds-gee/glossis/currents', None, None, None),
-                                 ('projects/dgds-gee/glossis/waterlevel', '2019-12-01', None, None),
-                                 ('projects/dgds-gee/glossis/wind', '2019-08-01', '2019-09-01', 10),
+                                 ('projects/dgds-gee/glossis/waterlevel', '2020-11-01', '2020-12-01', None),
+                                 ('projects/dgds-gee/glossis/wind', '2020-11-01', '2020-11-10', 10),
                                  ('projects/dgds-gee/glossis/waveheight', None, None, None),
                                  ('projects/dgds-gee/gloffis/weather', None, None, 5),
                                  ('projects/dgds-gee/gloffis/hydro', None, None, 5),

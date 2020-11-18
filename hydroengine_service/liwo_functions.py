@@ -20,6 +20,7 @@ DATASET_DIR = os.path.join(APP_DIR, 'datasets')
 logger = logging.getLogger(__name__)
 
 
+
 def get_liwo_styling(band):
     style = {
         'waterdepth': {
@@ -174,7 +175,6 @@ def export_image_response(image, region, info):
     """create export response for image"""
     url = image.getDownloadURL({
         'name': 'export',
-        'format': 'tif',
         'crs': info['crs'],
         'scale': info['scale'],
         'region': json.dumps(region.bounds(info['scale']).getInfo())

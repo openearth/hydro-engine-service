@@ -18,10 +18,15 @@ from flask import Blueprint
 
 from hydroengine_service import config
 from hydroengine_service import error_handler
+
+from hydroengine_service import liwo_blueprints
+from hydroengine_service import dgds_blueprints
+
+from hydroengine_service import river_functions
 from hydroengine_service import dgds_functions
+
 from hydroengine_service import liwo_functions
 from hydroengine_service import digitwin
-
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +46,8 @@ app.register_blueprint(error_handler.error_handler)
 
 v1 = Blueprint("version1", "version1")
 v2 = Blueprint('version2', "version2")
+
+
 
 # if 'privatekey.json' is defined in environmental variable - write it to file
 if 'key' in os.environ:
@@ -599,196 +606,6 @@ def get_water_mask():
     return Response(json.dumps(data), status=200, mimetype='application/json')
 
 
-def generate_perimeter_points(geom, step):
-    """
-    Generates points along interiors and exteriors
-    :param geom:
-    :param step:
-    :return:
-    """
-    error = ee.ErrorMargin(1, 'meters')
-
-    p = geom.perimeter(error)
-
-    n = p.divide(step).int()
-
-    step = p.divide(n)
-
-    # map over exterior and interiors
-    def wrap_ring(coords):
-        ring = ee.Geometry.LineString(coords)
-        distances = ee.List.sequence(0, ring.length(error), step)
-
-        return ee.Feature(ring) \
-            .set({"distances": distances}) \
-            .set({"distancesCount": distances.length()})
-
-    rings = geom.coordinates().map(wrap_ring)
-
-    rings = ee.FeatureCollection(rings)
-
-    def generate_points(ring):
-        distances = ring.get('distances')
-        segments = ring.geometry().cutLines(distances).geometries()
-
-        segment_points = \
-            segments.map(lambda g: ee.Feature(ee.Geometry(g).centroid(1)))
-
-        return ee.FeatureCollection(segment_points)
-
-    points = rings \
-        .filter(ee.Filter.gt('distancesCount', 2)) \
-        .map(generate_points) \
-        .flatten()
-
-    return ee.FeatureCollection(points)
-
-
-def generate_voronoi_polygons(points, scale, aoi):
-    """
-    Generates Voronoi polygons
-    :param points:
-    :param scale:
-    :param aoi:
-    :return:
-    """
-
-    error = ee.ErrorMargin(1, 'projected')
-    # proj = ee.Projection('EPSG:3857').atScale(scale)
-    proj = ee.Projection('EPSG:4326').atScale(scale)
-
-    distance = ee.Image(0).float().paint(points, 1) \
-        .fastDistanceTransform().sqrt().clip(aoi) \
-        .reproject(proj)
-
-    concavity = distance.convolve(ee.Kernel.laplacian8()) \
-        .reproject(proj)
-
-    concavity = concavity.multiply(distance)
-
-    concavityTh = 0
-
-    edges = concavity.lt(concavityTh)
-
-    # label connected components
-    connected = edges.Not() \
-        .connectedComponents(ee.Kernel.circle(1), 256) \
-        .clip(aoi) \
-        .focal_max(scale * 3, 'circle', 'meters') \
-        .focal_min(scale * 3, 'circle', 'meters') \
-        .focal_mode(scale * 5, 'circle', 'meters') \
-        .reproject(proj)
-
-    # fixing reduceToVectors() bug, remap to smaller int
-    def fixOverflowError(i):
-        hist = i.reduceRegion(ee.Reducer.frequencyHistogram(), aoi, scale)
-        uniqueLabels = ee.Dictionary(ee.Dictionary(hist).get('labels')).keys() \
-            .map(lambda o: ee.Number.parse(o))
-
-        labels = ee.List.sequence(0, uniqueLabels.size().subtract(1))
-
-        return i.remap(uniqueLabels, labels).rename('labels').int()
-
-    connected = fixOverflowError(connected).reproject(proj)
-
-    polygons = connected.select('labels').reduceToVectors(**{
-        "scale": scale,
-        "crs": proj,
-        "geometry": aoi,
-        "eightConnected": True,
-        "labelProperty": 'labels',
-        "tileScale": 4
-    })
-
-    # polygons = polygons.map(lambda o: o.snap(error, proj))
-
-    return {"polygons": polygons, "distance": distance}
-
-
-def generate_skeleton_from_voronoi(scale, water_vector):
-    # step between points along perimeter
-    step = scale * 10
-    simplify_centerline_factor = 15
-
-    error = ee.ErrorMargin(1, 'meters')
-
-    # proj = ee.Projection('EPSG:3857').atScale(scale)
-    proj = ee.Projection('EPSG:4326').atScale(scale)
-
-    # turn water mask into a skeleton
-    def add_coords_count(o):
-        return ee.Feature(None, {"count": ee.List(o).length(), "values": o})
-
-    c = water_vector.geometry().coordinates()
-    exterior = c.get(0)
-
-    interior = c.slice(1).map(add_coords_count)
-    interior = ee.FeatureCollection(interior)
-    interior = interior.filter(ee.Filter.gt('count', 5))
-    interior = interior.toList(10000).map(
-        lambda o: ee.Feature(o).get('values'))
-
-    water_vector = ee.Feature(
-        ee.Geometry.Polygon(ee.List([exterior]).cat(interior)))
-
-    geometry = water_vector.geometry()
-
-    geometry_buffer = geometry.buffer(scale * 4, error)
-
-    perimeter_geometry = geometry_buffer \
-        .difference(geometry_buffer.buffer(-scale * 2, error), error)
-
-    geometry = geometry_buffer
-
-    points = generate_perimeter_points(geometry, step)
-
-    output = generate_voronoi_polygons(points, scale, geometry)
-
-    polygons = output["polygons"]
-    distance = output["distance"]
-
-    dist_filter = ee.Filter.And(
-        ee.Filter.intersects(
-            **{"leftField": ".geo", "rightField": ".geo", "maxError": error}),
-        ee.Filter.equals(
-            **{"leftField": "labels", "rightField": "labels"}).Not()
-    )
-
-    dist_save_all = ee.Join.saveAll(**{"matchesKey": 'matches'})
-
-    features = dist_save_all.apply(polygons, polygons, dist_filter)
-
-    # find intersection with neighbouring polygons
-    def find_neighbours(ff1):
-        matches = ee.FeatureCollection(ee.List(ff1.get('matches')))
-
-        def find_neighbours2(ff2):
-            i = ff2.intersection(ff1, error, proj)
-            t = i.intersects(perimeter_geometry, error, proj)
-            m = i.intersects(geometry, error, proj)
-
-            return i.set({"touchesPerimeter": t}).set(
-                {"intersectsWithMask": m})
-
-        return matches.map(find_neighbours2)
-
-    features = features.map(find_neighbours).flatten()
-
-    # find a centerline
-    f = ee.Filter.And(ee.Filter.eq('touchesPerimeter', False),
-                      ee.Filter.eq('intersectsWithMask', True))
-    centerline = features.filter(f)
-    centerline = centerline.geometry().dissolve(scale, proj) \
-        .simplify(scale * simplify_centerline_factor, proj)
-    centerline = centerline.geometries().map(
-        lambda g: ee.Feature(ee.Geometry(g)))
-    centerline = ee.FeatureCollection(centerline)
-    centerline = centerline \
-        .map(lambda o: o.set({"type": o.geometry().type()})) \
-        .filter(ee.Filter.eq('type', 'LineString')) \
-        # .map(lambda o: o.transform(ee.Projection('EPSG:4326').atScale(scale)), error)
-
-    return {"centerline": centerline, "distance": distance}
 
 
 @v1.route('/get_water_network', methods=['POST'])
@@ -811,7 +628,7 @@ def get_water_network():
     water_vector = get_water_mask_vector(region, scale, start, stop)
 
     # skeletonize
-    output = generate_skeleton_from_voronoi(scale, water_vector)
+    output = river_functions.generate_skeleton_from_voronoi(scale, water_vector)
     centerline = output["centerline"]
 
     centerline = centerline.map(
@@ -852,7 +669,7 @@ def get_water_network_properties():
     water_vector = get_water_mask_vector(region, scale, start, stop)
 
     # skeletonize
-    output = generate_skeleton_from_voronoi(scale, water_vector)
+    output = river_functions.generate_skeleton_from_voronoi(scale, water_vector)
     centerline = ee.FeatureCollection(output["centerline"])
     distance = ee.Image(output["distance"])
 
@@ -1064,10 +881,10 @@ def api_get_lakes():
         return Response(json.dumps(ids.getInfo()), status=200,
                         mimetype='application/json')
 
-    # create response
-    url = selected_lakes.getDownloadURL('json')
+    #
 
-    data = {'url': url}
+    # create response
+    data = selected_lakes.getInfo()
 
     return Response(json.dumps(data), status=200, mimetype='application/json')
 
@@ -1076,9 +893,13 @@ def api_get_lakes():
 def get_lake_by_id():
     lake_id = int(request.json['lake_id'])
 
-    lake = ee.Feature(ee.FeatureCollection(
-        lakes.filter(ee.Filter.eq('Hylak_id', lake_id))).first())
-
+    lake = ee.Feature(
+        ee.FeatureCollection(
+            lakes.filter(
+                ee.Filter.eq('Hylak_id', lake_id)
+            )
+        ).first()
+    )
     return Response(json.dumps(lake.getInfo()), status=200,
                     mimetype='application/json')
 
@@ -1238,521 +1059,8 @@ def api_get_raster():
     data = {'url': url}
     return Response(json.dumps(data), status=200, mimetype='application/json')
 
-@v2.route('/get_liwo_scenarios', methods=['GET', 'POST'])
-@flask_cors.cross_origin()
-def get_liwo_scenarios():
-    r = request.get_json()
 
-    # name of breach location as string
-    liwo_ids = r['liwo_ids']
-    # band name as string
-    band = r['band']
 
-    collection = 'projects/deltares-rws/liwo/2020_0_2'
-    id_key = 'Scenario_ID'
-    bands = {
-        'waterdepth': 'waterdiepte',
-        'velocity': 'stroomsnelheid',
-        'riserate': 'stijgsnelheid',
-        'damage': 'schade',
-        'fatalities': 'slachtoffers',
-        'affected': 'getroffenen',
-        'arrivaltime': 'aankomsttijd'
-    }
-    reducers = {
-        "waterdepth": "max",
-        "velocity": "max",
-        "riserate": "max",
-        "damage": "max",
-        "fatalities": "max",
-        "affected": "max",
-        "arrivaltime": "min"
-    }
-
-    assert band in bands
-    band_name = bands[band]
-    reducer = reducers[band]
-
-    image = liwo_functions.filter_liwo_collection_v2(collection, id_key, liwo_ids, band_name, reducer)
-    params = liwo_functions.get_liwo_styling(band)
-    info = liwo_functions.generate_image_info(image, params)
-    info['liwo_ids'] = liwo_ids
-    info['band'] = band
-
-    # Following needed for export:
-    # Specify region over which to compute
-    # export  is True or None/False
-    if r.get('export'):
-        region = ee.Geometry(r['region'])
-        # scale of pixels for export, in meters
-        info['scale'] = float(r['scale'])
-        # coordinate system for export projection
-        info['crs'] = r['crs']
-        extra_info = liwo_functions.export_image_response(image, region, info)
-        info.update(extra_info)
-
-    return Response(
-        json.dumps(info),
-        status=200,
-        mimetype='application/json'
-    )
-
-@v1.route('/get_liwo_scenarios', methods=['GET', 'POST'])
-@flask_cors.cross_origin()
-def get_liwo_scenarios():
-    r = request.get_json()
-    # name of breach location as string
-    liwo_ids = r['liwo_ids']
-    # band name as string
-    band = r['band']
-
-    collection = 'users/rogersckw9/liwo/liwo-scenarios-03-2019'
-    id_key = 'LIWO_ID'
-    bands = {
-        'waterdepth': 'b1',
-        'velocity': 'b2',
-        'riserate': 'b3',
-        'damage': 'b4',
-        'fatalities': 'b5'
-    }
-
-    reducers = {
-        'waterdepth': 'max',
-        'velocity': 'max',
-        'riserate': 'max',
-        'damage': 'max',
-        'fatalities': 'max'
-    }
-    # for now use max as a reducer
-    assert band in bands
-    assert band in reducers
-    band_name = bands[band]
-    reducer = reducers[band]
-    image = liwo_functions.filter_liwo_collection_v1(collection, id_key, liwo_ids, band_name, reducer)
-
-    params = liwo_functions.get_liwo_styling(band)
-
-    info = liwo_functions.generate_image_info(image, params)
-    info['liwo_ids'] = liwo_ids
-    info['band'] = band
-
-    # Following needed for export:
-    # Specify region over which to compute
-    # export  is True or None/False
-    if r.get('export'):
-        region = ee.Geometry(r['region'])
-        # scale of pixels for export, in meters
-        info['scale'] = float(r['scale'])
-        # coordinate system for export projection
-        info['crs'] = r['crs']
-        extra_info = liwo_functions.export_image_response(image, region, info)
-        info.update(extra_info)
-
-    return Response(
-        json.dumps(info),
-        status=200,
-        mimetype='application/json'
-    )
-
-
-@v1.route('/get_glossis_data', methods=['POST'])
-@flask_cors.cross_origin()
-def get_glossis_data():
-    """
-    Get GLOSSIS data. Either currents, wind, or waterlevel dataset must be provided.
-    If waterlevel dataset is requested, must specify if band water_level_surge, water_level,
-    or astronomical_tide is requested
-    :return:
-    """
-    r = request.get_json()
-    dataset = r.get('dataset', None)
-    image_id = r.get('imageId', None)
-    band = r.get('band', None)
-
-    function = r.get('function', None)
-    start_date = r.get('startDate', None)
-    end_date = r.get('endDate', None)
-    image_num_limit = r.get('limit', None)
-    min = r.get('min', None)
-    max = r.get('max', None)
-
-    if not (dataset or image_id):
-        msg = f'dataset or imageId required.'
-        logger.error(msg)
-        raise error_handler.InvalidUsage(msg)
-    if dataset:
-        source = 'projects/dgds-gee/glossis/'+dataset
-    if image_id:
-        image_location_parameters = image_id.split('/')
-        source = ('/').join(image_location_parameters[:-1])
-
-
-    image_info = dgds_functions.get_dgds_data(
-        source=source,
-        dataset=dataset,
-        image_id=image_id,
-        band=band,
-        function=function,
-        start_date=start_date,
-        end_date=end_date,
-        image_num_limit=image_num_limit,
-        min=min,
-        max=max
-    )
-    if not image_info:
-        raise error_handler.InvalidUsage('No images returned.')
-
-    return Response(
-        json.dumps(image_info),
-        status=200,
-        mimetype='application/json'
-    )
-
-
-@v1.route('/get_gloffis_data', methods=['POST'])
-@flask_cors.cross_origin()
-def get_gloffis_data():
-    """
-    Get GLOFFIS data. dataset must be provided.
-    :return:
-    """
-    r = request.get_json()
-    dataset = r.get('dataset', None)
-    band = r['band']
-    image_id = r.get('imageId', None)
-
-    function = r.get('function', None)
-    start_date = r.get('startDate', None)
-    end_date = r.get('endDate', None)
-    image_num_limit = r.get('limit', None)
-    min = r.get('min', None)
-    max = r.get('max', None)
-
-    source = None
-    if not (dataset or image_id):
-        msg = f'dataset or imageId required.'
-        logger.error(msg)
-        raise error_handler.InvalidUsage(msg)
-    if dataset:
-        source = 'projects/dgds-gee/gloffis/' + dataset
-    if image_id:
-        image_location_parameters = image_id.split('/')
-        source = ('/').join(image_location_parameters[:-1])
-
-    image_info = dgds_functions.get_dgds_data(
-        source=source,
-        dataset=dataset,
-        image_id=image_id,
-        band=band,
-        function=function,
-        start_date=start_date,
-        end_date=end_date,
-        image_num_limit=image_num_limit,
-        min=min,
-        max=max
-    )
-    if not image_info:
-        raise error_handler.InvalidUsage('No images returned.')
-
-    return Response(
-        json.dumps(image_info),
-        status=200,
-        mimetype='application/json'
-    )
-
-
-@v1.route('/get_metocean_data', methods=['POST'])
-@flask_cors.cross_origin()
-def get_metocean_data():
-    """
-    Get metocean data. dataset must be provided.
-    :return:
-    """
-    r = request.get_json()
-    dataset = r.get('dataset', None)
-    band = r['band']
-    image_id = r.get('imageId', None)
-
-    function = r.get('function', None)
-    start_date = r.get('startDate', None)
-    end_date = r.get('endDate', None)
-    image_num_limit = r.get('limit', None)
-    min = r.get('min', None)
-    max = r.get('max', None)
-
-    if not (dataset or image_id):
-        msg = f'dataset or imageId required.'
-        logger.error(msg)
-        raise error_handler.InvalidUsage(msg)
-    if dataset:
-        source = 'projects/dgds-gee/metocean/waves/' + dataset
-    if image_id:
-        source = image_id
-
-    image_info = dgds_functions.get_dgds_data(
-        source=source,
-        dataset=dataset,
-        image_id=image_id,
-        band=band,
-        function=function,
-        start_date=start_date,
-        end_date=end_date,
-        image_num_limit=image_num_limit,
-        min=min,
-        max=max
-    )
-    if not image_info:
-        raise error_handler.InvalidUsage('No images returned.')
-
-    return Response(
-        json.dumps(image_info),
-        status=200,
-        mimetype='application/json'
-    )
-
-@app.route('/get_windfarm_data', methods=['POST'])
-@flask_cors.cross_origin()
-def get_windfarm_data():
-    r = request.get_json()
-
-    features = r['features']
-    collection = ee.FeatureCollection(features)
-
-
-    ports = ee.FeatureCollection("projects/dgds-gee/worldlogistic/port")
-    gebco = ee.Image("projects/dgds-gee/gebco/2019")
-    coast = ee.Image("users/gena/land_polygons_image")
-    wind = ee.Image("projects/dgds-gee/gwa/gwa3/10m").rename('wind_magnitude_mean')
-
-    scale = 1000
-    max_distance = 200000
-
-    distanceToPort = (
-        ports
-        .distance(**{
-            'searchRadius': max_distance,
-            'maxError': 1000
-        })
-        .rename('distance_to_port')
-    )
-
-    distanceToCoast = (
-        coast
-        .mask()
-        .resample('bicubic')
-        .fastDistanceTransform()
-        .sqrt()
-        .reproject(ee.Projection('EPSG:3857').atScale(scale))
-        .multiply(scale)
-        .rename('distance_to_coast')
-    )
-
-    dataset = wind.addBands(gebco.rename('bathymetry'))
-    dataset = dataset.addBands(distanceToPort)
-    dataset = dataset.addBands(distanceToCoast)
-
-
-    meanWindFarm = dataset.reduceRegions(**{
-        "collection": collection,
-        "reducer": ee.Reducer.mean(),
-        "scale": 1000
-    })
-    # compute area
-    meanWindFarm = meanWindFarm.map(digitwin.compute_area)
-    print('area', meanWindFarm.getInfo())
-    # compute grid parameters
-    meanWindFarm = meanWindFarm.map(digitwin.create_turbine_grid)
-
-    # do the rest local, we need scipy
-    mean_wind_farm = meanWindFarm.getInfo()
-    features = [
-        digitwin.compute_feature(feature)
-        for feature
-        in mean_wind_farm['features']
-    ]
-    print(features)
-    computed = geojson.FeatureCollection(features)
-    response = Response(
-        json.dumps(computed),
-        status=200,
-        mimetype='application/json'
-    )
-    return response
-
-
-@v1.route('/get_gebco_data', methods=['GET', 'POST'])
-@flask_cors.cross_origin()
-def get_gebco_data():
-    r = request.get_json()
-    dataset = r.get('dataset', 'gebco')
-    band = r.get('band', 'elevation')
-    image_id = r.get('imageId', None)
-
-    start_date = r.get('startDate', None)
-    end_date = r.get('endDate', None)
-    image_num_limit = r.get('limit', None)
-    min = r.get('min', None)
-    max = r.get('max', None)
-
-    if dataset:
-        source = 'projects/dgds-gee/bathymetry/' + dataset + '/2019'
-    if image_id:
-        source = image_id
-
-    image_info = dgds_functions.get_dgds_data(
-        source=source,
-        dataset=dataset,
-        image_id=image_id,
-        band=band,
-        start_date=start_date,
-        end_date=end_date,
-        image_num_limit=image_num_limit,
-        min=min,
-        max=max
-    )
-    if not image_info:
-        raise error_handler.InvalidUsage('No images returned.')
-
-    return Response(
-        json.dumps(image_info),
-        status=200,
-        mimetype='application/json'
-    )
-
-@v1.route('/get_elevation_data', methods=['GET', 'POST'])
-@flask_cors.cross_origin()
-def get_elevation_data():
-    r = request.get_json()
-    datasets = r.get('datasets', None)
-    image_id = r.get('imageId', None)
-    source = None
-    if datasets:
-        source = datasets
-    if image_id:
-        source = image_id
-
-    min = r.get('min', None)
-    max = r.get('max', None)
-
-    image_info = dgds_functions.generate_elevation_map(
-        dataset_list=source,
-        min=min,
-        max=max)
-
-    return Response(
-        json.dumps(image_info),
-        status=200,
-        mimetype='application/json'
-    )
-
-
-@v1.route('/get_chasm_data', methods=['POST'])
-@flask_cors.cross_origin()
-def get_chasm_data():
-    """
-    Get metocean data. dataset must be provided.
-    :return:
-    """
-    r = request.get_json()
-    dataset = r.get('dataset', None)
-    band = r['band']
-    image_id = r.get('imageId', None)
-
-    function = r.get('function', None)
-    start_date = r.get('startDate', None)
-    end_date = r.get('endDate', None)
-    image_num_limit = r.get('limit', None)
-    min = r.get('min', None)
-    max = r.get('max', None)
-
-    source = None
-    # Can provide either dataset and/or image_id
-    if not (dataset or image_id):
-        msg = f'dataset or imageId required.'
-        logger.error(msg)
-        raise error_handler.InvalidUsage(msg)
-
-    if dataset:
-        source = 'projects/dgds-gee/chasm/' + dataset
-    elif image_id:
-        image_location_parameters = image_id.split('/')
-        source = ('/').join(image_location_parameters[:-1])
-
-    image_info = dgds_functions.get_dgds_data(
-        source=source,
-        dataset=dataset,
-        image_id=image_id,
-        band=band,
-        function=function,
-        start_date=start_date,
-        end_date=end_date,
-        image_num_limit=image_num_limit,
-        min=min,
-        max=max
-    )
-    if not image_info:
-        raise error_handler.InvalidUsage('No images returned.')
-
-    return Response(
-        json.dumps(image_info),
-        status=200,
-        mimetype='application/json'
-    )
-
-
-@v1.route('/get_gtsm_data', methods=['POST'])
-@flask_cors.cross_origin()
-def get_gtsm_data():
-    """
-    Get GTSM data. Either waterlevel_return_period, or tidal_indicators dataset must be provided.
-    See datasets_visualization_parameters.json for possible bands to request as band
-    :return:
-    """
-    r = request.get_json()
-    dataset = r.get('dataset', None)
-    image_id = r.get('imageId', None)
-    band = r.get('band', None)
-
-    function = r.get('function', None)
-    start_date = r.get('startDate', None)
-    end_date = r.get('endDate', None)
-    image_num_limit = r.get('limit', None)
-    min = r.get('min', None)
-    max = r.get('max', None)
-
-    if not band:
-        msg = f'band is a required parameter'
-        logger.error(msg)
-        raise error_handler.InvalidUsage(msg)
-    if dataset:
-        source = 'projects/dgds-gee/gtsm/'+dataset
-    elif image_id:
-        source = image_id
-    else:
-        msg = f'dataset or image_id is a required parameter'
-        logger.error(msg)
-        raise error_handler.InvalidUsage(msg)
-
-    image_info = dgds_functions.get_dgds_data(
-        source=source,
-        dataset=dataset,
-        image_id=image_id,
-        band=band,
-        function=function,
-        start_date=start_date,
-        end_date=end_date,
-        image_num_limit=image_num_limit,
-        min=min,
-        max=max
-    )
-    if not image_info:
-        raise error_handler.InvalidUsage('No images returned.')
-
-    return Response(
-        json.dumps(image_info),
-        status=200,
-        mimetype='application/json'
-    )
 
 
 @v1.route('/get_feature_info', methods=['POST'])
@@ -1885,8 +1193,17 @@ def server_error(e):
 # Note, this should be here. Don't move this above.
 app.register_blueprint(v1, url_prefix="/v1")
 app.register_blueprint(v2, url_prefix="/v2")
+
+app.register_blueprint(liwo_blueprints.v1, url_prefix="/v1")
+app.register_blueprint(liwo_blueprints.v2, url_prefix="/v2")
+
+app.register_blueprint(dgds_blueprints.v1, url_prefix="/v1")
+app.register_blueprint(dgds_blueprints.v2, url_prefix="/v2")
+
 # use version 1
 app.register_blueprint(v1, url_prefix="/")
+app.register_blueprint(liwo_blueprints.v1, url_prefix="/")
+app.register_blueprint(dgds_blueprints.v1, url_prefix="/")
 
 
 if __name__ == '__main__':
