@@ -2,6 +2,7 @@ import json
 
 import ee
 import flask_cors
+import geojson
 from flask import request, Response
 from flask import Blueprint
 
@@ -22,7 +23,7 @@ def get_windfarm_data():
 
     ports = ee.FeatureCollection("projects/dgds-gee/worldlogistic/port")
     gebco = ee.Image("projects/dgds-gee/gebco/2019")
-    coast = ee.Image("users/gena/land_polygons_image")
+    coast = ee.Image("projects/dgds-gee/osm/land_polygons_image")
     wind = ee.Image("projects/dgds-gee/gwa/gwa3/10m").rename('wind_magnitude_mean')
 
     scale = 1000
@@ -59,15 +60,15 @@ def get_windfarm_data():
         "scale": 1000
     })
     # compute area
-    meanWindFarm = meanWindFarm.map(digitwin.compute_area)
+    meanWindFarm = meanWindFarm.map(digitwin_functions.compute_area)
     print('area', meanWindFarm.getInfo())
     # compute grid parameters
-    meanWindFarm = meanWindFarm.map(digitwin.create_turbine_grid)
+    meanWindFarm = meanWindFarm.map(digitwin_functions.create_turbine_grid)
 
     # do the rest local, we need scipy
     mean_wind_farm = meanWindFarm.getInfo()
     features = [
-        digitwin.compute_feature(feature)
+        digitwin_functions.compute_feature(feature)
         for feature
         in mean_wind_farm['features']
     ]
