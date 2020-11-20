@@ -129,7 +129,8 @@ def filter_liwo_collection_v2(collection_path, id_key, scenario_ids, band, reduc
 
     if len(scenario_ids) != n_selected:
         logging.info(
-            "imageName, {}, missing {} scenarios for band {}".format(dst, len(scenario_ids) - n_selected, band))
+            "collection {}, missing {} scenarios for band {}".format(collection_path, len(scenario_ids) - n_selected, band)
+        )
 
     # reduce image
     reduce_func = getattr(ee.Reducer, reducer)()
