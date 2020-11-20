@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# coding: utf-8
 
 # TODO: move out all non-flask code to a separate file / library
 
@@ -9,6 +10,7 @@ import os
 
 import ee
 import numpy as np
+import geojson
 import flask_cors
 from flask import Flask
 from flask import request, Response
@@ -22,6 +24,9 @@ from hydroengine_service import dgds_blueprints
 
 from hydroengine_service import river_functions
 from hydroengine_service import dgds_functions
+
+from hydroengine_service import liwo_functions
+from hydroengine_service import digitwin_blueprints
 
 logger = logging.getLogger(__name__)
 
@@ -1195,10 +1200,14 @@ app.register_blueprint(liwo_blueprints.v2, url_prefix="/v2")
 app.register_blueprint(dgds_blueprints.v1, url_prefix="/v1")
 app.register_blueprint(dgds_blueprints.v2, url_prefix="/v2")
 
+app.register_blueprint(digitwin_blueprints.v1, url_prefix="/v1")
+app.register_blueprint(digitwin_blueprints.v2, url_prefix="/v2")
+
 # use version 1
 app.register_blueprint(v1, url_prefix="/")
 app.register_blueprint(liwo_blueprints.v1, url_prefix="/")
 app.register_blueprint(dgds_blueprints.v1, url_prefix="/")
+app.register_blueprint(digitwin_blueprints.v1, url_prefix="/")
 
 
 if __name__ == '__main__':

@@ -1,4 +1,6 @@
 Flask==1.1.*
+scipy
+geojson
 Flask-Cors==3.*
 earthengine-api>=0.1.241
 gunicorn==20.*
