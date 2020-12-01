@@ -95,7 +95,7 @@ bathymetry = {
 # graph index
 index = ee.FeatureCollection('users/gena/HydroEngine/hybas_lev06_v1c_index')
 
-monthly_water = ee.ImageCollection('JRC/GSW1_0/MonthlyHistory')
+monthly_water = ee.ImageCollection("JRC/GSW1_2/MonthlyHistory")
 
 
 def get_upstream_catchments(level):
@@ -541,6 +541,7 @@ def get_water_mask_vector(region, scale, start, stop):
         .filterDate(start, stop) \
         .map(lambda i: i.unmask(0).resample('bicubic')) \
         .map(lambda i: i.eq(2).updateMask(i.neq(0)))
+
     water_occurrence = water_occurrence.sum().divide(water_occurrence.count())
 
     # computer water mask
@@ -594,7 +595,8 @@ def get_water_mask():
 
     water_mask_vector = get_water_mask_vector(region, scale, start, stop)
 
-    water_mask_vector = water_mask_vector.map(transform_feature(crs, scale))
+    if crs is not None and crs != 'EPSG:4326':
+        water_mask_vector = water_mask_vector.map(transform_feature(crs, scale))
 
     # create response
     if use_url:
@@ -604,8 +606,6 @@ def get_water_mask():
         data = water_mask_vector.getInfo()
 
     return Response(json.dumps(data), status=200, mimetype='application/json')
-
-
 
 
 @v1.route('/get_water_network', methods=['POST'])
@@ -634,7 +634,8 @@ def get_water_network():
     centerline = centerline.map(
         lambda line: line.set('length', line.length(scale / 10)))
 
-    centerline = centerline.map(transform_feature(crs, scale))
+    if crs is not None and crs != 'EPSG:4326':
+        centerline = centerline.map(transform_feature(crs, scale))
 
     # create response
     data = centerline.getInfo()
@@ -751,7 +752,8 @@ def get_water_network_properties():
     points = points.map(add_elevation)
     points = points.map(add_flow_accumulation)
 
-    points = points.map(transform_feature(crs, scale))
+    if crs is not None and crs != 'EPSG:4326':
+        points = points.map(transform_feature(crs, scale))
 
     # create response
     data = points.getInfo()
