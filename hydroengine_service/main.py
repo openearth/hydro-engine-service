@@ -1052,7 +1052,6 @@ def api_get_raster():
     # create response
     url = image.getDownloadURL({
         'name': 'variable',
-        'format': 'tif',
         'crs': crs,
         'scale': cell_size,
         'region': json.dumps(region.bounds(cell_size).getInfo())
