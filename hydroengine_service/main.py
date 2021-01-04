@@ -634,7 +634,7 @@ def get_water_network():
     centerline = centerline.map(
         lambda line: line.set('length', line.length(scale / 10)))
 
-    if crs is not None and crs != 'EPSG:4326':
+    if crs and crs != 'EPSG:4326':
         centerline = centerline.map(transform_feature(crs, scale))
 
     # create response
