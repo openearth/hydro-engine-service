@@ -595,7 +595,7 @@ def get_water_mask():
 
     water_mask_vector = get_water_mask_vector(region, scale, start, stop)
 
-    if crs is not None and crs != 'EPSG:4326':
+    if crs and crs != 'EPSG:4326':
         water_mask_vector = water_mask_vector.map(transform_feature(crs, scale))
 
     # create response
