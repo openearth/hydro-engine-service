@@ -752,7 +752,7 @@ def get_water_network_properties():
     points = points.map(add_elevation)
     points = points.map(add_flow_accumulation)
 
-    if crs is not None and crs != 'EPSG:4326':
+    if crs and crs != 'EPSG:4326':
         points = points.map(transform_feature(crs, scale))
 
     # create response
