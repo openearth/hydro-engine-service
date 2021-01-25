@@ -103,7 +103,6 @@ def get_dgds_data(source,
 
     return image_info
 
-
 def hillshade(image_rgb,
               image,
               azimuth=315,

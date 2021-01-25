@@ -298,5 +298,116 @@
             "highest_astronomical_tide": ["#1D1B1A", "#902F14", "#FCB0B2"],
             "lowest_astronomical_tide": ["#D1CBFF", "#006391", "#1D1B1A"]
         }
+    },
+    "projects/dgds-gee/crucial/groundwater_declining_trend": {
+        "type": "Image",
+        "bandNames": {
+            "b1": "b1",
+            "b2": "b2",
+            "b3": "b3",
+            "b4": "b4",
+            "b5": "b5",
+            "b6": "b6",
+            "b7": "b7",
+            "b8": "b8",
+            "b9": "b9"
+        },
+        "min": {
+            "b1": -0.1,
+            "b2": -0.1,
+            "b3": -0.1,
+            "b4": -0.1,
+            "b5": -0.1,
+            "b6": -0.1,
+            "b7": -0.1,
+            "b8": -0.1,
+            "b9": -0.1
+        },
+        "max": {
+            "b1": 0.1,
+            "b2": 0.1,
+            "b3": 0.1,
+            "b4": 0.1,
+            "b5": 0.1,
+            "b6": 0.1,
+            "b7": 0.1,
+            "b8": 0.1,
+            "b9": 0.1
+        },
+        "palette": {
+            "b1": ["#902F14", "#005138", "#006391"],
+            "b2": ["#902F14", "#005138", "#006391"],
+            "b3": ["#902F14", "#005138", "#006391"],
+            "b4": ["#902F14", "#005138", "#006391"],
+            "b5": ["#902F14", "#005138", "#006391"],
+            "b6": ["#902F14", "#005138", "#006391"],
+            "b7": ["#902F14", "#005138", "#006391"],
+            "b8": ["#902F14", "#005138", "#006391"],
+            "b9": ["#902F14", "#005138", "#006391"]
+        }
+    },
+    "projects/dgds-gee/crucial/evaporation_deficit": {
+        "type": "ImageCollection",
+        "bandNames": {
+            "b1": "b1"
+        },
+        "min": {
+            "b1": 0
+        },
+        "max": {
+            "b1": 100
+        },
+        "palette": {
+            "b1": ["#042333", "#eb7958", "#fbb43d", "01a272", "#005138", "#00815b"]
+        }
+    },
+    "projects/dgds-gee/msfd/chlorophyll": {
+        "type": "ImageCollection",
+        "bandNames": {
+            "b1": "b1",
+            "b2": "b2"
+        },
+        "min": {
+            "b1": 1,
+            "b2": 1
+        },
+        "max": {
+            "b1": 25,
+            "b2": 25
+        },
+        "palette": {
+            "b1": ["#01184d", "#002985", "#a8cab7", "#15751f", "#00440d", "#00360d"],
+            "b2": ["#01184d", "#002985", "#a8cab7", "#15751f", "#00440d", "#00360d"]
+        }
+    },
+    "COPERNICUS/CORINE/V20/100m/2018": {
+        "type": "Image",
+        "bandNames": {
+            "landcover": "landcover"
+        },
+        "min": {
+            "landcover": 100
+        },
+        "max": {
+            "landcover": 600
+        },
+        "palette": {
+            "landcover": ["#002985", "#a8cab7", "#15751f", "#00440d", "#00360d"]
+        }
+    },
+    "users/danieltwigt/05min_strord": {
+        "type": "Image",
+        "bandNames": {
+            "b1": "b1"
+        },
+        "min": {
+            "b1": 0
+        },
+        "max": {
+            "b1": 10
+        },
+        "palette": {
+            "b1": ["#042333", "#042333", "#2c3395", "#eb7958", "#fbb43d", "#e8fa5b"]
+        }
     }
 }
