@@ -7,28 +7,30 @@ import os
 from hydroengine_service import config
 from hydroengine_service import error_handler
 
-EE_CREDENTIALS = ee.ServiceAccountCredentials(config.EE_ACCOUNT,
-                                              config.EE_PRIVATE_KEY_FILE)
+EE_CREDENTIALS = ee.ServiceAccountCredentials(
+    config.EE_ACCOUNT, config.EE_PRIVATE_KEY_FILE
+)
 
 ee.Initialize(EE_CREDENTIALS)
 
 # visualization parameters for datasets
 APP_DIR = os.path.dirname(os.path.realpath(__file__))
-DATASET_DIR = os.path.join(APP_DIR, 'datasets')
-with open(DATASET_DIR + '/dataset_visualization_parameters.json') as json_file:
+DATASET_DIR = os.path.join(APP_DIR, "datasets")
+with open(DATASET_DIR + "/dataset_visualization_parameters.json") as json_file:
     DATASETS_VIS = json.load(json_file)
 
-with open(DATASET_DIR + '/dataset_elevation_parameters.json') as json_file:
+with open(DATASET_DIR + "/dataset_elevation_parameters.json") as json_file:
     ELEVATION_DATA = json.load(json_file)
 
 logger = logging.getLogger(__name__)
 
-LAND = ee.Image('users/gena/land_polygons_image')
-LANDMASK = ee.Image(LAND.unmask(1, False).Not().resample('bicubic').focal_mode(2))
+LAND = ee.Image("users/gena/land_polygons_image")
+LANDMASK = ee.Image(LAND.unmask(1, False).Not().resample("bicubic").focal_mode(2))
+
 
 def validate_min_lt_max(min, max):
     if not min < max:
-        raise error_handler.InvalidUsage('Specified min must be less than max.')
+        raise error_handler.InvalidUsage("Specified min must be less than max.")
 
 
 def get_dgds_source_vis_params(source, image_id=None):
@@ -41,20 +43,23 @@ def get_dgds_source_vis_params(source, image_id=None):
     data_params = DATASETS_VIS.get(source, None)
     if image_id and not data_params:
         data_params = DATASETS_VIS.get(image_id, None)
-    assert data_params, f'{source} not in assets.'
+    assert data_params, f"{source} not in assets."
     return data_params
 
 
-def get_dgds_data(source,
-                  dataset=None,
-                  image_id=None,
-                  band=None,
-                  function=None,
-                  start_date=None,
-                  end_date=None,
-                  image_num_limit=None,
-                  min=None,
-                  max=None):
+def get_dgds_data(
+    source,
+    dataset=None,
+    image_id=None,
+    band=None,
+    function=None,
+    start_date=None,
+    end_date=None,
+    image_num_limit=None,
+    min=None,
+    max=None,
+    sld_style=None,
+):
     """
 
     :param source: String, source/location of Earth Engine Object
@@ -81,8 +86,8 @@ def get_dgds_data(source,
         # get most recent to return url
         returned_url_id = info[-1]["imageId"]
 
-    if data_params.get('function', None) and not function:
-        function = data_params['function']
+    if data_params.get("function", None) and not function:
+        function = data_params["function"]
         if isinstance(function, list):
             function = function[0]
         else:
@@ -90,28 +95,31 @@ def get_dgds_data(source,
 
     image_info = _get_wms_url(
         image_id=returned_url_id,
-        type=data_params['type'],
+        type=data_params["type"],
         band=band,
         function=function,
         min=min,
-        max=max
+        max=max,
+        sld_style=sld_style,
     )
-    image_info['dataset'] = dataset
-    image_info['band'] = band
+    image_info["dataset"] = dataset
+    image_info["band"] = band
     if info:
-        image_info['imageTimeseries'] = info
+        image_info["imageTimeseries"] = info
 
     return image_info
 
 
-def hillshade(image_rgb,
-              image,
-              azimuth=315,
-              zenith=30,
-              height_multiplier=30,
-              weight=0.3,
-              val_multiply=0.9,
-              sat_multiply=0.8):
+def hillshade(
+    image_rgb,
+    image,
+    azimuth=315,
+    zenith=30,
+    height_multiplier=30,
+    weight=0.3,
+    val_multiply=0.9,
+    sat_multiply=0.8,
+):
     """
     :param image_rgb: GEE image visualized in RGB to hillshade
     :param image: GEE image raw values, not visualized
@@ -129,34 +137,27 @@ def hillshade(image_rgb,
 
     # Compute terrain properties
     terrain = ee.Algorithms.Terrain(z)
-    slope = degree_to_radians_image(terrain.select(['slope']))
-    aspect = degree_to_radians_image(terrain.select(['aspect'])).resample('bicubic')
+    slope = degree_to_radians_image(terrain.select(["slope"]))
+    aspect = degree_to_radians_image(terrain.select(["aspect"])).resample("bicubic")
     azimuth = degree_to_radians_image(ee.Image.constant(azimuth))
     zenith = degree_to_radians_image(ee.Image.constant(zenith))
     # hillshade
     hs = (
-        azimuth
-            .subtract(aspect)
-            .cos()
-            .multiply(slope.sin())
-            .multiply(zenith.sin())
-            .add(
-                zenith
-                    .cos()
-                    .multiply(
-                        slope.cos()
-                    )
-            )
-            .resample('bicubic')
+        azimuth.subtract(aspect)
+        .cos()
+        .multiply(slope.sin())
+        .multiply(zenith.sin())
+        .add(zenith.cos().multiply(slope.cos()))
+        .resample("bicubic")
     )
 
     # weighted average of hillshade and value
-    intensity = hs.multiply(hsv.select('value'))
+    intensity = hs.multiply(hsv.select("value"))
 
-    hue = hsv.select('hue')
+    hue = hsv.select("hue")
 
     # desaturate a bit
-    sat = hsv.select('saturation').multiply(sat_multiply)
+    sat = hsv.select("saturation").multiply(sat_multiply)
     # make a bit darker
     val = intensity.multiply(val_multiply)
 
@@ -164,12 +165,14 @@ def hillshade(image_rgb,
     return hillshaded
 
 
-def visualize_elevation(image,
-                        land_mask=LANDMASK,
-                        data_params=None,
-                        bathy_only=False,
-                        hillshade_image=True,
-                        hillshade_args={}):
+def visualize_elevation(
+    image,
+    land_mask=LANDMASK,
+    data_params=None,
+    bathy_only=False,
+    hillshade_image=True,
+    hillshade_args={},
+):
     """
     :param image: Google Earth Engine image to visualize
     :param land_mask: Boolean Google Earth Engine image representing 1 for land mask
@@ -178,18 +181,20 @@ def visualize_elevation(image,
     :return: Google Earth Engine ee.Image() object, Hillshaded image
     """
     # validate min is less than max, otherwise raise error
-    min = data_params['bathy_vis_params']['min']
-    max = data_params['topo_vis_params']['max']
+    min = data_params["bathy_vis_params"]["min"]
+    max = data_params["topo_vis_params"]["max"]
     if min and max is not None:
         validate_min_lt_max(min, max)
 
-    topo_rgb = image.mask(land_mask).visualize(**data_params['topo_vis_params'])
-    bathy_rgb = image.mask(land_mask.Not()).visualize(**data_params['bathy_vis_params'])
+    topo_rgb = image.mask(land_mask).visualize(**data_params["topo_vis_params"])
+    bathy_rgb = image.mask(land_mask.Not()).visualize(**data_params["bathy_vis_params"])
     image_rgb = topo_rgb.blend(bathy_rgb)
 
     if bathy_only:
         # overwrite with masked version
-        image_rgb = bathy_rgb.mask(image.multiply(ee.Image(-1)).unitScale(-1, 10).clamp(0, 1))
+        image_rgb = bathy_rgb.mask(
+            image.multiply(ee.Image(-1)).unitScale(-1, 10).clamp(0, 1)
+        )
 
     if hillshade_image:
         # hillshade with default parameters
@@ -213,7 +218,13 @@ def resample_landmask(image):
     :param image: GEE image object
     :return: Google Earth Engine ee.Image() object
     """
-    return ee.Image(image).float().resample('bicubic').updateMask(LANDMASK).rename('elevation')
+    return (
+        ee.Image(image)
+        .float()
+        .resample("bicubic")
+        .updateMask(LANDMASK)
+        .rename("elevation")
+    )
 
 
 def mosaic_elevation_datasets(dataset_list=None):
@@ -222,33 +233,37 @@ def mosaic_elevation_datasets(dataset_list=None):
     :param dataset_list: List of dataset ids, as defined in dataset_elevation_parameters.json
     :return: Google Earth Engine ee.Image() object, elevation image
     """
-    band_name = 'elevation'
+    band_name = "elevation"
     images = []
     image_collections = []
     for dataset in dataset_list:
         params = ELEVATION_DATA.get(dataset, None)
         if not params:
             raise error_handler.handle_invalid_usage(
-                f'No parameters defined for {dataset} in dataset_elevation_parameters.json'
+                f"No parameters defined for {dataset} in dataset_elevation_parameters.json"
             )
-        type = params.get('type', None)
-        source = params.get('source', None)
-        band = params.get('band', None)
-        bathymetry = params.get('bathymetry', None)
-        topography = params.get('topography', None)
+        type = params.get("type", None)
+        source = params.get("source", None)
+        band = params.get("band", None)
+        bathymetry = params.get("bathymetry", None)
+        topography = params.get("topography", None)
 
-        if type == 'Image':
+        if type == "Image":
             image = ee.Image(source)
             image = image.select(band).rename(band_name)
             if dataset == "ALOS":
                 alos_mask = image.mask().eq(1)
-                image = image.resample('bicubic').updateMask(alos_mask.And(LANDMASK)).float()
+                image = (
+                    image.resample("bicubic")
+                    .updateMask(alos_mask.And(LANDMASK))
+                    .float()
+                )
             elif topography and not bathymetry:
                 image = resample_landmask(image)
             else:
-                image = image.float().resample('bicubic')
+                image = image.float().resample("bicubic")
             images.append(image)
-        elif type == 'ImageCollection':
+        elif type == "ImageCollection":
             image_collection = ee.ImageCollection(source)
             image_collection = image_collection.map(resample_landmask)
             image_collections.append(image_collection)
@@ -274,38 +289,43 @@ def generate_elevation_map(dataset_list=None, min=None, max=None):
     data_params = DATASETS_VIS["projects/dgds-gee/bathymetry/gebco/2019"]
 
     if min is not None:
-        data_params['bathy_vis_params']['min'] = min
+        data_params["bathy_vis_params"]["min"] = min
     if max is not None:
-        data_params['topo_vis_params']['max'] = max
+        data_params["topo_vis_params"]["max"] = max
 
-    final_image = visualize_elevation(image=mosaic_image,
-                                      data_params=data_params,
-                                      bathy_only=False,
-                                      hillshade_image=True)
+    final_image = visualize_elevation(
+        image=mosaic_image,
+        data_params=data_params,
+        bathy_only=False,
+        hillshade_image=True,
+    )
     url = _get_gee_url(final_image)
     # TODO: clean up, repeated content from gebco
     info = {}
-    info['dataset'] = 'elevation'
-    info['band'] = 'elevation'
+    info["dataset"] = "elevation"
+    info["band"] = "elevation"
     linear_gradient = []
-    palette = data_params['bathy_vis_params']['palette'] + data_params['topo_vis_params']['palette']
+    palette = (
+        data_params["bathy_vis_params"]["palette"]
+        + data_params["topo_vis_params"]["palette"]
+    )
     n_colors = len(palette)
     offsets = np.linspace(0, 100, num=n_colors)
     for color, offset in zip(palette, offsets):
-        linear_gradient.append({
-            'offset': '{:.3f}%'.format(offset),
-            'opacity': 100,
-            'color': color
-        })
-    info.update({
-        'url': url,
-        'linearGradient': linear_gradient,
-        'min': data_params['bathy_vis_params']['min'],
-        'max': data_params['topo_vis_params']['max'],
-        'imageId': None,
-        'datasets': list(dataset_list),
-        'function': 'mosaic_elevation_datasets'
-    })
+        linear_gradient.append(
+            {"offset": "{:.3f}%".format(offset), "opacity": 100, "color": color}
+        )
+    info.update(
+        {
+            "url": url,
+            "linearGradient": linear_gradient,
+            "min": data_params["bathy_vis_params"]["min"],
+            "max": data_params["topo_vis_params"]["max"],
+            "imageId": None,
+            "datasets": list(dataset_list),
+            "function": "mosaic_elevation_datasets",
+        }
+    )
     return info
 
 
@@ -318,43 +338,48 @@ def visualize_gebco(source, band, min=None, max=None):
     """
     data_params = DATASETS_VIS[source]
     if min is not None:
-        data_params['bathy_vis_params']['min'] = min
+        data_params["bathy_vis_params"]["min"] = min
     if max is not None:
-        data_params['topo_vis_params']['max'] = max
+        data_params["topo_vis_params"]["max"] = max
 
     image = ee.Image(source)
 
-    gebco = image.select(data_params['bandNames'][band])
+    gebco = image.select(data_params["bandNames"][band])
     land_mask = LANDMASK
 
-    hillshaded = visualize_elevation(image=gebco,
-                                     land_mask=land_mask,
-                                     data_params=data_params,
-                                     bathy_only=False,
-                                     hillshade_image=True)
+    hillshaded = visualize_elevation(
+        image=gebco,
+        land_mask=land_mask,
+        data_params=data_params,
+        bathy_only=False,
+        hillshade_image=True,
+    )
     url = _get_gee_url(hillshaded)
 
     info = {}
-    info['dataset'] = 'gebco'
-    info['band'] = band
+    info["dataset"] = "gebco"
+    info["band"] = band
     linear_gradient = []
-    palette = data_params['bathy_vis_params']['palette'] + data_params['topo_vis_params']['palette']
+    palette = (
+        data_params["bathy_vis_params"]["palette"]
+        + data_params["topo_vis_params"]["palette"]
+    )
     n_colors = len(palette)
     offsets = np.linspace(0, 100, num=n_colors)
     for color, offset in zip(palette, offsets):
-        linear_gradient.append({
-            'offset': '{:.3f}%'.format(offset),
-            'opacity': 100,
-            'color': color
-        })
+        linear_gradient.append(
+            {"offset": "{:.3f}%".format(offset), "opacity": 100, "color": color}
+        )
 
-    info.update({
-        'url': url,
-        'linearGradient': linear_gradient,
-        'min': data_params['bathy_vis_params']['min'],
-        'max': data_params['topo_vis_params']['max'],
-        'imageId': source
-    })
+    info.update(
+        {
+            "url": url,
+            "linearGradient": linear_gradient,
+            "min": data_params["bathy_vis_params"]["min"],
+            "max": data_params["topo_vis_params"]["max"],
+            "imageId": source,
+        }
+    )
     return info
 
 
@@ -362,45 +387,43 @@ def _generate_image_info(im, params):
     """"generate url and tokens for image"""
     image = ee.Image(im)
 
-    if 'sld_style' in params:
-        m = image.sldStyle(params.get('sld_style'))
-        del params['sld_style']
-    elif 'palette' in params:
-        m = image.visualize(**{
-            'min': params.get('min'),
-            'max': params.get('max'),
-            'palette': params.get('palette')
-        })
+    if "sld_style" in params:
+        m = image.sldStyle(params.get("sld_style"))
+        del params["sld_style"]
+    elif "palette" in params:
+        m = image.visualize(
+            **{
+                "min": params.get("min"),
+                "max": params.get("max"),
+                "palette": params.get("palette"),
+            }
+        )
     else:
         m = image
 
-    if 'hillshade' in params:
+    if "hillshade" in params:
         # also pass along hillshade arguments
-        hillshade_args = params.get('hillshade_args', {})
+        hillshade_args = params.get("hillshade_args", {})
         m = hillshade(m, image, **hillshade_args)
 
     url = _get_gee_url(m)
 
     linear_gradient = []
-    if 'palette' in params:
-        n_colors = len(params.get('palette'))
-        palette = params.get('palette')
+    if "palette" in params:
+        n_colors = len(params.get("palette"))
+        palette = params.get("palette")
         offsets = np.linspace(0, 100, num=n_colors)
-        if 'function' in params:
-            if params['function'] == 'log':
+        if "function" in params:
+            if params["function"] == "log":
                 # if log scaling applied, apply log scale to linear gradient palette offsets
                 offsets = np.logspace(0.0, 2.0, num=n_colors, base=10.0)
                 offsets[0] = 0.0
         for color, offset in zip(palette, offsets):
-            linear_gradient.append({
-                'offset': '{:.3f}%'.format(offset),
-                'opacity': 100,
-                'color': color
-            })
+            linear_gradient.append(
+                {"offset": "{:.3f}%".format(offset), "opacity": 100, "color": color}
+            )
 
-    params.update({
-        'url': url,
-        'linearGradient': linear_gradient})
+    params.update({"url": url, "linearGradient": linear_gradient})
     return params
 
 
@@ -413,18 +436,22 @@ def apply_image_operation(image, operation, data_params=None, band=None):
     :return: Google Earth Engine ee.Image() object
     """
     if operation == "log":
-        image = image.log10().rename('log')
+        image = image.log10().rename("log")
     if operation == "magnitude":
-        image = image.pow(2).reduce(ee.Reducer.sum()).sqrt().rename('magnitude')
+        image = image.pow(2).reduce(ee.Reducer.sum()).sqrt().rename("magnitude")
     if operation == "flowmap":
-        image.unitScale(data_params['min'][operation], data_params['max'][operation]).unmask(-9999)
-        data_mask = image.eq(-9999).select(data_params['bandNames'][band])
+        image.unitScale(
+            data_params["min"][operation], data_params["max"][operation]
+        ).unmask(-9999)
+        data_mask = image.eq(-9999).select(data_params["bandNames"][band])
         image = image.clamp(0, 1).addBands(data_mask)
 
     return image
 
 
-def get_image_collection_info(source, start_date=None, end_date=None, image_num_limit=None):
+def get_image_collection_info(
+    source, start_date=None, end_date=None, image_num_limit=None
+):
     """
     Return list of objects with imageId and time for all images in an ImageCollection, or Image, source
     :param source: String,
@@ -434,46 +461,48 @@ def get_image_collection_info(source, start_date=None, end_date=None, image_num_
     :return: List of dictionaries
     """
     data_params = get_dgds_source_vis_params(source)
-    type = data_params.get('type', 'ImageCollection')
+    type = data_params.get("type", "ImageCollection")
 
     # Get images based on source requested
-    if type == 'ImageCollection':
+    if type == "ImageCollection":
         collection = ee.ImageCollection(source)
-    elif type == 'Image':
+    elif type == "Image":
         collection = ee.ImageCollection.fromImages([ee.Image(source)])
     else:
-        msg = f'Object of type {type} not supported.'
+        msg = f"Object of type {type} not supported."
         logger.debug(msg)
         return
 
     if end_date and not start_date:
-        msg = f'If endDate provided, must also include startDate'
+        msg = f"If endDate provided, must also include startDate"
         logger.debug(msg)
         return
 
     if start_date:
         start = ee.Date(start_date)
-        end = start.advance(1, 'day')
+        end = start.advance(1, "day")
         if end_date:
             end = ee.Date(end_date)
         collection = collection.filterDate(start, end)
 
     n_images = collection.size().getInfo()
     if not n_images:
-        msg = f'No images available between startDate={start_date} and endDate={end_date}'
+        msg = (
+            f"No images available between startDate={start_date} and endDate={end_date}"
+        )
         logger.debug(msg)
         return
 
     if image_num_limit:
         # get a limited number of latest images
-        collection = collection.limit(image_num_limit, 'system:time_start', False)
+        collection = collection.limit(image_num_limit, "system:time_start", False)
 
     # Sort ascending
-    collection = collection.sort('system:time_start', True)
+    collection = collection.sort("system:time_start", True)
 
-    ids = ee.List(collection.aggregate_array('system:id')).getInfo()
+    ids = ee.List(collection.aggregate_array("system:id")).getInfo()
 
-    dates = ee.List(collection.aggregate_array('system:time_start'))
+    dates = ee.List(collection.aggregate_array("system:time_start"))
     if dates.length().getInfo() == 0:
         date_list = [None] * len(ids)
     else:
@@ -481,23 +510,23 @@ def get_image_collection_info(source, start_date=None, end_date=None, image_num_
 
     response = []
     for id, date in zip(ids, date_list):
-        object = {
-            'imageId': id,
-            'date': date
-        }
+        object = {"imageId": id, "date": date}
         response.append(object)
 
     return response
 
 
-def _get_wms_url(image_id,
-                 type='ImageCollection',
-                 band=None,
-                 datasets=None,
-                 function=None,
-                 min=None,
-                 max=None,
-                 palette=None):
+def _get_wms_url(
+    image_id,
+    type="ImageCollection",
+    band=None,
+    datasets=None,
+    function=None,
+    min=None,
+    max=None,
+    palette=None,
+    sld_style=None,
+):
     """
     Get WMS url from image_id
     :param image_id: String, Google Earth Engine image id
@@ -510,15 +539,12 @@ def _get_wms_url(image_id,
     :return: Dictionary, json object with image and wms info
     """
     # GEBCO is styled differently, non-linear color palette
-    if 'gebco' in image_id:
+    if "gebco" in image_id:
         info = visualize_gebco(image_id, band, min, max)
         return info
 
-    if function == 'mosaic_elevation_datasets':
-        info = generate_elevation_map(
-            dataset_list=datasets,
-            min=min,
-            max=max)
+    if function == "mosaic_elevation_datasets":
+        info = generate_elevation_map(dataset_list=datasets, min=min, max=max)
         return info
 
     image = ee.Image(image_id)
@@ -526,21 +552,21 @@ def _get_wms_url(image_id,
     try:
         image_date = image.date().format().getInfo()
     except Exception as e:
-        msg = f'Image {image_id} does not have an assigned date.'
+        msg = f"Image {image_id} does not have an assigned date."
         logger.debug(msg)
         image_date = None
 
-    image_location_parameters = image_id.split('/')
-    if type == 'ImageCollection':
-        source = ('/').join(image_location_parameters[:-1])
-    elif type == 'Image':
+    image_location_parameters = image_id.split("/")
+    if type == "ImageCollection":
+        source = ("/").join(image_location_parameters[:-1])
+    elif type == "Image":
         source = image_id
 
     # Default visualization parameters
     vis_params = {
-        'min': 0,
-        'max': 1,
-        'palette': ['#000000', '#FFFFFF']
+        "min": 0,
+        "max": 1,
+        "palette": ["#000000", "#FFFFFF"],
     }
 
     # see if we have default visualization parameters stored for this source
@@ -548,61 +574,65 @@ def _get_wms_url(image_id,
 
     if source_params:
         if band:
-            band_name = source_params['bandNames'][band]
-            vis_params['band'] = band
+            band_name = source_params["bandNames"][band]
+            vis_params["band"] = band
             image = image.select(band_name)
-            vis_params['min'] = source_params['min'][band]
-            vis_params['max'] = source_params['max'][band]
-            vis_params['palette'] = source_params['palette'][band]
+            vis_params["min"] = source_params["min"][band]
+            vis_params["max"] = source_params["max"][band]
+            vis_params["palette"] = source_params["palette"][band]
         if function:
-            if isinstance(source_params['function'], list):
-                assert function in source_params['function']
-                vis_params['function'] = function
+            if isinstance(source_params["function"], list):
+                assert function in source_params["function"]
+                vis_params["function"] = function
                 # band = function
                 image = apply_image_operation(image, function)
-                vis_params['min'] = source_params['min'][function]
-                vis_params['max'] = source_params['max'][function]
-                vis_params['palette'] = source_params['palette'][function]
+                vis_params["min"] = source_params["min"][function]
+                vis_params["max"] = source_params["max"][function]
+                vis_params["palette"] = source_params["palette"][function]
             else:
-                assert function == source_params['function'][band]
-                function = source_params.get('function', None).get(band, None)
-                vis_params['min'] = source_params['min'][band]
-                vis_params['max'] = source_params['max'][band]
-                vis_params['palette'] = source_params['palette'][band]
-            vis_params['function'] = function
-            image = apply_image_operation(image, function, data_params=vis_params, band=band)
+                assert function == source_params["function"][band]
+                function = source_params.get("function", None).get(band, None)
+                vis_params["min"] = source_params["min"][band]
+                vis_params["max"] = source_params["max"][band]
+                vis_params["palette"] = source_params["palette"][band]
+            vis_params["function"] = function
+            image = apply_image_operation(
+                image, function, data_params=vis_params, band=band
+            )
     else:
         try:
             image = image.select(band)
         except Exception as e:
-            msg = f'Error selecting band {band}, {e}'
+            msg = f"Error selecting band {band}, {e}"
             logger.debug(msg)
             return
 
     # Overwrite vis params if provided in request,
     # min/max values can be zero, should not be None
     if min is not None:
-        vis_params['min'] = min
+        vis_params["min"] = min
     if max is not None:
-        vis_params['max'] = max
+        vis_params["max"] = max
     if palette:
-        vis_params['palette'] = palette
+        vis_params["palette"] = palette
+    if sld_style:
+        vis_params["sld_style"] = sld_style
 
-    if source == 'projects/dgds-gee/gloffis/hydro':
+    if source == "projects/dgds-gee/gloffis/hydro":
         image = image.mask(image.gte(0))
 
     # validate min is less than max, otherwise raise error
-    validate_min_lt_max(vis_params['min'], vis_params['max'])
+    validate_min_lt_max(vis_params["min"], vis_params["max"])
 
     info = _generate_image_info(image, vis_params)
-    info['source'] = source
-    info['date'] = image_date
-    info['imageId'] = image_id
+    info["source"] = source
+    info["date"] = image_date
+    info["imageId"] = image_id
 
     # Scale min and max if log function applied
-    if function == 'log':
-        info['min'] = 10 ** vis_params['min']
-        info['max'] = 10 ** vis_params['max']
+    if function == "log":
+        info["min"] = 10 ** vis_params["min"]
+        info["max"] = 10 ** vis_params["max"]
 
     return info
 
@@ -614,9 +644,8 @@ def _get_gee_url(image):
     :return: String, url
     """
     m = image.getMapId()
-    mapid = m.get('mapid')
-    url = 'https://earthengine.googleapis.com/v1alpha/{mapid}/tiles/{{z}}/{{x}}/{{y}}' \
-        .format(
+    mapid = m.get("mapid")
+    url = "https://earthengine.googleapis.com/v1alpha/{mapid}/tiles/{{z}}/{{x}}/{{y}}".format(
         mapid=mapid
     )
     return url
