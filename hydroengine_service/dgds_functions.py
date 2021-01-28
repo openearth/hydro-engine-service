@@ -567,6 +567,7 @@ def _get_wms_url(
         "min": 0,
         "max": 1,
         "palette": ["#000000", "#FFFFFF"],
+        "sld_style": None,
     }
 
     # see if we have default visualization parameters stored for this source
@@ -580,6 +581,7 @@ def _get_wms_url(
             vis_params["min"] = source_params["min"][band]
             vis_params["max"] = source_params["max"][band]
             vis_params["palette"] = source_params["palette"][band]
+            vis_params["sld_style"] = source_params["sld_style"][band]
         if function:
             if isinstance(source_params["function"], list):
                 assert function in source_params["function"]

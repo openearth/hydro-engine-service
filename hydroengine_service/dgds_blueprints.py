@@ -196,37 +196,16 @@ def get_gebco_data():
 def get_gll_dtm_data():
     r = request.get_json()
     dataset = r.get("dataset", "gll_dtm")
-    band = r.get("band", "b1")
+    band = r.get("band", "elevation")
 
-    start_date = r.get("startDate", None)
-    end_date = r.get("endDate", None)
-    image_num_limit = r.get("limit", None)
-    min = r.get("min", None)
-    max = r.get("max", None)
-
-    source = "users/maartenpronk/gll_dtm/gll_dtm_v1"
-    sld_style = """<RasterSymbolizer>
-        <ColorMap type="intervals">
-            <ColorMapEntry color="#ff0000" quantity="-1" label="-7 - -1 [m +MSL]"/>
-            <ColorMapEntry color="#9900ff" quantity="0" label="-1 - 0 [m +MSL]"/>
-            <ColorMapEntry color="#261cf0" quantity="1" label="0 - 1 [m +MSL]"/>
-            <ColorMapEntry color="#00b0f0" quantity="2" label="1 - 2 [m +MSL]"/>
-            <ColorMapEntry color="#d9d9d9" quantity="5" label="2 - 5 [m +MSL]"/>
-            <ColorMapEntry color="#c2ffa5" quantity="10" label="5 - 10 [m +MSL]"/>
-        </ColorMap>
-        </RasterSymbolizer>"""
+    source = f"projects/dgds-gee/{dataset}"
+    imageid = "users/maartenpronk/gll_dtm/gll_dtm_v1"
 
     image_info = dgds_functions.get_dgds_data(
         source=source,
         dataset=dataset,
-        image_id=source,
+        image_id=imageid,
         band=band,
-        start_date=start_date,
-        end_date=end_date,
-        image_num_limit=image_num_limit,
-        min=min,
-        max=max,
-        sld_style=sld_style,
     )
     if not image_info:
         raise error_handler.InvalidUsage("No images returned.")
