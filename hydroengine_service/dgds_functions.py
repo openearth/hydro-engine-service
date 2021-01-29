@@ -581,7 +581,7 @@ def _get_wms_url(
             vis_params["min"] = source_params["min"][band]
             vis_params["max"] = source_params["max"][band]
             vis_params["palette"] = source_params["palette"][band]
-            vis_params["sld_style"] = source_params["sld_style"][band]
+            vis_params["sld_style"] = source_params.get("sld_style", {}).get(band)
         if function:
             if isinstance(source_params["function"], list):
                 assert function in source_params["function"]

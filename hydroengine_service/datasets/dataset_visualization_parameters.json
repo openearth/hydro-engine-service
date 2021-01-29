@@ -50,19 +50,10 @@
     "projects/dgds-gee/gll_dtm": {
         "type": "Image",
         "bandNames": {
-            "elevation": "b1",
+            "elevation": "b1"
         },
         "sld_style": {
-            "elevation": "<RasterSymbolizer>
-                            <ColorMap type=\"intervals\">
-                            <ColorMapEntry color=\"#ff0000\" quantity=\"-1\" label=\"-7 - -1 [m +MSL]\"/>
-                            <ColorMapEntry color=\"#9900ff\" quantity=\"0\" label=\"-1 - 0 [m +MSL]\"/>
-                            <ColorMapEntry color=\"#261cf0\" quantity=\"1\" label=\"0 - 1 [m +MSL]\"/>
-                            <ColorMapEntry color=\"#00b0f0\" quantity=\"2\" label=\"1 - 2 [m +MSL]\"/>
-                            <ColorMapEntry color=\"#d9d9d9\" quantity=\"5\" label=\"2 - 5 [m +MSL]\"/>
-                            <ColorMapEntry color=\"#c2ffa5\" quantity=\"10\" label=\"5 - 10 [m +MSL]\"/>
-                            </ColorMap>
-                        </RasterSymbolizer>"
+            "elevation": "<RasterSymbolizer><ColorMap type=\"intervals\"><ColorMapEntry color=\"#ff0000\" quantity=\"-1\" label=\"-7 - -1 [m +MSL]\"/><ColorMapEntry color=\"#9900ff\" quantity=\"0\" label=\"-1 - 0 [m +MSL]\"/><ColorMapEntry color=\"#261cf0\" quantity=\"1\" label=\"0 - 1 [m +MSL]\"/><ColorMapEntry color=\"#00b0f0\" quantity=\"2\" label=\"1 - 2 [m +MSL]\"/><ColorMapEntry color=\"#d9d9d9\" quantity=\"5\" label=\"2 - 5 [m +MSL]\"/><ColorMapEntry color=\"#c2ffa5\" quantity=\"10\" label=\"5 - 10 [m +MSL]\"/></ColorMap></RasterSymbolizer>"
         }
     },
     "projects/dgds-gee/glossis/waterlevel": {
