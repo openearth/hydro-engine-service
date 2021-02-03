@@ -58,7 +58,6 @@ def get_dgds_data(
     image_num_limit=None,
     min=None,
     max=None,
-    sld_style=None,
 ):
     """
 
@@ -100,7 +99,6 @@ def get_dgds_data(
         function=function,
         min=min,
         max=max,
-        sld_style=sld_style,
     )
     image_info["dataset"] = dataset
     image_info["band"] = band
@@ -525,7 +523,6 @@ def _get_wms_url(
     min=None,
     max=None,
     palette=None,
-    sld_style=None,
 ):
     """
     Get WMS url from image_id
@@ -567,12 +564,10 @@ def _get_wms_url(
         "min": 0,
         "max": 1,
         "palette": ["#000000", "#FFFFFF"],
-        "sld_style": None,
     }
 
     # see if we have default visualization parameters stored for this source
     source_params = DATASETS_VIS.get(source, None)
-
     if source_params:
         if band:
             band_name = source_params["bandNames"][band]
@@ -581,7 +576,9 @@ def _get_wms_url(
             vis_params["min"] = source_params["min"][band]
             vis_params["max"] = source_params["max"][band]
             vis_params["palette"] = source_params["palette"][band]
-            vis_params["sld_style"] = source_params.get("sld_style", {}).get(band)
+            style = source_params.get("sld_style", {}).get(band)
+            if style:
+                vis_params["sld_style"] = style
         if function:
             if isinstance(source_params["function"], list):
                 assert function in source_params["function"]
@@ -617,8 +614,6 @@ def _get_wms_url(
         vis_params["max"] = max
     if palette:
         vis_params["palette"] = palette
-    if sld_style:
-        vis_params["sld_style"] = sld_style
 
     if source == "projects/dgds-gee/gloffis/hydro":
         image = image.mask(image.gte(0))

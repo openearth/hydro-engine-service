@@ -547,7 +547,7 @@ class TestClient:
 
         result = json.loads(resp.data)
 
-        assert result["band"] == "b1"
+        assert result["band"] == "elevation"
         assert "function" not in result
 
     def test_get_feature_info_null(self):

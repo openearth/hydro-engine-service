@@ -195,15 +195,11 @@ def get_gebco_data():
 @flask_cors.cross_origin()
 def get_gll_dtm_data():
     r = request.get_json()
-    dataset = r.get("dataset", "gll_dtm")
     band = r.get("band", "elevation")
 
-    source = f"projects/dgds-gee/{dataset}"
     imageid = "users/maartenpronk/gll_dtm/gll_dtm_v1"
-
     image_info = dgds_functions.get_dgds_data(
-        source=source,
-        dataset=dataset,
+        source=None,
         image_id=imageid,
         band=band,
     )
