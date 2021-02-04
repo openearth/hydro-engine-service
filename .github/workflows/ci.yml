@@ -23,5 +23,7 @@ jobs:
         pip install -r requirements.txt
         pip install -e .
     - name: Test with pytest
+      env:
+        key: ${{ secrets.ee_key }}
       run: |
         pytest
