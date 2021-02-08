@@ -566,6 +566,23 @@ class TestClient:
         assert result['band'] == 'elevation'
         assert 'function' not in result
 
+
+    def test_get_gll_dtm_data(self):
+        """test get gll_dtm data"""
+
+        request = {"dataset": "gll_dtm"}
+        resp = self.client.post(
+            "/get_gll_dtm_data",
+            data=json.dumps(request),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+
+        assert result["band"] == "elevation"
+        assert "function" not in result
+
     def test_get_feature_info_null(self):
         request = {
             "imageId": "projects/dgds-gee/gloffis/hydro/gloffis_hydro_20200120000000",
