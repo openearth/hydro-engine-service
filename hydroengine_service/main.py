@@ -313,12 +313,12 @@ def hillshade(image_rgb, elevation, reproject, height_multiplier=500,  weight=1.
 
     terrain = ee.Algorithms.Terrain(z)
     slope = radians(terrain.select(['slope']))
-    aspect = radians(terrain.select(['aspect'])).resample('bicubic')
+    aspect = radians(terrain.select(['aspect']))
     azimuth = radians(ee.Image.constant(azimuth))
     zenith = radians(ee.Image.constant(zenith))
 
     hs = azimuth.subtract(aspect).cos().multiply(slope.sin()).multiply(zenith.sin()).add(
-        zenith.cos().multiply(slope.cos())).resample('bicubic')
+        zenith.cos().multiply(slope.cos()))
     intensity = hs.multiply(ee.Image.constant(weight)).multiply(hsv.select('value'))
     huesat = hsv.select('hue', 'saturation')
 
