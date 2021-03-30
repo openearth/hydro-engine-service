@@ -329,23 +329,12 @@ class TestClient:
         """test get liwo scenarios max"""
 
         # some of these variables are only used for export
+        # this only works for 50m scale
         request = {
             "liwo_ids": [18037, 18038, 18039],
             "band": "waterdepth",
-            "region": {
-                "geodesic": False,
-                "type": "Polygon",
-                "coordinates": [[
-                    [6.0161056877902865, 51.41901371286102],
-                    [6.2495651604465365, 51.417729076754576],
-                    [6.245101964645755, 51.54985700463136],
-                    [6.0174789788059115, 51.54836255319905],
-                    [6.0161056877902865, 51.41901371286102]
-                ]]
-            },
-            "scale": 30,
-            "export": True,
-            "crs": "EPSG:28992"
+            "scale": 50,
+            "export": True
         }
         resp = self.client.post(
             '/v2/get_liwo_scenarios',
@@ -356,7 +345,7 @@ class TestClient:
 
         result = json.loads(resp.data)
 
-        assert 'mapid' in result
+        assert 'export_url' in result
 
     def test_v2_get_liwo_scenarios_max_regional_and_primary(self):
         """test get liwo scenarios max"""
@@ -494,7 +483,7 @@ class TestClient:
         assert 'imageId' in result
         assert result['min'] == 1.0
         assert result['max'] == 1000000.0
-    
+
     def test_get_crucial_data(self):
         """test get crucial data"""
 
@@ -508,7 +497,7 @@ class TestClient:
             content_type='application/json'
         )
         assert resp.status_code == 200
- 
+
         result = json.loads(resp.data)
 
     def test_get_msfd_data(self):
