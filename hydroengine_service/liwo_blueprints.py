@@ -92,12 +92,13 @@ def get_liwo_scenarios():
     # Specify region over which to compute
     region = image.geometry()
 
-    # default to 5m
-    info['scale'] = r.get('scale', 5)
-    # always
-    info['crs'] = 'EPSG:4326'
-    extra_info = liwo_functions.export_image_response(image, region, info)
-    info.update(extra_info)
+    if r.get('export'):
+        # default to 5m
+        info['scale'] = r.get('scale', 5)
+        # always
+        info['crs'] = r.get('crs', 'EPSG:4326')
+        extra_info = liwo_functions.export_image_response(image, region, info)
+        info.update(extra_info)
 
     return Response(
         json.dumps(info),

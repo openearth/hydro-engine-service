@@ -333,7 +333,8 @@ class TestClient:
         request = {
             "liwo_ids": [18037, 18038, 18039],
             "band": "waterdepth",
-            "scale": 50
+            "scale": 50,
+            "export": True
         }
         resp = self.client.post(
             '/v2/get_liwo_scenarios',
@@ -482,7 +483,7 @@ class TestClient:
         assert 'imageId' in result
         assert result['min'] == 1.0
         assert result['max'] == 1000000.0
-    
+
     def test_get_crucial_data(self):
         """test get crucial data"""
 
@@ -496,7 +497,7 @@ class TestClient:
             content_type='application/json'
         )
         assert resp.status_code == 200
- 
+
         result = json.loads(resp.data)
 
     def test_get_msfd_data(self):
