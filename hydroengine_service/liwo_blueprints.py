@@ -82,6 +82,7 @@ def get_liwo_scenarios():
     reducer = reducers[band]
 
     image = liwo_functions.filter_liwo_collection_v2(collection, id_key, liwo_ids, band_name, reducer)
+
     params = liwo_functions.get_liwo_styling(band)
     info = liwo_functions.generate_image_info(image, params)
     info['liwo_ids'] = liwo_ids
@@ -89,15 +90,14 @@ def get_liwo_scenarios():
 
     # Following needed for export:
     # Specify region over which to compute
-    # export  is True or None/False
-    if r.get('export'):
-        region = ee.Geometry(r['region'])
-        # scale of pixels for export, in meters
-        info['scale'] = float(r['scale'])
-        # coordinate system for export projection
-        info['crs'] = r['crs']
-        extra_info = liwo_functions.export_image_response(image, region, info)
-        info.update(extra_info)
+    region = image.geometry()
+
+    # default to 5m
+    info['scale'] = r.get('scale', 5)
+    # always
+    info['crs'] = 'EPSG:4326'
+    extra_info = liwo_functions.export_image_response(image, region, info)
+    info.update(extra_info)
 
     return Response(
         json.dumps(info),
