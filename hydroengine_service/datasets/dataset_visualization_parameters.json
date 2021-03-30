@@ -47,6 +47,43 @@
             "flowmap": []
         }
     },
+    "users/maartenpronk/gll_dtm/gll_dtm_v1": {
+        "type": "Image",
+        "bandNames": {
+            "elevation": "b1"
+        },
+        "min": {
+            "elevation": -7.0
+        },
+        "max": {
+            "elevation": 10.0
+        },
+        "palette": {
+            "elevation": [
+                "#ff0000",
+                "#ff0000",
+                "#ff0000",
+                "#ff0000",
+                "#ff0000",
+                "#ff0000",
+                "#ff0000",
+                "#9900ff",
+                "#261cf0",
+                "#00b0f0",
+                "#d9d9d9",
+                "#d9d9d9",
+                "#d9d9d9",
+                "#c2ffa5",
+                "#c2ffa5",
+                "#c2ffa5",
+                "#c2ffa5",
+                "#c2ffa5"
+                ]
+        },
+        "sld_style": {
+            "elevation": "<RasterSymbolizer><ColorMap type=\"intervals\"><ColorMapEntry color=\"#ff0000\" quantity=\"-1\" label=\"-7 - -1 [m +MSL]\"/><ColorMapEntry color=\"#9900ff\" quantity=\"0\" label=\"-1 - 0 [m +MSL]\"/><ColorMapEntry color=\"#261cf0\" quantity=\"1\" label=\"0 - 1 [m +MSL]\"/><ColorMapEntry color=\"#00b0f0\" quantity=\"2\" label=\"1 - 2 [m +MSL]\"/><ColorMapEntry color=\"#d9d9d9\" quantity=\"5\" label=\"2 - 5 [m +MSL]\"/><ColorMapEntry color=\"#c2ffa5\" quantity=\"10\" label=\"5 - 10 [m +MSL]\"/></ColorMap></RasterSymbolizer>"
+        }
+    },
     "projects/dgds-gee/glossis/waterlevel": {
         "type": "ImageCollection",
         "bandNames": {
@@ -297,6 +334,87 @@
             "mean_lower_low_water": ["#D1CBFF", "#006391", "#1D1B1A"],
             "highest_astronomical_tide": ["#1D1B1A", "#902F14", "#FCB0B2"],
             "lowest_astronomical_tide": ["#D1CBFF", "#006391", "#1D1B1A"]
+        }
+    },
+    "projects/dgds-gee/crucial/groundwater_declining_trend": {
+        "type": "Image",
+        "bandNames": {
+            "b1": "b1",
+            "b2": "b2",
+            "b3": "b3",
+            "b4": "b4",
+            "b5": "b5",
+            "b6": "b6",
+            "b7": "b7",
+            "b8": "b8",
+            "b9": "b9"
+        },
+        "min": {
+            "b1": -0.1,
+            "b2": -0.1,
+            "b3": -0.1,
+            "b4": -0.1,
+            "b5": -0.1,
+            "b6": -0.1,
+            "b7": -0.1,
+            "b8": -0.1,
+            "b9": -0.1
+        },
+        "max": {
+            "b1": 0.1,
+            "b2": 0.1,
+            "b3": 0.1,
+            "b4": 0.1,
+            "b5": 0.1,
+            "b6": 0.1,
+            "b7": 0.1,
+            "b8": 0.1,
+            "b9": 0.1
+        },
+        "palette": {
+            "b1": ["#902F14", "#343332", "#006391"],
+            "b2": ["#902F14", "#343332", "#006391"],
+            "b3": ["#902F14", "#343332", "#006391"],
+            "b4": ["#902F14", "#343332", "#006391"],
+            "b5": ["#902F14", "#343332", "#006391"],
+            "b6": ["#902F14", "#343332", "#006391"],
+            "b7": ["#902F14", "#343332", "#006391"],
+            "b8": ["#902F14", "#343332", "#006391"],
+            "b9": ["#902F14", "#343332", "#006391"]
+        }
+    },
+    "projects/dgds-gee/crucial/evaporation_deficit": {
+        "type": "ImageCollection",
+        "bandNames": {
+            "b1": "b1"
+        },
+        "min": {
+            "b1": 0
+        },
+        "max": {
+            "b1": 100
+        },
+        "palette": {
+            "b1": ["#ab614d", "#fbb43d", "01a272", "#005138", "#00815b"]
+        }
+    },
+    "projects/dgds-gee/msfd/chlorophyll": {
+        "type": "ImageCollection",
+        "bandNames": {
+            "b1": "b1",
+            "b2": "b2"
+        },
+        "min": {
+            "b1": 1,
+            "b2": 1
+        },
+        "max": {
+            "b1": 20,
+            "b2": 20
+        },
+        "palette": {
+            "b1": ["#01184d", "#002985", "#a8cab7", "#15751f", "#00440d", "#00360d"],
+            "b2": ["#01184d", "#002985", "#a8cab7", "#15751f", "#00440d", "#00360d"]
         }
     }
 }

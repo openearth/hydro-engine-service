@@ -482,6 +482,39 @@ class TestClient:
         assert 'imageId' in result
         assert result['min'] == 1.0
         assert result['max'] == 1000000.0
+    
+    def test_get_crucial_data(self):
+        """test get crucial data"""
+
+        request = {
+            "dataset": "groundwater_declining_trend",
+            "band": "b1"
+        }
+        resp = self.client.post(
+            '/get_crucial_data',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        assert resp.status_code == 200
+ 
+        result = json.loads(resp.data)
+
+    def test_get_msfd_data(self):
+        """test get msfd data"""
+
+        request = {
+            "dataset": "chlorophyll",
+            "band": "b1"
+        }
+        resp = self.client.post(
+            '/get_msfd_data',
+            data=json.dumps(request),
+            content_type='application/json'
+        )
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+
 
     def test_get_metocean_data(self):
         """test get metocean percentile data"""
@@ -520,6 +553,23 @@ class TestClient:
 
         assert result['band'] == 'elevation'
         assert 'function' not in result
+
+
+    def test_get_gll_dtm_data(self):
+        """test get gll_dtm data"""
+
+        request = {"dataset": "gll_dtm"}
+        resp = self.client.post(
+            "/get_gll_dtm_data",
+            data=json.dumps(request),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+
+        result = json.loads(resp.data)
+
+        assert result["band"] == "elevation"
+        assert "function" not in result
 
     def test_get_feature_info_null(self):
         request = {
