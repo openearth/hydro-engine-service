@@ -10,6 +10,9 @@ from hydroengine_service import liwo_functions
 v1 = Blueprint("liwo-v1", __name__)
 v2 = Blueprint('liwo-v2', __name__)
 
+DEFAULT_COLLECTION = 'projects/deltares-rws/liwo/2021_0_1'
+
+
 @v2.route('/get_liwo_scenarios_info', methods=['POST'])
 @flask_cors.cross_origin()
 def get_liwo_scenarios_info():
@@ -22,7 +25,7 @@ def get_liwo_scenarios_info():
     liwo_ids = r['liwo_ids']
 
     # hard coded version
-    collection = 'projects/deltares-rws/liwo/2020_0_2'
+    collection = r.get('collection', DEFAULT_COLLECTION)
 
     # load the image collection
     scenarios = ee.ImageCollection(collection)
@@ -56,7 +59,8 @@ def get_liwo_scenarios():
     # band name as string
     band = r['band']
 
-    collection = 'projects/deltares-rws/liwo/2020_0_2'
+    collection = r.get('collection', DEFAULT_COLLECTION)
+
     id_key = 'Scenario_ID'
     bands = {
         'waterdepth': 'waterdiepte',
