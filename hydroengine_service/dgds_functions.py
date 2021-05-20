@@ -285,7 +285,9 @@ def generate_elevation_map(dataset_list=None, min=None, max=None):
         dataset_list = ELEVATION_DATA.keys()
 
     mosaic_image = mosaic_elevation_datasets(dataset_list)
-    data_params = deepcopy(DATASETS_VIS["projects/dgds-gee/bathymetry/gebco/2019"])
+    data_params = deepcopy(
+        DATASETS_VIS["projects/dgds-gee/bathymetry/gebco/2019"]
+    )  # prevent mutation of global state
 
     if min is not None:
         data_params["bathy_vis_params"]["min"] = min
@@ -335,7 +337,7 @@ def visualize_gebco(source, band, min=None, max=None):
     :param band: String, band of image to visualize
     :return: Dictionary
     """
-    data_params = deepcopy(DATASETS_VIS[source])
+    data_params = deepcopy(DATASETS_VIS[source])  # prevent mutation of global state
     if min is not None:
         data_params["bathy_vis_params"]["min"] = min
     if max is not None:
