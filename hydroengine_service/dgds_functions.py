@@ -30,6 +30,11 @@ LANDMASK = ee.Image(LAND.unmask(1, False).Not().resample("bicubic").focal_mode(2
 
 
 def validate_min_lt_max(min, max):
+    try:
+        min = float(min)
+        max = float(max)
+    except ValueError:
+        pass
     if not min < max:
         raise error_handler.InvalidUsage("Specified min must be less than max.")
 
@@ -501,18 +506,17 @@ def get_image_collection_info(
     # Sort ascending
     collection = collection.sort("system:time_start", True)
 
-    ids = ee.List(collection.aggregate_array("system:id")).getInfo()
-
-    dates = ee.List(collection.aggregate_array("system:time_start"))
-    if dates.length().getInfo() == 0:
-        date_list = [None] * len(ids)
-    else:
-        date_list = dates.map(lambda i: ee.Date(i).format()).getInfo()
-
+    # Loop over complete objects, as aggregation on indivual properties
+    # can run out of sync with each other in case a property is skipped (null)
     response = []
-    for id, date in zip(ids, date_list):
-        object = {"imageId": id, "date": date}
-        response.append(object)
+    for feature in collection.getInfo().get("features", []):
+        props = feature.get("properties", {})
+        if "system:time_start" in props:
+            time = ee.Date(props["system:time_start"]).format().getInfo()
+        else:
+            continue  # skip items without a timestamp
+        item = {"imageId": feature["id"], "date": time}
+        response.append(item)
 
     return response
 
