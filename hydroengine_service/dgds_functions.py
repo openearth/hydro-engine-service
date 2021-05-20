@@ -34,7 +34,7 @@ def validate_min_lt_max(min, max):
         min = float(min)
         max = float(max)
     except ValueError:
-        pass
+        raise error_handler.InvalidUsage("Specified min and max values must be numbers.")
     if not min < max:
         raise error_handler.InvalidUsage("Specified min must be less than max.")
 
@@ -506,7 +506,7 @@ def get_image_collection_info(
     # Sort ascending
     collection = collection.sort("system:time_start", True)
 
-    # Loop over complete objects, as aggregation on indivual properties
+    # Loop over complete objects, as aggregation on individual properties
     # can run out of sync with each other in case a property is skipped (null)
     response = []
     for feature in collection.getInfo().get("features", []):
