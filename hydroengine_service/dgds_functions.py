@@ -506,17 +506,17 @@ def get_image_collection_info(
     # Sort ascending
     collection = collection.sort("system:time_start", True)
 
-    # Loop over complete objects, as aggregation on individual properties
+    # Map complete objects in GEE, as aggregation on individual properties
     # can run out of sync with each other in case a property is skipped (null)
-    response = []
-    for feature in collection.getInfo().get("features", []):
-        props = feature.get("properties", {})
-        if "system:time_start" in props:
-            time = ee.Date(props["system:time_start"]).format().getInfo()
-        else:
-            continue  # skip items without a timestamp
-        item = {"imageId": feature["id"], "date": time}
-        response.append(item)
+    # Retrieving the objects locally will fail on collections over 5000 items.
+    def map_id_time(item):
+        iitem = ee.Image(item)
+        date = iitem.get("system:time_start")
+        sdate = ee.Algorithms.If(date, ee.Date(date).format(), None)
+        d = ee.Dictionary({"imageId": iitem.get("system:id"), "date": sdate})
+        return d
+
+    response = collection.toList(collection.size()).map(map_id_time).getInfo()
 
     return response
 
