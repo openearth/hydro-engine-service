@@ -386,16 +386,16 @@
     "projects/dgds-gee/crucial/evaporation_deficit": {
         "type": "ImageCollection",
         "bandNames": {
-            "b1": "b1"
+            "evaporation_deficit": "evaporation_deficit"
         },
         "min": {
-            "b1": 0
+            "evaporation_deficit": 0
         },
         "max": {
-            "b1": 100
+            "evaporation_deficit": 100
         },
         "palette": {
-            "b1": ["#ab614d", "#fbb43d", "01a272", "#005138", "#00815b"]
+            "evaporation_deficit": ["#ab614d", "#fbb43d", "01a272", "#005138", "#00815b"]
         }
     },
     "projects/dgds-gee/msfd/chlorophyll": {
