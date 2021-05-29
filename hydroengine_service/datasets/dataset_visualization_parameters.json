@@ -386,7 +386,7 @@
     "projects/dgds-gee/crucial/evaporation_deficit": {
         "type": "ImageCollection",
         "bandNames": {
-            "evaporation_deficit": "evaporation_deficit"
+            "evaporation_deficit": "b1"
         },
         "min": {
             "evaporation_deficit": 0
