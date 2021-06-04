@@ -282,7 +282,7 @@ class TestClient:
             data=json.dumps(request),
             content_type='application/json'
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 200, resp.data
 
         result = json.loads(resp.data)
 
@@ -300,7 +300,7 @@ class TestClient:
             data=json.dumps(request),
             content_type='application/json'
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 200, resp.data
 
         result = json.loads(resp.data)
         with open('test-data.txt', 'w') as outfile:
@@ -319,7 +319,7 @@ class TestClient:
             data=json.dumps(request),
             content_type='application/json'
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 200, resp.data
 
         result = json.loads(resp.data)
 
@@ -341,7 +341,7 @@ class TestClient:
             data=json.dumps(request),
             content_type='application/json'
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 200, resp.data
 
         result = json.loads(resp.data)
 
@@ -358,7 +358,7 @@ class TestClient:
             data=json.dumps(request),
             content_type='application/json'
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 200, resp.data
 
         result = json.loads(resp.data)
         with open('test-data.txt', 'w') as outfile:
