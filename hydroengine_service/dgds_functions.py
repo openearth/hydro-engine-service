@@ -3,6 +3,7 @@ import json
 import logging
 import numpy as np
 import os
+from copy import deepcopy
 
 from hydroengine_service import config
 from hydroengine_service import error_handler
@@ -29,6 +30,11 @@ LANDMASK = ee.Image(LAND.unmask(1, False).Not().resample("bicubic").focal_mode(2
 
 
 def validate_min_lt_max(min, max):
+    try:
+        min = float(min)
+        max = float(max)
+    except ValueError:
+        raise error_handler.InvalidUsage("Specified min and max values must be numbers.")
     if not min < max:
         raise error_handler.InvalidUsage("Specified min must be less than max.")
 
@@ -284,7 +290,9 @@ def generate_elevation_map(dataset_list=None, min=None, max=None):
         dataset_list = ELEVATION_DATA.keys()
 
     mosaic_image = mosaic_elevation_datasets(dataset_list)
-    data_params = DATASETS_VIS["projects/dgds-gee/bathymetry/gebco/2019"]
+    data_params = deepcopy(
+        DATASETS_VIS["projects/dgds-gee/bathymetry/gebco/2019"]
+    )  # prevent mutation of global state
 
     if min is not None:
         data_params["bathy_vis_params"]["min"] = min
@@ -334,7 +342,7 @@ def visualize_gebco(source, band, min=None, max=None):
     :param band: String, band of image to visualize
     :return: Dictionary
     """
-    data_params = DATASETS_VIS[source]
+    data_params = deepcopy(DATASETS_VIS[source])  # prevent mutation of global state
     if min is not None:
         data_params["bathy_vis_params"]["min"] = min
     if max is not None:
@@ -498,18 +506,17 @@ def get_image_collection_info(
     # Sort ascending
     collection = collection.sort("system:time_start", True)
 
-    ids = ee.List(collection.aggregate_array("system:id")).getInfo()
+    # Map complete objects in GEE, as aggregation on individual properties
+    # can run out of sync with each other in case a property is skipped (null)
+    # Retrieving the objects locally will fail on collections over 5000 items.
+    def map_id_time(item):
+        iitem = ee.Image(item)
+        date = iitem.get("system:time_start")
+        sdate = ee.Algorithms.If(date, ee.Date(date).format(), None)
+        d = ee.Dictionary({"imageId": iitem.get("system:id"), "date": sdate})
+        return d
 
-    dates = ee.List(collection.aggregate_array("system:time_start"))
-    if dates.length().getInfo() == 0:
-        date_list = [None] * len(ids)
-    else:
-        date_list = dates.map(lambda i: ee.Date(i).format()).getInfo()
-
-    response = []
-    for id, date in zip(ids, date_list):
-        object = {"imageId": id, "date": date}
-        response.append(object)
+    response = collection.toList(collection.size()).map(map_id_time).getInfo()
 
     return response
 
