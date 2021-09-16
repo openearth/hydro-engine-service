@@ -10,7 +10,7 @@ from hydroengine_service import liwo_functions
 v1 = Blueprint("liwo-v1", __name__)
 v2 = Blueprint('liwo-v2', __name__)
 
-DEFAULT_COLLECTION = 'projects/deltares-rws/liwo/2021_0_3
+DEFAULT_COLLECTION = 'projects/deltares-rws/liwo/2021_0_3'
 
 
 @v2.route('/get_liwo_scenarios_info', methods=['POST'])
