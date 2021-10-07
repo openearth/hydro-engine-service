@@ -249,6 +249,7 @@ def get_stac_collection():
 
     source = r.get("dataset", None)
     band = r.get("band", None)
+    image_id = r.get("imageId", None)
     function = r.get("function", None)
     start_date = r.get("startDate", None)
     end_date = r.get("endDate", None)
@@ -265,6 +266,7 @@ def get_stac_collection():
     image_info = dgds_functions.get_dgds_data(
         source=source,
         band=band,
+        image_id=image_id,
         function=function,
         start_date=start_date,
         end_date=end_date,
