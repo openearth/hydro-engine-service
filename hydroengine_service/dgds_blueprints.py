@@ -215,7 +215,11 @@ def get_gll_dtm_data():
 @v1.route("/get_stac_item", methods=["GET", "POST"])
 @flask_cors.cross_origin()
 def get_stac_item():
-
+    """
+    This is not a STAC compatible endpoint, but
+    functions for the generation of a STAC item over
+    at BlueEarthData.
+    """
     # Parse both GET keyword arguments as POST json data
     r = {}
     r.update(request.args)
@@ -225,6 +229,52 @@ def get_stac_item():
 
     wms = dgds_functions._get_wms_url(**r)
     return wms
+
+
+@v1.route("/get_stac_collection", methods=["GET", "POST"])
+@flask_cors.cross_origin()
+def get_stac_collection():
+    """
+    This is not a STAC compatible endpoint, but
+    functions for the generation of a STAC collection over
+    at BlueEarthData.
+    """
+
+    # Parse both GET keyword arguments as POST json data
+    r = {}
+    r.update(request.args)
+    postdata = request.get_json()
+    if postdata:
+        r.update(postdata)
+
+    source = r.get("dataset", None)
+    band = r.get("band", None)
+    function = r.get("function", None)
+    start_date = r.get("startDate", None)
+    end_date = r.get("endDate", None)
+    image_num_limit = r.get("limit", None)
+    min = r.get("min", None)
+    max = r.get("max", None)
+
+    if not source:
+        msg = f"You must provide a dataset."
+        logger.error(msg)
+        raise error_handler.InvalidUsage(msg)
+
+    image_info = dgds_functions.get_dgds_data(
+        source=source,
+        band=band,
+        function=function,
+        start_date=start_date,
+        end_date=end_date,
+        image_num_limit=image_num_limit,
+        min=min,
+        max=max,
+    )
+    if not image_info:
+        raise error_handler.InvalidUsage("No images returned.")
+
+    return Response(json.dumps(image_info), status=200, mimetype="application/json")
 
 
 @v1.route("/get_elevation_data", methods=["GET", "POST"])
