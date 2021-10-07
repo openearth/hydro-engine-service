@@ -93,7 +93,7 @@ def get_dgds_data(
         # get most recent to return url
         returned_url_id = info[-1]["imageId"]
 
-    if data_params.get("function", None) and not function:
+    if data_params and data_params.get("function", None) and not function:
         function = data_params["function"]
         if isinstance(function, list):
             function = function[0]
@@ -102,7 +102,7 @@ def get_dgds_data(
 
     image_info = _get_wms_url(
         image_id=returned_url_id,
-        type=data_params.get("type"),
+        type=data_params.get("type") if data_params else "ImageCollection",
         band=band,
         function=function,
         min=min,
@@ -469,7 +469,9 @@ def get_image_collection_info(
     :return: List of dictionaries
     """
     data_params = get_dgds_source_vis_params(source)
-    type = data_params.get("type", "ImageCollection")
+    type = (
+        data_params.get("type", "ImageCollection") if data_params else "ImageCollection"
+    )
 
     # Get images based on source requested
     if type == "ImageCollection":
