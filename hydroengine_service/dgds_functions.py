@@ -34,7 +34,9 @@ def validate_min_lt_max(min, max):
         min = float(min)
         max = float(max)
     except ValueError:
-        raise error_handler.InvalidUsage("Specified min and max values must be numbers.")
+        raise error_handler.InvalidUsage(
+            "Specified min and max values must be numbers."
+        )
     if not min < max:
         raise error_handler.InvalidUsage("Specified min must be less than max.")
 
@@ -49,7 +51,7 @@ def get_dgds_source_vis_params(source, image_id=None):
     data_params = DATASETS_VIS.get(source, None)
     if image_id and not data_params:
         data_params = DATASETS_VIS.get(image_id, None)
-    assert data_params, f"{source} not in assets."
+    # assert data_params, f"{source} not in assets."
     return data_params
 
 
@@ -100,7 +102,7 @@ def get_dgds_data(
 
     image_info = _get_wms_url(
         image_id=returned_url_id,
-        type=data_params["type"],
+        type=data_params.get("type"),
         band=band,
         function=function,
         min=min,
@@ -390,7 +392,7 @@ def visualize_gebco(source, band, min=None, max=None):
 
 
 def _generate_image_info(im, params):
-    """"generate url and tokens for image"""
+    """ "generate url and tokens for image"""
     image = ee.Image(im)
 
     if "sld_style" in params:
@@ -531,7 +533,7 @@ def _get_wms_url(
     max=None,
     palette=None,
     sld_style=None,
-    **_  # ignore extra kwargs
+    **_,  # ignore extra kwargs
 ):
     """
     Get WMS url from image_id
