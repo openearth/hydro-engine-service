@@ -64,6 +64,7 @@ def get_dgds_data(
     start_date=None,
     end_date=None,
     image_num_limit=None,
+    palette=None,
     min=None,
     max=None,
 ):
@@ -105,6 +106,7 @@ def get_dgds_data(
         type=data_params.get("type") if data_params else "ImageCollection",
         band=band,
         function=function,
+        palette=palette,
         min=min,
         max=max,
     )

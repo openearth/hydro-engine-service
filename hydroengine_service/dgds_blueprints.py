@@ -253,6 +253,7 @@ def get_stac_collection():
     start_date = r.get("startDate", None)
     end_date = r.get("endDate", None)
     image_num_limit = r.get("limit", None)
+    palette = r.get("palette", None)
     min = r.get("min", None)
     max = r.get("max", None)
 
@@ -268,6 +269,7 @@ def get_stac_collection():
         start_date=start_date,
         end_date=end_date,
         image_num_limit=image_num_limit,
+        palette=palette,
         min=min,
         max=max,
     )
