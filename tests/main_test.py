@@ -654,3 +654,28 @@ class TestClient:
         result = json.loads(resp.data)
 
         assert result['value'] == -3712.95
+    
+    def test_get_task_status_task_id(self):
+        task_id = 'some_id'
+
+        with self.client as c:
+            res = c.get(
+                '/get_task_status',
+                query_string={'task_id': task_id}
+            )
+        assert res.status_code == 200
+        result = res.data.decode("UTF-8")
+
+        assert result == 'UNKNOWN'
+
+    def test_get_task_status_operation_name(self):
+        operation_name = 'projects/myproject/operations/myoperation'
+
+        with self.client as c:
+            res = c.get(
+                '/get_task_status',
+                query_string={'operation_name': operation_name}
+            )
+        assert res.status_code == 400
+        result = res.data.decode("UTF-8")
+        assert result == 'Resource projects/myproject could not be found.'

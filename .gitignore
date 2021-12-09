@@ -104,3 +104,6 @@ ENV/
 
 # keys
 privatekey*
+
+# vscode
+.vscode

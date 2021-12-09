@@ -1178,6 +1178,51 @@ def get_wms_url():
     )
 
 
+@v1.route('/get_task_status', methods=['GET'])
+@flask_cors.cross_origin()
+def get_task_status():
+    """
+    Get EarthEngine Task state.
+    Request args:
+        task_id or operation_name
+    """
+    operation_name = request.args.get("operation_name")
+    task_id = request.args.get('task_id')
+    # Not converting task id to operation name to keep task == "UNDEFINED" as response from ee
+    if operation_name:
+        try:
+            op_dict = ee.data.getOperation(operation_name)
+        except ee.EEException as e:
+            return str(e), 400
+        return op_dict["state"]
+    elif task_id:
+        res = ee.data.getTaskStatus(task_id)
+        # TODO: check res validity
+        return res[0]["state"]
+    else:
+        return "either use request argument `operation_name` or `task_id`(deprecated)", 400
+
+@v1.route('/get_task_output', methods=['get'])
+@flask_cors.cross_origin()
+def get_task_output():
+    """
+    Get EarthEngine task downloadUrl
+    Request args:
+        task_id or operation_name
+    """
+    operation_name = request.args.get("operation_name")
+    task_id = request.args.get('task_id')
+    if not (task_id or operation_name):
+        return "either use request argument `operation_name` or `task_id`(deprecated)", 400
+    if task_id:
+        operation_name = ee.data._cloud_api_utils.convert_task_id_to_operation_name(task_id)
+    try:
+        op_dict = ee.data.getOperation(operation_name)
+    except ee.EEException as e:
+        return str(e), 400
+    return op_dict["destination_urls"]
+        
+
 @v1.route('/')
 def root():
     return 'Welcome to Hydro Earth Engine. Currently, only RESTful API is supported. Visit <a href="http://github.com/deltares/hydro-engine">http://github.com/deltares/hydro-engine</a> for more information ...'
