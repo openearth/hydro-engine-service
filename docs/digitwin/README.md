@@ -29,6 +29,13 @@ We provide a number of features in our currents api.
 - Custom scale (default 10km)
 
 
+![hycom](hycom.png)
+Example currents from the HYCOM Ocean model. Note the density currents near the Norwegian coast. Hue represent direction. Intensity represents velocity (0-1m/s).
+
+![glossis](glossis.png)
+Example currents from the GLOSSIS Coastal model. Note the tidal currents that circle around the UK. Hue represent direction. Intensity represents velocity (0-1m/s).
+
+
 
 
 ## Methods
