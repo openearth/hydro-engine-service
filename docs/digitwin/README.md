@@ -117,6 +117,7 @@ This service is deployed on the following url:
 https://hydro-engine.appspot.com/
 ```
 
+The Google Earth Engine code for the current calculations can be found in the Google Earth Engine [code editor](https://code.earthengine.google.com/d27b84779bc0935fdf41638a83ced2e6).
 
 
 ## API Reference
