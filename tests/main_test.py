@@ -2,14 +2,27 @@ import os
 import json
 import logging
 import pytest
+import time
 
 from . import auth
+import ee
 
 from hydroengine_service import main
 
 # import palettes
 
 logger = logging.getLogger(__name__)
+
+
+TEST_BUCKET = "hydro-engine-public"
+TEST_SUBFODLER = "test"
+TEST_REGION = ee.Geometry.Polygon([  # Deltares Delft
+  [4.373489981809318,51.97731280009385],
+  [4.398423796811759,51.97731280009385],
+  [4.398423796811759,51.99036964506517],
+  [4.373489981809318,51.99036964506517],
+  [4.373489981809318,51.97731280009385]
+])
 
 
 class TestClient:
@@ -655,7 +668,7 @@ class TestClient:
 
         assert result['value'] == -3712.95
     
-    def test_get_task_status_task_id(self):
+    def test_get_task_status_task_id_na(self):
         task_id = 'some_id'
 
         with self.client as c:
@@ -668,7 +681,31 @@ class TestClient:
 
         assert result == 'UNKNOWN'
 
-    def test_get_task_status_operation_name(self):
+    def test_get_task_status_task_id_exists(self):
+        simpleImage = ee.Image(1)
+        task: ee.batch.Task = ee.batch.Export.image.toCloudStorage(
+            simpleImage,
+            description="testExportImageGCS",
+            bucket=TEST_BUCKET,
+            fileNamePrefix=f"{TEST_SUBFODLER}/test",
+            region=TEST_REGION,
+            scale=30,
+            crs="EPSG:4326"
+        )
+        task.start()
+
+        with self.client as c:
+            res = c.get(
+                '/get_task_status',
+                query_string={'task_id': task.id}
+            )
+            
+        assert res.status_code == 200
+        result = res.data.decode("UTF-8")
+
+        assert result != 'UNKNOWN'
+
+    def test_get_task_status_operation_name_na(self):
         operation_name = 'projects/myproject/operations/myoperation'
 
         with self.client as c:
@@ -679,3 +716,41 @@ class TestClient:
         assert res.status_code == 400
         result = res.data.decode("UTF-8")
         assert result == 'Resource projects/myproject could not be found.'
+    
+    def test_get_task_output(self):
+        simpleImage = ee.Image(1)
+        task: ee.batch.Task = ee.batch.Export.image.toCloudStorage(
+            simpleImage,
+            description="testExportImageGCS",
+            bucket=TEST_BUCKET,
+            fileNamePrefix=f"{TEST_SUBFODLER}/test",
+            region=TEST_REGION,
+            scale=30,
+            crs="EPSG:4326"
+        )
+        task.start()
+        
+        max_wait_time = 180
+        start = time.time()
+        t = 0
+        while t < max_wait_time:
+            with self.client as c:
+                res = c.get(
+                    '/get_task_status',
+                    query_string={'task_id': task.id}
+                )
+            result = res.data.decode("UTF8")
+            if result == "COMPLETED":
+                break
+            time.sleep(10)
+            t = time.time() - start
+        
+        with self.client as c:
+            res = c.get(
+                '/get_task_output',
+                query_string={'task_id': task.id}
+            )
+            
+        assert res.status_code == 200
+        result = res.data.decode("UTF-8")
+        assert json.loads(result)["uris"][0] == "https://console.developers.google.com/storage/browser/hydro-engine-public/test/"

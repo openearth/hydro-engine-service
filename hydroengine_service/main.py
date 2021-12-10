@@ -1220,7 +1220,7 @@ def get_task_output():
         op_dict = ee.data.getOperation(operation_name)
     except ee.EEException as e:
         return str(e), 400
-    return op_dict["destination_urls"]
+    return {"uris": op_dict["metadata"]["destinationUris"]}
         
 
 @v1.route('/')
