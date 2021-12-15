@@ -28,6 +28,8 @@ from hydroengine_service import dgds_functions
 from hydroengine_service import liwo_functions
 from hydroengine_service import digitwin_blueprints
 
+from hydroengine_service import ecopath_blueprints
+
 logger = logging.getLogger(__name__)
 
 logger.setLevel(logging.DEBUG)
@@ -1254,6 +1256,7 @@ app.register_blueprint(v1, url_prefix="/")
 app.register_blueprint(liwo_blueprints.v1, url_prefix="/")
 app.register_blueprint(dgds_blueprints.v1, url_prefix="/")
 app.register_blueprint(digitwin_blueprints.v1, url_prefix="/")
+app.register_blueprint(ecopath_blueprints.v1, url_prefix="/v1/ecopath")
 
 
 if __name__ == '__main__':

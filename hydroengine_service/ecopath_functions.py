@@ -1,14 +1,17 @@
 import ee
 
-def submit_ecopath_job():
+import pandas as pd
+
+def submit_ecopath_jobs():
     # Variable declaration, can be coverted to function args
     scale = 10000
     crs = 'EPSG:3035'
     model = 'HYCOM'
-    t_start = ee.Date('2020-07-01')
+    str_t_start = '2020-07-01'
+    t_start = ee.Date(str_t_start)
     t_stop = ee.Date('2021-07-01')
     bucket = 'slr'
-    debug = False
+    # debug = False
 
 
     extent = [
@@ -33,20 +36,20 @@ def submit_ecopath_job():
     # Get ImageCollections
     hycom_currents = ee.ImageCollection("HYCOM/sea_water_velocity")
     glossis_currents = ee.ImageCollection("projects/dgds-gee/glossis/currents")
-    hycom_temperature = ee.ImageCollection("HYCOM/sea_temp_salinity")
+    # hycom_temperature = ee.ImageCollection("HYCOM/sea_temp_salinity")
 
-    # Settings
-    palette = ['9EB0FF','93AFFA','87ADF4','79ABED','6CA9E6','60A5DF','54A0D5','489ACA','3E90BC',
-        '3787AF','327EA3','2D7597','296B8B','25607C','225771','1E4E65','1B465A','183D4F','153342',
-        '122C38','11242E','101D25','11181C','121214','160E0D','1B0B07','210B03','270D01','2D0E00',
-        '340F00','3B1100','421301','4B1602','541905','5D1E09','68240F','732B16','803620','8A3F2A',
-        '944834','9E513F','A85A4A','B46658','BE6F63','C8796F','D2837A','DD8D86','EA9995','F4A3A1',
-        'FFADAD']  # palettes.crameri.berlin[50]
+    # # Settings
+    # palette = ['9EB0FF','93AFFA','87ADF4','79ABED','6CA9E6','60A5DF','54A0D5','489ACA','3E90BC',
+    #     '3787AF','327EA3','2D7597','296B8B','25607C','225771','1E4E65','1B465A','183D4F','153342',
+    #     '122C38','11242E','101D25','11181C','121214','160E0D','1B0B07','210B03','270D01','2D0E00',
+    #     '340F00','3B1100','421301','4B1602','541905','5D1E09','68240F','732B16','803620','8A3F2A',
+    #     '944834','9E513F','A85A4A','B46658','BE6F63','C8796F','D2837A','DD8D86','EA9995','F4A3A1',
+    #     'FFADAD']  # palettes.crameri.berlin[50]
     period = 'month'
     n_periods = 12
 
     # Determine all start of periods
-    periods = ee.List.sequence(0, n_periods).map(lambda i: t_start.advance(i, period)) 
+    # periods = ee.List.sequence(0, n_periods).map(lambda i: t_start.advance(i, period)) 
 
     # Determine all period ranges 
     def create_period_step(num_period):
@@ -55,6 +58,7 @@ def submit_ecopath_job():
             t_start.advance(ee.Number(num_period).add(1), period)  # until i+1th period
         )
 
+    # period_ranges = pd.date_range(start=t_start, periods=n_periods, freq=pd.DateOffset(months=1))
     period_ranges = ee.List.sequence(0, n_periods - 1).map(create_period_step)
 
     # Prepare the datasets
@@ -93,7 +97,7 @@ def submit_ecopath_job():
 
         selected = selected.filterDate(
             period_range.start(),
-            period_range.stop()
+            period_range.end()
         )
 
         image_count = selected.size()
@@ -105,17 +109,18 @@ def submit_ecopath_job():
         selected = selected.set('units', 'm/s')
         return selected
     
-    def export_map(image, model, export_path, geometry, scale, crs):
-        ee.batch.Export.toCloudStorage(
+    def export_map(image, model, export_path, geometry, scale, crs):  # TODO: model not used
+        task =  ee.batch.Export.image.toCloudStorage(
             image=image,
-            description=export_path.replace('/', '_').replace(":", '_'),  # Regex for /:/g == .replace(":")?
+            description=export_path,  # .replace('/', '_').replace(":", '_'),  # Regex for /:/g == .replace(":")?
             bucket=bucket,
             fileNamePrefix=export_path,
             region=geometry,
             scale=scale,
             crs=crs 
         )
-        return export_path
+        task.start()
+        return task
 
     # Now for some annoying stuff, we need to make a list of all properties
     # so that we can call export with local variables
@@ -138,12 +143,19 @@ def submit_ecopath_job():
     images = ee.ImageCollection(images)
     images = images.filter(ee.Filter.gt('imageCount', 0))
 
-    paths = images.aggregate_array('path')
+    # sort images on path
+    images = images.sort("path")
+    daterange = pd.date_range(start=str_t_start, periods=n_periods, freq=pd.DateOffset(months=1))
+    paths=[f"ecopath_{model}{dr.strftime('%Y-%m-%dT%X').replace(':', '_')}" for dr in daterange]
+    # paths = images.aggregate_array('path')  # TODO: Find a better way to pair paths and images so that .getInfo() is not required
 
-    def export_to_all_paths(paths):
-        def export_path(path):
-            im = images.filter(ee.Filter.eq("path", path)).first()
-            export_map(im, model, path, geometry, scale, crs)
-        paths.map(export_path)
-    
-    paths.evaluate(export_to_all_paths)
+    def export_path(path):
+        im = images.filter(ee.Filter.eq("path", path)).first()
+        return export_map(im, model, path, geometry, scale, crs)
+
+    # task_list = []
+    # for i in range(n_periods):  # evaluate does not work in python
+    #     task_list.append(export_path(paths.get(i)))
+    task_list = [export_path(path) for path in paths]
+        
+    return task_list
