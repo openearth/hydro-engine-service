@@ -22,6 +22,6 @@ ee.Initialize(EE_CREDENTIALS, opt_url="https://earthengine-highvolume.googleapis
 
 class TestClient(unittest.TestCase):
     def test_ecopath_exports(self):
-        tasks = submit_ecopath_jobs(30000, "EPSG:3004", "HYCOM", "2020-07-01", 2)
+        tasks = submit_ecopath_jobs(30000, "EPSG:3035", "HYCOM", "2020-07-01", 2)
         assert type(tasks[0]) == ee.batch.Task
         assert tasks[0].id is not None  # make sure task is started
