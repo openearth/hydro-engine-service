@@ -1,16 +1,19 @@
 import ee
-
 import pandas as pd
 
-def submit_ecopath_jobs():
+def submit_ecopath_jobs(feature):
+      """submit ecopath job for a region with the following properties: model, t_start, t_stop"""
     # Variable declaration, can be coverted to function args
-    scale = 10000
-    crs = 'EPSG:3035'
-    model = 'HYCOM'
-    str_t_start = '2020-07-01'
+    scale = float(feature['properties'].get('scale', 10000))
+    crs = str(crs)
+    model = str(feature['properties'].get('model', 'HYCOM'))
+    assert model in ('HYCOM', 'GLOSSIS'), 'model is not in list of known models'
+    t_start = str(feature['properties'].get('t_start', '2020-07-01'))
+    # convert to date
+    t_start = ee.Date(t_start)
     t_start = ee.Date(str_t_start)
     t_stop = ee.Date('2021-07-01')
-    bucket = 'slr'
+    bucket = 'hydro_engine_public'
     # debug = False
 
 
@@ -36,7 +39,6 @@ def submit_ecopath_jobs():
     # Get ImageCollections
     hycom_currents = ee.ImageCollection("HYCOM/sea_water_velocity")
     glossis_currents = ee.ImageCollection("projects/dgds-gee/glossis/currents")
-    # hycom_temperature = ee.ImageCollection("HYCOM/sea_temp_salinity")
 
     # # Settings
     # palette = ['9EB0FF','93AFFA','87ADF4','79ABED','6CA9E6','60A5DF','54A0D5','489ACA','3E90BC',
@@ -109,7 +111,7 @@ def submit_ecopath_jobs():
         selected = selected.set('units', 'm/s')
         return selected
     
-    def export_map(image, model, export_path, geometry, scale, crs):  # TODO: model not used
+    def export_map(image, export_path, geometry, scale, crs):  # TODO: model not used
         task =  ee.batch.Export.image.toCloudStorage(
             image=image,
             description=export_path,  # .replace('/', '_').replace(":", '_'),  # Regex for /:/g == .replace(":")?
@@ -145,11 +147,12 @@ def submit_ecopath_jobs():
 
     # sort images on path
     images = images.sort("path")
-    daterange = pd.date_range(start=str_t_start, periods=n_periods, freq=pd.DateOffset(months=1))
+    date_range = pd.date_range(start=str_t_start, periods=n_periods, freq=pd.DateOffset(months=1))
     paths=[f"ecopath_{model}{dr.strftime('%Y-%m-%dT%X').replace(':', '_')}" for dr in daterange]
     # paths = images.aggregate_array('path')  # TODO: Find a better way to pair paths and images so that .getInfo() is not required
 
     def export_path(path):
+        # find the image that corresponds to the path
         im = images.filter(ee.Filter.eq("path", path)).first()
         return export_map(im, model, path, geometry, scale, crs)
 
