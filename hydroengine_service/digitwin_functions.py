@@ -320,7 +320,7 @@ def submit_ecopath_jobs(scale, crs, model, t_start, n_periods):
     def export_map(image, export_path, geometry, scale, crs):
         task =  ee.batch.Export.image.toCloudStorage(
             image=image,
-            description=export_path,
+            description=export_path.replace('/', '_').replace(':', '_'),
             bucket=bucket,
             fileNamePrefix=export_path,
             region=geometry,
@@ -355,7 +355,7 @@ def submit_ecopath_jobs(scale, crs, model, t_start, n_periods):
     images = images.sort("path")
     # paths will shading images "path" property as a list
     date_range = pd.date_range(start=t_start, periods=n_periods, freq=pd.DateOffset(months=1))
-    paths=[f"ecopath_{model}{dr.strftime('%Y-%m-%dT%X').replace(':', '_')}" for dr in date_range]
+    paths=[f"ecopath/{model}{dr.strftime('%Y-%m-%dT%X')}" for dr in date_range]
 
     def export_path(path):
         # find the image that corresponds to the path
