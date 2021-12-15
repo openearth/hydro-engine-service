@@ -13,9 +13,8 @@ class TestClient(unittest.TestCase):
 
     def test_submit_ecopath_job(self):
         with self.client as c:
-            res = c.post("/v1/ecopath/data")
+            res = c.post("/start_water_velocity_jobs")
         
-        print(res)
         assert res.status_code == 200
 
         result = json.loads(res.data.decode("UTF-8"))
