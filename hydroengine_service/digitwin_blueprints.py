@@ -3,10 +3,11 @@ import json
 import ee
 import flask_cors
 import geojson
-from flask import request, Response
+from flask import request, Response, jsonify
 from flask import Blueprint
 
 from hydroengine_service import digitwin_functions
+from hydroengine_service.digitwin_functions import KNOWN_MODELS, submit_ecopath_jobs
 
 v1 = Blueprint("digitwin-v1", __name__)
 v2 = Blueprint('digitwin-v2', __name__)
@@ -80,3 +81,21 @@ def get_windfarm_data():
         mimetype='application/json'
     )
     return response
+
+@v1.route("/start_water_velocity_jobs", methods=["POST"])
+@flask_cors.cross_origin()
+def get_current_data():
+    args = request.args
+    scale = float(args.get('scale', 10000))
+    crs = str(args.get('crs', 'EPSG:3035'))
+    model = str(args.get('model', 'HYCOM'))
+    if not model in KNOWN_MODELS:
+        return f'model is not in list of known models {KNOWN_MODELS}', 400
+    t_start = str(args.get('t_start', '2020-07-01'))
+    n_periods = int(args.get('n_periods', 12))
+    tasks = submit_ecopath_jobs(scale, crs, model, t_start, n_periods)
+    # Give back the task name plus id
+    return jsonify([{
+        "task_id": task.id,
+        "description": task.config["description"]
+    } for task in tasks])

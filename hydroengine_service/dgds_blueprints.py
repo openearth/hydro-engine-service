@@ -212,6 +212,21 @@ def get_gll_dtm_data():
     return Response(json.dumps(image_info), status=200, mimetype="application/json")
 
 
+@v1.route("/get_stac_item", methods=["GET", "POST"])
+@flask_cors.cross_origin()
+def get_stac_item():
+
+    # Parse both GET keyword arguments as POST json data
+    r = {}
+    r.update(request.args)
+    postdata = request.get_json()
+    if postdata:
+        r.update(postdata)
+
+    wms = dgds_functions._get_wms_url(**r)
+    return wms
+
+
 @v1.route("/get_elevation_data", methods=["GET", "POST"])
 @flask_cors.cross_origin()
 def get_elevation_data():

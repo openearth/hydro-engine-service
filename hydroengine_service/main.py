@@ -9,8 +9,6 @@ import logging
 import os
 
 import ee
-import numpy as np
-import geojson
 import flask_cors
 from flask import Flask
 from flask import request, Response
@@ -25,7 +23,6 @@ from hydroengine_service import dgds_blueprints
 from hydroengine_service import river_functions
 from hydroengine_service import dgds_functions
 
-from hydroengine_service import liwo_functions
 from hydroengine_service import digitwin_blueprints
 
 logger = logging.getLogger(__name__)

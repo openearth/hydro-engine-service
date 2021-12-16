@@ -296,13 +296,13 @@
             "waterlevel_100": 7.0
         },
         "palette": {
-            "waterlevel_2": ["151d44", "1c455b", "156d73", "2a937f", "7db390", "c3d1ba", "fff6f4"],
-            "waterlevel_5": ["151d44", "1c455b", "156d73", "2a937f", "7db390", "c3d1ba", "fff6f4"],
-            "waterlevel_10": ["151d44", "1c455b", "156d73", "2a937f", "7db390", "c3d1ba", "fff6f4"],
-            "waterlevel_25": ["151d44", "1c455b", "156d73", "2a937f", "7db390", "c3d1ba", "fff6f4"],
-            "waterlevel_50": ["151d44", "1c455b", "156d73", "2a937f", "7db390", "c3d1ba", "fff6f4"],
-            "waterlevel_75": ["151d44", "1c455b", "156d73", "2a937f", "7db390", "c3d1ba", "fff6f4"],
-            "waterlevel_100": ["151d44", "1c455b", "156d73", "2a937f", "7db390", "c3d1ba", "fff6f4"]
+            "waterlevel_2": ["#151d44", "#1c455b", "#156d73", "#2a937f", "#7db390", "#c3d1ba", "#fff6f4"],
+            "waterlevel_5": ["#151d44", "#1c455b", "#156d73", "#2a937f", "#7db390", "#c3d1ba", "#fff6f4"],
+            "waterlevel_10": ["#151d44", "#1c455b", "#156d73", "#2a937f", "#7db390", "#c3d1ba", "#fff6f4"],
+            "waterlevel_25": ["#151d44", "#1c455b", "#156d73", "#2a937f", "#7db390", "#c3d1ba", "#fff6f4"],
+            "waterlevel_50": ["#151d44", "#1c455b", "#156d73", "#2a937f", "#7db390", "#c3d1ba", "#fff6f4"],
+            "waterlevel_75": ["#151d44", "#1c455b", "#156d73", "#2a937f", "#7db390", "#c3d1ba", "#fff6f4"],
+            "waterlevel_100": ["#151d44", "#1c455b", "#156d73", "#2a937f", "#7db390", "#c3d1ba", "#fff6f4"]
         }
     },
     "projects/dgds-gee/gtsm/tidal_indicators": {
@@ -386,7 +386,7 @@
     "projects/dgds-gee/crucial/evaporation_deficit": {
         "type": "ImageCollection",
         "bandNames": {
-            "evaporation_deficit": "evaporation_deficit"
+            "evaporation_deficit": "b1"
         },
         "min": {
             "evaporation_deficit": 0

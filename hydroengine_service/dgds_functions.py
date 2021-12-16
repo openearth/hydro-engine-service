@@ -530,6 +530,8 @@ def _get_wms_url(
     min=None,
     max=None,
     palette=None,
+    sld_style=None,
+    **_  # ignore extra kwargs
 ):
     """
     Get WMS url from image_id
@@ -621,6 +623,8 @@ def _get_wms_url(
         vis_params["max"] = max
     if palette:
         vis_params["palette"] = palette
+    if sld_style:
+        vis_params["sld_style"] = sld_style
 
     if source == "projects/dgds-gee/gloffis/hydro":
         image = image.mask(image.gte(0))
