@@ -1188,12 +1188,12 @@ def get_task_status():
     # Not converting task id to operation name to keep task == "UNDEFINED" as response from ee
     if operation_name:
         try:
-            op_dict = ee.data.getOperation(operation_name)
+            op_dict = ee.data.getOperation(str(operation_name))
         except ee.EEException as e:
             return str(e), 400
         return op_dict["state"]
     elif task_id:
-        res = ee.data.getTaskStatus(task_id)
+        res = ee.data.getTaskStatus(str(task_id))
         # TODO: check res validity
         return res[0]["state"]
     else:
@@ -1212,9 +1212,9 @@ def get_task_output():
     if not (task_id or operation_name):
         return "either use request argument `operation_name` or `task_id`(deprecated)", 400
     if task_id:
-        operation_name = ee.data._cloud_api_utils.convert_task_id_to_operation_name(task_id)
+        operation_name = ee.data._cloud_api_utils.convert_task_id_to_operation_name(str(task_id))
     try:
-        op_dict = ee.data.getOperation(operation_name)
+        op_dict = ee.data.getOperation(str(operation_name))
     except ee.EEException as e:
         return str(e), 400
     return {"uris": op_dict["metadata"]["destinationUris"]}
