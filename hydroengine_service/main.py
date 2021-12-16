@@ -9,8 +9,6 @@ import logging
 import os
 
 import ee
-import numpy as np
-import geojson
 import flask_cors
 from flask import Flask
 from flask import request, Response
@@ -25,7 +23,6 @@ from hydroengine_service import dgds_blueprints
 from hydroengine_service import river_functions
 from hydroengine_service import dgds_functions
 
-from hydroengine_service import liwo_functions
 from hydroengine_service import digitwin_blueprints
 
 logger = logging.getLogger(__name__)
@@ -1177,6 +1174,51 @@ def get_wms_url():
         mimetype='application/json'
     )
 
+
+@v1.route('/get_task_status', methods=['GET'])
+@flask_cors.cross_origin()
+def get_task_status():
+    """
+    Get EarthEngine Task state.
+    Request args:
+        task_id or operation_name
+    """
+    operation_name = request.args.get("operation_name")
+    task_id = request.args.get('task_id')
+    # Not converting task id to operation name to keep task == "UNDEFINED" as response from ee
+    if operation_name:
+        try:
+            op_dict = ee.data.getOperation(operation_name)
+        except ee.EEException as e:
+            return str(e), 400
+        return op_dict["state"]
+    elif task_id:
+        res = ee.data.getTaskStatus(task_id)
+        # TODO: check res validity
+        return res[0]["state"]
+    else:
+        return "either use request argument `operation_name` or `task_id`(deprecated)", 400
+
+@v1.route('/get_task_output', methods=['get'])
+@flask_cors.cross_origin()
+def get_task_output():
+    """
+    Get EarthEngine task downloadUrl
+    Request args:
+        task_id or operation_name
+    """
+    operation_name = request.args.get("operation_name")
+    task_id = request.args.get('task_id')
+    if not (task_id or operation_name):
+        return "either use request argument `operation_name` or `task_id`(deprecated)", 400
+    if task_id:
+        operation_name = ee.data._cloud_api_utils.convert_task_id_to_operation_name(task_id)
+    try:
+        op_dict = ee.data.getOperation(operation_name)
+    except ee.EEException as e:
+        return str(e), 400
+    return {"uris": op_dict["metadata"]["destinationUris"]}
+        
 
 @v1.route('/')
 def root():
