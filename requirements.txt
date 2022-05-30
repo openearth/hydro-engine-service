@@ -1,8 +1,9 @@
 Flask==1.1.*
+protobuf==3.19.4
 scipy
 geojson
 Flask-Cors==3.*
-earthengine-api>=0.1.241
+earthengine-api>=0.1.311
 gunicorn==20.*
 requests==2.*
 oauth2client==4.1.*
