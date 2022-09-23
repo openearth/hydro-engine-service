@@ -1,5 +1,5 @@
 Flask==1.1.*
-protobuf==3.19.4
+protobuf==3.19.5
 scipy
 geojson
 Flask-Cors==3.*
