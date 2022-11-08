@@ -57,11 +57,20 @@ def get_feature_info():
     # get the liwo scenario ids
     mapid = r["mapid"]
     bbox = r["bbox"]
+    scale = 100
 
-    image = hydroengine_service.cache.image_from_cache(mapid)
-    # TODO filter by bbox
+    geometry = ee.Geometry(bbox)
 
-    return Response(json.dumps(result), status=200, mimetype="application/json")
+    try:
+        image = hydroengine_service.cache.image_from_cache(mapid)
+
+        result = image.reduceRegion(
+            ee.Reducer.first(), geometry, scale
+        ).getInfo()
+
+        return Response(json.dumps(result), status=200, mimetype="application/json")
+    except:
+        return Response("No image available", status=200, mimetype="application/json")
 
 
 @v2.route("/get_liwo_scenarios", methods=["GET", "POST"])
@@ -103,11 +112,13 @@ def get_liwo_scenarios():
     image = liwo_functions.filter_liwo_collection_v2(
         collection, id_key, liwo_ids, band_name, reducer
     )
-    # cache the image so that we can retrieve it by mapid
-    hydroengine_service.cache.cache_image(image)
 
     params = liwo_functions.get_liwo_styling(band)
     info = liwo_functions.generate_image_info(image, params)
+
+    # cache the image so that we can retrieve it by mapid
+    hydroengine_service.cache.cache_image(image, info["mapid"])
+
     info["liwo_ids"] = liwo_ids
     info["band"] = band
 

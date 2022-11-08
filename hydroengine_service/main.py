@@ -40,7 +40,17 @@ consoleHandler.setFormatter(logFormatter)
 
 logger.addHandler(consoleHandler)
 
+config.load_env()
+
 app = Flask(__name__)
+
+app.config["CACHE_TYPE"]=os.environ.get("CACHE_TYPE")
+
+if os.environ.get("CACHE_TYPE") == 'redis':
+    app.config["CACHE_REDIS_HOST"]=os.environ.get("CACHE_REDIS_HOST")
+    app.config["CACHE_REDIS_PORT"]=os.environ.get("CACHE_REDIS_PORT")
+    app.config["CACHE_REDIS_DB"]=os.environ.get("CACHE_REDIS_DB")
+    app.config["CACHE_REDIS_URL"]=os.environ.get("CACHE_REDIS_URL")
 
 # first configure the cache
 cache.init_app(app)

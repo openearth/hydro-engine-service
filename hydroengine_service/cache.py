@@ -6,13 +6,11 @@ from flask_caching import Cache
 cache = Cache()
 
 
-def cache_image(image):
+def cache_image(image, mapid):
     """store the json version of the DAG in the cache"""
-    mapid = image.getMapId()["mapid"]
     serialized = ee.data.serializer.toJSON(image)
     # store the dag in the cache
     cache.set(mapid, serialized)
-
 
 def image_from_cache(mapid):
     """get an image based on the DAG stored in the cache"""
