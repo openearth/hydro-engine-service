@@ -7,7 +7,7 @@ from flask import Blueprint
 
 import hydroengine_service.cache
 
-from hydroengine_service import liwo_functions
+from hydroengine_service import error_handler, liwo_functions
 
 v1 = Blueprint("liwo-v1", __name__)
 v2 = Blueprint("liwo-v2", __name__)
@@ -55,14 +55,14 @@ def get_feature_info():
     r = request.get_json()
 
     # get the liwo scenario ids
-    mapid = r["mapid"]
+    image_id = r["imageId"]
     bbox = r["bbox"]
     scale = 100
 
     geometry = ee.Geometry(bbox)
 
     try:
-        image = hydroengine_service.cache.image_from_cache(mapid)
+        image = hydroengine_service.cache.image_from_cache(image_id)
 
         result = image.reduceRegion(
             ee.Reducer.first(), geometry, scale
@@ -70,7 +70,7 @@ def get_feature_info():
 
         return Response(json.dumps(result), status=200, mimetype="application/json")
     except:
-        return Response("No image available", status=200, mimetype="application/json")
+        raise error_handler.InvalidUsage("No images returned.")
 
 
 @v2.route("/get_liwo_scenarios", methods=["GET", "POST"])
@@ -113,12 +113,12 @@ def get_liwo_scenarios():
         collection, id_key, liwo_ids, band_name, reducer
     )
 
+    # cache the image so that we can retrieve it by mapid
+    data_id  = hydroengine_service.cache.cache_image(image)
+
     params = liwo_functions.get_liwo_styling(band)
     info = liwo_functions.generate_image_info(image, params)
-
-    # cache the image so that we can retrieve it by mapid
-    hydroengine_service.cache.cache_image(image, info["mapid"])
-
+    info["data_id"] = data_id
     info["liwo_ids"] = liwo_ids
     info["band"] = band
 
