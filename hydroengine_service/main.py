@@ -1297,20 +1297,20 @@ def server_error(e):
 app.register_blueprint(v1, url_prefix="/v1", name="v1")
 app.register_blueprint(v2, url_prefix="/v2", name="v2")
 
-app.register_blueprint(liwo_blueprints.v1, url_prefix="/v1")
-app.register_blueprint(liwo_blueprints.v2, url_prefix="/v2")
+app.register_blueprint(liwo_blueprints.v1, url_prefix="/v1", name="liwo-v1")
+app.register_blueprint(liwo_blueprints.v2, url_prefix="/v2", name="liwo-v2")
 
-app.register_blueprint(dgds_blueprints.v1, url_prefix="/v1")
-app.register_blueprint(dgds_blueprints.v2, url_prefix="/v2")
+app.register_blueprint(dgds_blueprints.v1, url_prefix="/v1", name="dgds-v1")
+app.register_blueprint(dgds_blueprints.v2, url_prefix="/v2", name="dgds-v2")
 
-app.register_blueprint(digitwin_blueprints.v1, url_prefix="/v1")
-app.register_blueprint(digitwin_blueprints.v2, url_prefix="/v2")
+app.register_blueprint(digitwin_blueprints.v1, url_prefix="/v1", name="digitwin-v1")
+app.register_blueprint(digitwin_blueprints.v2, url_prefix="/v2", name="digitwin-v2")
 
 # use version 1
-app.register_blueprint(v1, url_prefix="/", name="default")
-app.register_blueprint(liwo_blueprints.v1, url_prefix="/", name="default-liwo")
-app.register_blueprint(dgds_blueprints.v1, url_prefix="/", name="default-dgds")
-app.register_blueprint(digitwin_blueprints.v1, url_prefix="/", name="default-digitwin")
+app.register_blueprint(v1, url_prefix="/", name="root")
+app.register_blueprint(liwo_blueprints.v1, url_prefix="/", name="liwo-root")
+app.register_blueprint(dgds_blueprints.v1, url_prefix="/", name="dgds-root")
+app.register_blueprint(digitwin_blueprints.v1, url_prefix="/", name="digitwin-root")
 
 
 if __name__ == "__main__":
