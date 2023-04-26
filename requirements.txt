@@ -11,3 +11,6 @@ Click==6.*
 numpy==1.*
 six>=1.13.0,<2dev
 pandas~=1.0.5
+Flask-Caching==1.10.1
+redis
+python-dotenv
