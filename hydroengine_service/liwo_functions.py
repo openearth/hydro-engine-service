@@ -149,6 +149,55 @@ def filter_liwo_collection_v2(collection_path, id_key, scenario_ids, band, reduc
     image = image.clip(bounds)
     return image
 
+def filter_liwo_collection_v3(collection_path, id_key, scenario_ids, band, reducer):
+    """
+    Create combined max image from collection. Version 2 based on named image bands
+    :param collection_path: Path to Earth Engine Image Collection
+    :param id_key: Metadata key name for unique ids
+    :param scenario_ids: List of scenario ids to combine
+    :param band: band of image to select
+    :param reducer: reducer operation by which to combine images
+    :return: combined image
+    """
+    # Filter based on scenario id, band
+    scenarios = ee.ImageCollection(collection_path)
+
+    if type(scenarios.first().get("Scenario_ID").getInfo()) == int:
+        scenarios = scenarios.filter(ee.Filter.inList(id_key, scenario_ids))
+    elif type(scenarios.first().get("Scenario_ID").getInfo()) == str:
+        scenario_ids = [str(x) for x in scenario_ids]
+        scenarios = scenarios.filter(ee.Filter.inList(id_key, scenario_ids))
+
+    scenarios = scenarios.select(band)
+    n_selected = scenarios.size().getInfo()
+
+    if n_selected == 0:
+        msg = 'No images available for breach locations: %s' % (scenario_ids,)
+        logger.debug(msg)
+        raise error_handler.InvalidUsage(msg)
+        # raise ValueError("No images with band {} in scenario_ids {}".format(band, scenario_ids))
+
+    if len(scenario_ids) != n_selected:
+        logging.info(
+            "collection {}, missing {} scenarios for band {}".format(collection_path, len(scenario_ids) - n_selected, band)
+        )
+
+    bounds = scenarios.geometry().bounds()
+
+    # reduce image
+    reduce_func = getattr(ee.Reducer, reducer)()
+    if reducer == 'min':
+        # Aankomstijden <= 0 should not be included in the aggregated minimum
+        scenarios = scenarios.map(lambda i: i.mask(i.gt(0)))
+
+    image = ee.Image(scenarios.reduce(reduce_func))
+    if reducer == 'max':
+        # Do not display any values <= 0 (Some no data values assigned as 0 and not -9999).
+        image = image.mask(image.gt(0))
+
+    # reclip by bounds
+    image = image.clip(bounds)
+    return image
 
 def generate_image_info(im, params):
     """generate url and tokens for image"""

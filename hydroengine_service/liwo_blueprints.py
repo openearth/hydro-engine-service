@@ -11,10 +11,39 @@ from hydroengine_service import error_handler, liwo_functions
 
 v1 = Blueprint("liwo-v1", __name__)
 v2 = Blueprint("liwo-v2", __name__)
+v3 = Blueprint("liwo-v3", __name__)
 
 
 DEFAULT_COLLECTION = "projects/deltares-rws/liwo/2021_0_3"
 
+@v3.route("/get_liwo_scenarios_info", methods=["POST"])
+@flask_cors.cross_origin()
+def get_liwo_scenarios_info():
+    """return info abbout scenarios, expects {"liwo_ids": [10001, 10002]}"""
+
+    # parse request
+    r = request.get_json()
+
+    # get the liwo scenario ids
+    liwo_ids = r["liwo_ids"]
+
+    # hard coded version
+    collection = r.get("collection", DEFAULT_COLLECTION)
+
+    # load the image collection
+    scenarios = ee.ImageCollection(collection)
+
+    # filter the requested scenarios
+    selected = scenarios.filter(ee.Filter.inList("Scenario_ID", liwo_ids))
+
+    # get all properties
+    def scenario_info(im):
+        feature = ee.Feature(im)
+        return feature.bounds(10)
+
+    # return geojson
+    result = selected.map(scenario_info).getInfo()
+    return Response(json.dumps(result), status=200, mimetype="application/json")
 
 @v2.route("/get_liwo_scenarios_info", methods=["POST"])
 @flask_cors.cross_origin()
@@ -45,6 +74,32 @@ def get_liwo_scenarios_info():
     result = selected.map(scenario_info).getInfo()
     return Response(json.dumps(result), status=200, mimetype="application/json")
 
+@v3.route("/get_feature_info", methods=["POST"])
+@flask_cors.cross_origin()
+def get_feature_info():
+    """return info about a geometry in a an image"""
+
+    # parse request
+    r = request.get_json()
+
+    # get the liwo scenario ids
+    image_id = r["imageId"]
+    bbox = r["bbox"]
+    scale = 100
+
+    geometry = ee.Geometry(bbox)
+
+    try:
+        image = hydroengine_service.cache.image_from_cache(image_id)
+
+        result = image.reduceRegion(
+            ee.Reducer.first(), geometry, scale
+        ).getInfo()
+
+        return Response(json.dumps(result), status=200, mimetype="application/json")
+    except:
+        raise error_handler.InvalidUsage("No images returned.")
+
 
 @v2.route("/get_feature_info", methods=["POST"])
 @flask_cors.cross_origin()
@@ -72,6 +127,68 @@ def get_feature_info():
     except:
         raise error_handler.InvalidUsage("No images returned.")
 
+@v3.route("/get_liwo_scenarios", methods=["GET", "POST"])
+@flask_cors.cross_origin()
+def get_liwo_scenarios():
+    r = request.get_json()
+
+    # name of breach location as string
+    liwo_ids = r["liwo_ids"]
+    # band name as string
+    band = r["band"]
+
+    collection = r.get("collection", DEFAULT_COLLECTION)
+
+    id_key = "Scenario_ID"
+    bands = {
+        "waterdepth": "waterdiepte",
+        "velocity": "stroomsnelheid",
+        "riserate": "stijgsnelheid",
+        "damage": "schade",
+        "fatalities": "slachtoffers",
+        "affected": "getroffenen",
+        "arrivaltime": "aankomsttijd",
+    }
+    reducers = {
+        "waterdepth": "max",
+        "velocity": "max",
+        "riserate": "max",
+        "damage": "max",
+        "fatalities": "max",
+        "affected": "max",
+        "arrivaltime": "min",
+    }
+
+    assert band in bands
+    band_name = bands[band]
+    reducer = reducers[band]
+
+    image = liwo_functions.filter_liwo_collection_v3(
+        collection, id_key, liwo_ids, band_name, reducer
+    )
+
+    # cache the image so that we can retrieve it by mapid
+    data_id  = hydroengine_service.cache.cache_image(image)
+
+    params = liwo_functions.get_liwo_styling(band)
+    info = liwo_functions.generate_image_info(image, params)
+    info["data_id"] = data_id
+    info["liwo_ids"] = liwo_ids
+    info["band"] = band
+
+    # Following needed for export:
+    # Specify region over which to compute
+    region = image.geometry()
+
+    if r.get("export"):
+        # default to 5m
+        info["scale"] = r.get("scale", 5)
+        # always
+        info["crs"] = r.get("crs", "EPSG:4326")
+        extra_info = liwo_functions.export_image_response(image, region, info)
+        info.update(extra_info)
+
+    return Response(json.dumps(info), status=200, mimetype="application/json")
 
 @v2.route("/get_liwo_scenarios", methods=["GET", "POST"])
 @flask_cors.cross_origin()

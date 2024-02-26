@@ -1299,6 +1299,7 @@ app.register_blueprint(v2, url_prefix="/v2", name="v2")
 
 app.register_blueprint(liwo_blueprints.v1, url_prefix="/v1", name="liwo-v1")
 app.register_blueprint(liwo_blueprints.v2, url_prefix="/v2", name="liwo-v2")
+app.register_blueprint(liwo_blueprints.v3, url_prefix="/v3", name="liwo-v3")
 
 app.register_blueprint(dgds_blueprints.v1, url_prefix="/v1", name="dgds-v1")
 app.register_blueprint(dgds_blueprints.v2, url_prefix="/v2", name="dgds-v2")
