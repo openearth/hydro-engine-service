@@ -540,7 +540,7 @@ def get_water_mask_raw():
     return Response(json.dumps(data), status=200, mimetype='application/json')
 
 
-def get_water_mask_vector(region, scale, start, stop):
+def get_water_mask_vector(region, scale, start, stop, largest_only=True):
     #  water occurrence(monthly)
     water_occurrence = monthly_water \
         .filterDate(start, stop) \
@@ -560,15 +560,17 @@ def get_water_mask_vector(region, scale, start, stop):
     water_mask_vector = water_mask.mask(water_mask) \
         .reduceToVectors(**{"geometry": region,
                             "scale": scale / 2,
-                            "tileScale": 4})
+                            "tileScale": 4,
+                            "bestEffort": True})
 
     # take the largest
-    water_mask_vector = water_mask_vector \
-        .map(lambda o: o.set({"area": o.area(scale)}))
+    if largest_only:
+        water_mask_vector = water_mask_vector \
+            .map(lambda o: o.set({"area": o.area(scale)}))
 
-    water_mask_vector = ee.Feature(
-        water_mask_vector.sort('area', False).first()
-    )
+        water_mask_vector = ee.Feature(
+            water_mask_vector.sort('area', False).first()
+        )
 
     # simplify
     water_mask_vector = water_mask_vector.simplify(scale * 1.5)
@@ -597,8 +599,9 @@ def get_water_mask():
     stop = j['stop']
     scale = j['scale']
     crs = j['crs']
+    largest_only = j.get('largest_only', True)
 
-    water_mask_vector = get_water_mask_vector(region, scale, start, stop)
+    water_mask_vector = get_water_mask_vector(region, scale, start, stop, largest_only)
 
     if crs and crs != 'EPSG:4326':
         water_mask_vector = water_mask_vector.map(transform_feature(crs, scale))
@@ -619,18 +622,22 @@ def get_water_network():
     Skeletonize water mask given boundary, converts it into a network
     (undirected graph) and generates a feature collection
     Script: https://code.earthengine.google.com/da4dd67e84910ca42c4f82c41e7f9bcb
+
+    TODO: add function to use given water_mask
     """
 
     j = request.json
 
+    use_url = j.get('use_url', False)
     region = ee.Geometry(j['region'])
     start = j['start']
     stop = j['stop']
     scale = j['scale']
     crs = j['crs']
+    largest_only = j.get('largest_only', True)
 
     # get water mask
-    water_vector = get_water_mask_vector(region, scale, start, stop)
+    water_vector = get_water_mask_vector(region, scale, start, stop, largest_only)
 
     # skeletonize
     output = river_functions.generate_skeleton_from_voronoi(scale, water_vector)
@@ -643,7 +650,11 @@ def get_water_network():
         centerline = centerline.map(transform_feature(crs, scale))
 
     # create response
-    data = centerline.getInfo()
+    if use_url:
+        url = centerline.getDownloadURL('json')
+        data = {'url': url}
+    else:
+        data = centerline.getInfo()
 
     return Response(json.dumps(data), status=200, mimetype='application/json')
 
@@ -652,18 +663,20 @@ def get_water_network():
 def get_water_network_properties():
     """
     Generates variables along water skeleton network polylines.
+
+    TODO: add function to use given water_mask and water_network
     """
 
     j = request.json
 
+    use_url = j.get('use_url', False)
     region = ee.Geometry(j['region'])
     start = j['start']
     stop = j['stop']
     scale = j['scale']
-
     step = j['step']
-
     crs = j['crs']
+    largest_only = j.get('largest_only', True)
 
     error = ee.ErrorMargin(scale / 2, 'meters')
 
@@ -672,7 +685,7 @@ def get_water_network_properties():
             'TODO: re-using existing networks is not supported yet')
 
     # get water mask
-    water_vector = get_water_mask_vector(region, scale, start, stop)
+    water_vector = get_water_mask_vector(region, scale, start, stop, largest_only)
 
     # skeletonize
     output = river_functions.generate_skeleton_from_voronoi(scale, water_vector)
@@ -761,7 +774,11 @@ def get_water_network_properties():
         points = points.map(transform_feature(crs, scale))
 
     # create response
-    data = points.getInfo()
+    if use_url:
+        url = points.getDownloadURL('json')
+        data = {'url': url}
+    else:
+        data = points.getInfo()
 
     return Response(json.dumps(data), status=200, mimetype='application/json')
 
