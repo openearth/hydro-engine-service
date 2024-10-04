@@ -8,8 +8,8 @@ from flask import Blueprint
 from hydroengine_service import liwo_functions
 
 v1 = Blueprint("liwo-v1", __name__)
-v2 = Blueprint('liwo-v2', __name__)
-
+v2 = Blueprint("liwo-v2", __name__)
+v3 = Blueprint("liwo-v3", __name__)
 
 DEFAULT_COLLECTION = 'projects/deltares-rws/liwo/2021_0_3'
 
@@ -45,6 +45,67 @@ def get_liwo_scenarios_info():
     result = selected.map(scenario_info).getInfo()
     return Response(
         json.dumps(result),
+        status=200,
+        mimetype='application/json'
+    )
+
+@v3.route('/get_liwo_scenarios', methods=['GET', 'POST'])
+@flask_cors.cross_origin()
+def get_liwo_scenarios():
+    r = request.get_json()
+
+    # name of breach location as string
+    liwo_ids = r['liwo_ids']
+    # band name as string
+    band = r['band']
+
+    collection = r.get('collection', DEFAULT_COLLECTION)
+
+    id_key = 'Scenario_ID'
+    bands = {
+        'waterdepth': 'waterdiepte',
+        'velocity': 'stroomsnelheid',
+        'riserate': 'stijgsnelheid',
+        'damage': 'schade',
+        'fatalities': 'slachtoffers',
+        'affected': 'getroffenen',
+        'arrivaltime': 'aankomsttijd'
+    }
+    reducers = {
+        "waterdepth": "max",
+        "velocity": "max",
+        "riserate": "max",
+        "damage": "max",
+        "fatalities": "max",
+        "affected": "max",
+        "arrivaltime": "min"
+    }
+
+    assert band in bands
+    band_name = bands[band]
+    reducer = reducers[band]
+
+    image = liwo_functions.filter_liwo_collection_v3(collection, id_key, liwo_ids, band_name, reducer)
+
+    params = liwo_functions.get_liwo_styling(band)
+    info = liwo_functions.generate_image_info(image, params)
+    info['liwo_ids'] = liwo_ids
+    info['band'] = band
+
+    # Following needed for export:
+    # Specify region over which to compute
+    region = image.geometry()
+
+    if r.get('export'):
+        # default to 5m
+        info['scale'] = r.get('scale', 5)
+        # always
+        info['crs'] = r.get('crs', 'EPSG:4326')
+        extra_info = liwo_functions.export_image_response(image, region, info)
+        info.update(extra_info)
+
+    return Response(
+        json.dumps(info),
         status=200,
         mimetype='application/json'
     )
