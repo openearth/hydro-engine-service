@@ -3,7 +3,7 @@ env: flex
 entrypoint: gunicorn --timeout 300 -b :$PORT hydroengine_service.main:app
 
 runtime_config:
-  python_version: 3
+  operating_system: ubuntu22
 
 manual_scaling:
   instances: 1
